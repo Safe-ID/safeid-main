@@ -15,9 +15,15 @@ dist
 coverage
 .jest
 .nyc_output
-prisma/migrations
 
 # Elastic Beanstalk Files
 .elasticbeanstalk/*
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
+
+#scripts aws CLI
+
+create-database.ps1
+create-redis.ps1
+push-ecr-image.ps1
+deploy-ecs-fargate.ps1

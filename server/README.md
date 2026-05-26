@@ -178,6 +178,38 @@ docker-compose down
 docker-compose logs -f app
 ```
 
+## ☁️ AWS Deploy
+
+### Enviar imagem para o ECR
+
+```powershell
+.\push-ecr-image.ps1 -Action Create -AwsRegion sa-east-1 -RepositoryName safeid-backend -ImageTag latest
+```
+
+### Subir a aplicação no ECS Fargate com ALB
+
+```powershell
+.\deploy-ecs-fargate.ps1 -Action Create `
+  -AwsRegion sa-east-1 `
+  -ImageUri 123456789012.dkr.ecr.sa-east-1.amazonaws.com/safeid-backend:latest `
+  -AcmCertificateArn arn:aws:acm:sa-east-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx `
+  -RdsEndpoint safeid-pg.xxxxx.sa-east-1.rds.amazonaws.com `
+  -RedisHost safeid-redis.xxxxx.cache.amazonaws.com `
+  -DatabaseSecurityGroupId sg-0b1fcbdc0dc851275 `
+  -RedisSecurityGroupId sg-0c4a99817a8681e1b
+```
+
+O endpoint público fica no ALB com HTTPS. O certificado ACM precisa existir na mesma região do load balancer.
+
+### Remover o stack para evitar cobrança
+
+```powershell
+.\deploy-ecs-fargate.ps1 -Action Delete -AwsRegion sa-east-1
+.\push-ecr-image.ps1 -Action Delete -AwsRegion sa-east-1 -RepositoryName safeid-backend
+```
+
+O script de ECS cria e remove o cluster, o serviço, o ALB, o target group, o log group e as roles necessárias. Também libera o acesso do ECS para o RDS e para o Redis pelos security groups informados.
+
 ## 🔧 Configuração
 
 ### Variáveis de ambiente essenciais
