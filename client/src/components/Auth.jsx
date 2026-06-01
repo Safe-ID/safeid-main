@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { C } from "./safeidData";
+import { clearToken, login, setToken, signup } from "../lib/api";
 
 export default function Auth({ mode, onSuccess, onSwitch }) {
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [conf, setConf] = useState("");
@@ -12,18 +12,23 @@ export default function Auth({ mode, onSuccess, onSwitch }) {
 
   const submit = async () => {
     setErr("");
-    if (isReg) {
-      if (name.trim().length < 2) { setErr("Insira seu nome completo."); return; }
-      if (!email.includes("@")) { setErr("Email inválido."); return; }
-      if (pass.length < 6) { setErr("Senha deve ter pelo menos 6 caracteres."); return; }
-      if (pass !== conf) { setErr("As senhas não coincidem."); return; }
-    } else {
-      if (!email.includes("@") || !pass) { setErr("Preencha todos os campos."); return; }
+    if (!email.includes("@")) { setErr("Email inválido."); return; }
+    if (pass.length < 8) { setErr("Senha deve ter pelo menos 8 caracteres."); return; }
+    if (isReg && pass !== conf) { setErr("As senhas não coincidem."); return; }
+
+    try {
+      setLoading(true);
+      clearToken();
+      const payload = isReg ? await signup(email.trim(), pass) : await login(email.trim(), pass);
+      if (payload?.access_token) {
+        setToken(payload.access_token);
+      }
+      onSuccess(payload.user);
+    } catch (error) {
+      setErr(error.message || "Não foi possível autenticar.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(true);
-    await new Promise(r => setTimeout(r, 900));
-    setLoading(false);
-    onSuccess({ name: isReg ? name.trim() : email.split("@")[0], email: email.trim() });
   };
 
   const inp = {
@@ -58,16 +63,6 @@ export default function Auth({ mode, onSuccess, onSwitch }) {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {isReg && (
-              <div>
-                <div style={{ color: C.dim, fontSize: 11, fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>NOME COMPLETO</div>
-                <input value={name} onChange={e => setName(e.target.value)}
-                  placeholder="Seu nome completo" style={inp}
-                  onFocus={e => e.target.style.borderColor = C.primary}
-                  onBlur={e => e.target.style.borderColor = C.border}
-                  onKeyDown={e => e.key === "Enter" && submit()} />
-              </div>
-            )}
             <div>
               <div style={{ color: C.dim, fontSize: 11, fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>EMAIL</div>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
@@ -79,7 +74,7 @@ export default function Auth({ mode, onSuccess, onSwitch }) {
             <div>
               <div style={{ color: C.dim, fontSize: 11, fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>SENHA</div>
               <input type="password" value={pass} onChange={e => setPass(e.target.value)}
-                placeholder={isReg ? "Mínimo 6 caracteres" : "••••••••"} style={inp}
+                placeholder={isReg ? "Mínimo 8 caracteres" : "••••••••"} style={inp}
                 onFocus={e => e.target.style.borderColor = C.primary}
                 onBlur={e => e.target.style.borderColor = C.border}
                 onKeyDown={e => e.key === "Enter" && submit()} />

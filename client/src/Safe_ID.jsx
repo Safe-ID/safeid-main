@@ -1,20 +1,57 @@
-﻿import { useState } from "react";
+﻿import { useEffect, useState } from "react";
 import Navbar from "./components/Navbar";
 import Landing from "./components/Landing";
 import Auth from "./components/Auth";
 import Dashboard from "./components/Dashboard";
 import { C } from "./components/safeidData";
+import { clearToken, fetchMe, getToken, setToken } from "./lib/api";
 
 export default function SafeID() {
   const [page, setPage] = useState("landing");
   const [user, setUser] = useState(null);
+  const [booting, setBooting] = useState(true);
 
   const goTo = (p) => {
     if (p === "landing") setUser(null);
     setPage(p);
   };
-  const onAuth = (u) => { setUser(u); setPage("dashboard"); };
-  const onOut = () => { setUser(null); setPage("landing"); };
+  const onAuth = (u, token) => {
+    if (token) setToken(token);
+    setUser(u);
+    setPage("dashboard");
+  };
+  const onOut = () => { clearToken(); setUser(null); setPage("landing"); };
+
+  useEffect(() => {
+    let active = true;
+    const restoreSession = async () => {
+      const token = getToken();
+      if (!token) {
+        if (active) setBooting(false);
+        return;
+      }
+
+      try {
+        const profile = await fetchMe();
+        if (!active) return;
+        setUser(profile);
+        setPage("dashboard");
+      } catch {
+        clearToken();
+        if (active) {
+          setUser(null);
+          setPage("landing");
+        }
+      } finally {
+        if (active) setBooting(false);
+      }
+    };
+
+    restoreSession();
+    return () => { active = false; };
+  }, []);
+
+  const isAuthenticated = Boolean(user);
 
   return (
     <div style={{
@@ -36,12 +73,18 @@ export default function SafeID() {
 
       <Navbar user={user} onSignOut={onOut} onNav={goTo} />
 
-      {page === "landing"   && <Landing onNav={goTo} />}
-      {page === "register"  && <Auth mode="register" onSuccess={onAuth} onSwitch={() => setPage("login")} />}
-      {page === "login"     && <Auth mode="login"    onSuccess={onAuth} onSwitch={() => setPage("register")} />}
-      {page === "dashboard" && user && <Dashboard user={user} />}
+      {booting && (
+        <div style={{ padding: "64px 24px", textAlign: "center", color: C.muted }}>
+          Carregando sessão...
+        </div>
+      )}
 
-      {page !== "dashboard" && (
+      {!booting && page === "landing" && <Landing onNav={goTo} />}
+      {!booting && page === "register" && <Auth mode="register" onSuccess={(u) => onAuth(u)} onSwitch={() => setPage("login")} />}
+      {!booting && page === "login" && <Auth mode="login" onSuccess={(u) => onAuth(u)} onSwitch={() => setPage("register")} />}
+      {!booting && page === "dashboard" && isAuthenticated && <Dashboard user={user} onSignOut={onOut} />}
+
+      {!booting && page !== "dashboard" && (
         <footer style={{ borderTop: `1px solid ${C.border}`, padding: "20px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", color: C.dim, fontSize: 12 }}>
           <div><span style={{ color: C.secondary, fontWeight: 700 }}>SafeID</span> · IFSP São Paulo · TADS 2026</div>
           <div style={{ display: "flex", gap: 20 }}>

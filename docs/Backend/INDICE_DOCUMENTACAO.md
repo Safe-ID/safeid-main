@@ -25,7 +25,22 @@ Conteúdo:
 
 ---
 
-### 2. ⚡ [RESUMO_EXECUTIVO.md](./RESUMO_EXECUTIVO.md)
+### 2. 🔌 [MATRIZ_CONSUMO_API_FRONTEND.md](./MATRIZ_CONSUMO_API_FRONTEND.md)
+**Mapa de integração do frontend com a API atual**
+
+Conteúdo:
+- 🔗 Lista de telas do frontend e endpoints necessários
+- 📦 Payloads, headers e autenticação exigidos
+- 🧭 Estados de tela que precisam de dados reais
+- ⚠️ Lacunas da API atual que exigem ajuste no frontend ou no backend
+- ✅ Ordem prática de implementação da integração
+
+**Público-alvo:** Desenvolvedores Frontend, Full Stack, Tech Leads
+**Tempo de leitura:** 10-15 minutos
+
+---
+
+### 3. ⚡ [RESUMO_EXECUTIVO.md](./RESUMO_EXECUTIVO.md)
 **Referência Rápida e Concisa**
 
 Conteúdo:
@@ -42,7 +57,7 @@ Conteúdo:
 
 ---
 
-### 3. 💻 [EXEMPLOS_PRATICOS.md](./EXEMPLOS_PRATICOS.md)
+### 4. 💻 [EXEMPLOS_PRATICOS.md](./EXEMPLOS_PRATICOS.md)
 **Código Implementado com Exemplos Reais**
 
 Conteúdo:
@@ -62,7 +77,7 @@ Conteúdo:
 
 ---
 
-### 4. ✅ [CHECKLIST_MATURIDADE.md](./CHECKLIST_MATURIDADE.md)
+### 5. ✅ [CHECKLIST_MATURIDADE.md](./CHECKLIST_MATURIDADE.md)
 **Avaliação e Roadmap de Qualidade**
 
 Conteúdo:
@@ -77,6 +92,21 @@ Conteúdo:
 
 **Público-alvo:** Tech Leads, DevOps, QA
 **Tempo de leitura:** 10-15 minutos
+
+---
+
+### 6. 🧭 [PLANO_INTEGRACAO_FRONTEND_API.md](./PLANO_INTEGRACAO_FRONTEND_API.md)
+**Plano de execução da integração**
+
+Conteúdo:
+- 📆 Etapas por prioridade
+- ✅ Critérios de aceite por fase
+- 🔍 Pontos de validação
+- 🧱 Dependências e riscos
+- 🚦 Ordem recomendada de implementação
+
+**Público-alvo:** Frontend, Full Stack, Tech Lead
+**Tempo de leitura:** 10 minutos
 
 ---
 
@@ -172,6 +202,10 @@ Você está aqui → ÍNDICE (você está lendo)
 - Docker → [EXEMPLOS_PRATICOS.md](./EXEMPLOS_PRATICOS.md#10-docker-compose---ambiente-local)
 - Estratégia → [TECNOLOGIAS_E_BOAS_PRATICAS.md](./TECNOLOGIAS_E_BOAS_PRATICAS.md#-containerização)
 - Checklist → [CHECKLIST_MATURIDADE.md](./CHECKLIST_MATURIDADE.md#-deployment)
+
+### 🔌 Integração Frontend ↔ API
+- Mapa completo → [MATRIZ_CONSUMO_API_FRONTEND.md](./MATRIZ_CONSUMO_API_FRONTEND.md)
+- Plano de execução → [PLANO_INTEGRACAO_FRONTEND_API.md](./PLANO_INTEGRACAO_FRONTEND_API.md)
 
 ---
 
@@ -323,6 +357,8 @@ CHECKLIST_MATURIDADE.md (Qualidade)
 **Comece sua leitura agora!** 👇
 
 1. [📊 Documentação Completa](./TECNOLOGIAS_E_BOAS_PRATICAS.md) - 30 min
-2. [⚡ Resumo Executivo](./RESUMO_EXECUTIVO.md) - 5 min
-3. [💻 Exemplos Práticos](./EXEMPLOS_PRATICOS.md) - 20 min
-4. [✅ Checklist de Maturidade](./CHECKLIST_MATURIDADE.md) - 15 min
+2. [🔌 Matriz de Consumo da API](./MATRIZ_CONSUMO_API_FRONTEND.md) - 10 min
+3. [🧭 Plano de Integração](./PLANO_INTEGRACAO_FRONTEND_API.md) - 10 min
+4. [⚡ Resumo Executivo](./RESUMO_EXECUTIVO.md) - 5 min
+5. [💻 Exemplos Práticos](./EXEMPLOS_PRATICOS.md) - 20 min
+6. [✅ Checklist de Maturidade](./CHECKLIST_MATURIDADE.md) - 15 min

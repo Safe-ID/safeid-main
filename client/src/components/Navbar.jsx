@@ -1,6 +1,9 @@
 import { C } from "./safeidData";
 
 export default function Navbar({ user, onSignOut, onNav }) {
+  const initial = user?.email?.charAt(0)?.toUpperCase() || "U";
+  const displayName = user?.email || "Convidado";
+
   return (
     <nav style={{
       padding: "14px 32px", display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -45,8 +48,8 @@ export default function Navbar({ user, onSignOut, onNav }) {
                 background: `linear-gradient(135deg,${C.primary},${C.secondary})`,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 12, fontWeight: 700, color: "#fff",
-              }}>{user.name[0].toUpperCase()}</div>
-              <span style={{ color: C.muted, fontSize: 13 }}>{user.name}</span>
+              }}>{initial}</div>
+              <span style={{ color: C.muted, fontSize: 13 }}>{displayName}</span>
             </div>
             <button onClick={onSignOut} style={{
               background: "transparent", border: `1px solid ${C.border}`,
