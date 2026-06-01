@@ -180,35 +180,101 @@ docker-compose logs -f app
 
 ## ☁️ AWS Deploy
 
+### Fluxo recomendado
+
+Para manter o backend privado e ainda permitir saída para HIBP e Gemini, siga esta ordem:
+
+1. Criar o NAT Gateway e a rota privada
+2. Enviar a imagem para o ECR
+3. Subir o stack no ECS Fargate com ALB interno
+4. Acessar a VPC via bastion com SSM quando precisar fazer troubleshooting
+
+O ALB usa `ALB_SUBNET_IDS` com duas subnets e as tasks usam `BACKEND_SUBNET_IDS` com a subnet privada da API. O backend deve ficar com `ALB_SCHEME=internal`.
+
+### Criar NAT Gateway
+
+```powershell
+.\create-nat-gateway.ps1 -Action Create
+```
+
+Esse passo precisa acontecer antes do deploy do ECS para que a API privada tenha saída à internet para chamadas externas.
+
 ### Enviar imagem para o ECR
 
 ```powershell
 .\push-ecr-image.ps1 -Action Create -AwsRegion sa-east-1 -RepositoryName safeid-backend -ImageTag latest
 ```
 
-### Subir a aplicação no ECS Fargate com ALB
+### Subir a aplicação no ECS Fargate
 
 ```powershell
-.\deploy-ecs-fargate.ps1 -Action Create `
-  -AwsRegion sa-east-1 `
-  -ImageUri 123456789012.dkr.ecr.sa-east-1.amazonaws.com/safeid-backend:latest `
-  -AcmCertificateArn arn:aws:acm:sa-east-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx `
-  -RdsEndpoint safeid-pg.xxxxx.sa-east-1.rds.amazonaws.com `
-  -RedisHost safeid-redis.xxxxx.cache.amazonaws.com `
-  -DatabaseSecurityGroupId sg-0b1fcbdc0dc851275 `
-  -RedisSecurityGroupId sg-0c4a99817a8681e1b
+.\deploy-ecs-fargate.ps1 -Action Create
 ```
 
-O endpoint público fica no ALB com HTTPS. O certificado ACM precisa existir na mesma região do load balancer.
+Edite as variáveis de configuração no topo do [deploy-ecs-fargate.ps1](deploy-ecs-fargate.ps1) ou sobrescreva-as por variáveis de ambiente antes de rodar o script.
+
+Para acessar externamente a VPC sem expor o serviço, use uma destas opções:
+
+- AWS Client VPN para conectar sua máquina à VPC
+- Site-to-Site VPN entre sua rede e a VPC
+- Bastion host com SSH ou SSM Session Manager e port forwarding
+- Session Manager port forwarding diretamente para uma instância de apoio na VPC
+
+Para abrir um túnel até o ALB interno do backend no `localhost:8080`:
+
+```powershell
+.\connect-bastion-ssm.ps1 -Target Alb -LocalPort 8080
+```
+
+Outros alvos práticos:
+
+```powershell
+.\connect-bastion-ssm.ps1 -Target Rds -LocalPort 5432
+.\connect-bastion-ssm.ps1 -Target Redis -LocalPort 6379
+```
 
 ### Remover o stack para evitar cobrança
 
 ```powershell
-.\deploy-ecs-fargate.ps1 -Action Delete -AwsRegion sa-east-1
+.\deploy-ecs-fargate.ps1 -Action Delete
 .\push-ecr-image.ps1 -Action Delete -AwsRegion sa-east-1 -RepositoryName safeid-backend
 ```
 
 O script de ECS cria e remove o cluster, o serviço, o ALB, o target group, o log group e as roles necessárias. Também libera o acesso do ECS para o RDS e para o Redis pelos security groups informados.
+
+### Bastion com SSM para acessar a VPC
+
+Pré-requisitos: AWS CLI configurado e Session Manager Plugin disponível na máquina.
+
+Crie o bastion sem SSH aberto e com acesso via Session Manager:
+
+```powershell
+.\create-bastion-ssm.ps1 -Action Create
+```
+
+Para remover:
+
+```powershell
+.\create-bastion-ssm.ps1 -Action Delete
+```
+
+Esse caminho mantém o backend privado na VPC e expõe apenas o acesso administrativo via Session Manager. Os exemplos de túnel para ALB, RDS e Redis estão na seção de fluxo recomendado acima.
+
+### NAT Gateway para saída da API
+
+Crie a NAT Gateway e a rota privada:
+
+```powershell
+.\create-nat-gateway.ps1 -Action Create
+```
+
+Remova quando quiser cortar custo:
+
+```powershell
+.\create-nat-gateway.ps1 -Action Delete
+```
+
+Com a NAT em funcionamento, as chamadas HTTPS para HIBP e Gemini continuam saindo normalmente a partir da API na subnet privada.
 
 ## 🔧 Configuração
 

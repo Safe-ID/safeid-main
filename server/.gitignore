@@ -25,5 +25,8 @@ coverage
 
 create-database.ps1
 create-redis.ps1
+create-nat-gateway.ps1
+create-bastion-ssm.ps1
+connect-bastion-ssm.ps1
 push-ecr-image.ps1
 deploy-ecs-fargate.ps1
