@@ -182,14 +182,36 @@ docker-compose logs -f app
 
 ### Fluxo recomendado
 
-Para manter o backend privado e ainda permitir saída para HIBP e Gemini, siga esta ordem:
+Para manter o backend privado por trás de um ponto de entrada público controlado, siga esta ordem:
 
 1. Criar o NAT Gateway e a rota privada
 2. Enviar a imagem para o ECR
-3. Subir o stack no ECS Fargate com ALB interno
-4. Acessar a VPC via bastion com SSM quando precisar fazer troubleshooting
+3. Subir o stack no ECS Fargate com ALB internet-facing
+4. Publicar o frontend em S3 + CloudFront
+5. Acessar a VPC via bastion com SSM quando precisar fazer troubleshooting
 
-O ALB usa `ALB_SUBNET_IDS` com duas subnets e as tasks usam `BACKEND_SUBNET_IDS` com a subnet privada da API. O backend deve ficar com `ALB_SCHEME=internal`.
+O ALB usa `ALB_SUBNET_IDS` com duas subnets e as tasks usam `BACKEND_SUBNET_IDS` com a subnet privada da API. Para um ALB público, configure `ALB_SCHEME=internet-facing`. Se você informar `ALB_HTTPS_CERTIFICATE_ARN`, o script cria o listener em HTTPS na porta 443.
+
+### Publicar o frontend
+
+Use o script `client/provision-s3-cloudfront.ps1` para criar o bucket S3, a distribuição CloudFront e o Origin Access Control. Depois, use `client/deploy-s3-cloudfront.ps1` para gerar o build do Vite com `VITE_API_URL` apontando para a URL pública do backend e sincronizar os arquivos para o bucket S3, com invalidação opcional do CloudFront.
+
+Pré-requisitos do frontend:
+
+- bucket S3 criado para hospedar os arquivos estáticos
+- distribuição CloudFront apontando para o bucket
+- origem do CloudFront protegida com OAC ou, no mínimo, bucket sem acesso público direto
+- domínio do frontend apontando para a distribuição CloudFront
+- `VITE_API_URL` configurado para o endpoint público do backend
+- certificado ACM em `us-east-1` se você for usar domínio próprio no CloudFront
+
+Exemplo:
+
+```powershell
+.\deploy-s3-cloudfront.ps1 -ApiBaseUrl https://api.seudominio.com -S3BucketName safeid-frontend-prod -CloudFrontDistributionId E1234567890ABC
+```
+
+Se o backend usar cookies ou sessão, ajuste CORS e os atributos de cookie para o domínio do CloudFront. Se usar JWT no `Authorization`, basta liberar o domínio do frontend no CORS.
 
 ### Criar NAT Gateway
 
@@ -241,6 +263,13 @@ Outros alvos práticos:
 ```
 
 O script de ECS cria e remove o cluster, o serviço, o ALB, o target group, o log group e as roles necessárias. Também libera o acesso do ECS para o RDS e para o Redis pelos security groups informados.
+
+Para o ALB público, além do script, você precisa de:
+
+- um certificado ACM na mesma região do ALB, se quiser HTTPS no ALB
+- um DNS público apontando para o ALB ou para o CloudFront
+- uma política de segurança/WAF se quiser restringir ou inspecionar o acesso
+- CORS do backend permitindo o domínio do CloudFront
 
 ### Bastion com SSM para acessar a VPC
 

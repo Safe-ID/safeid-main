@@ -1,12 +1,13 @@
 /**
- * AIEngine - Motor de Inteligência Cognitiva
- * 
+ * Título do trabalho: Pipeline de Deploy
+ * Nome: Lucas Vieira de Souza
+ * Prontuario: SP3164845
+ * * AIEngine - Motor de Inteligência Cognitiva
  * Transforma análise estruturada em orientações semânticas.
- * Usa Google Gemini (gemini-pro) para gerar recomendações em português.
- * Processa TODAS as breaches encontradas, não apenas a primeira.
+ * Usa Grok Fast (grok-4-20-non-reasoning) via Azure AI Foundry com o SDK da OpenAI.
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from 'openai';
 
 interface HIBPBreach {
   Name: string;
@@ -24,79 +25,67 @@ interface AIRecommendation {
 }
 
 export class AIEngine {
-  private client: GoogleGenerativeAI;
-  private apiKey: string;
+  private openaiClient: OpenAI | null = null;
+  
+  private readonly endpoint: string;
+  private readonly modelName = 'grok-4-20-non-reasoning';
 
   constructor(apiKey: string) {
-    this.apiKey = (apiKey || '').trim();
-    this.client = new GoogleGenerativeAI(this.apiKey || 'missing-api-key');
+    // Puxa o endpoint diretamente do .env
+    const envEndpoint = process.env.AI_ENDPOINT || '';
+    
+    // Limpa espaços e barras no final para evitar erros de concatenação de rota
+    this.endpoint = envEndpoint.trim().replace(/\/$/, '');
+
+    if (!this.endpoint) {
+      console.warn('[AIEngine] Aviso: Variável de ambiente AI_ENDPOINT não está definida.');
+    }
+
+    const key = (apiKey || '').trim();
+    
+    if (key && this.endpoint) {
+      this.openaiClient = new OpenAI({
+        baseURL: this.endpoint,
+        apiKey: key,
+      });
+    }
   }
 
   /**
    * Gera recomendações baseadas em TODAS as breaches encontradas
-   * NUNCA envia dados sensíveis (email) para o Gemini
-   * Apenas metadados genéricos sobre as breaches
+   * NUNCA envia dados sensíveis (email) para a IA
    */
   async generateRecommendation(context: {
     breaches: HIBPBreach[];
     riskScore: number;
   }): Promise<AIRecommendation> {
-    if (!this.apiKey) {
+    if (!this.openaiClient) {
       return this.buildFallbackRecommendation(context);
     }
 
     const prompt = this.buildSafePrompt(context);
 
     try {
-      const candidateModels = [
-        'gemini-3.1-flash-lite',
-        'models/gemini-3.1-flash-lite',
-        'gemini-2.0-flash',
-        'models/gemini-2.0-flash',
-        'gemini-1.5-flash',
-        'models/gemini-1.5-flash',
-        'gemini-pro',
-        'models/gemini-pro',
-      ];
-
-      let lastError: any = null;
-      for (const m of candidateModels) {
-        try {
-          const model = this.client.getGenerativeModel({ model: m });
-          const response = await model.generateContent(prompt);
-          const textContent = response.response?.text?.();
-          if (!textContent) throw new Error('Empty response from model');
-
-          const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-          const jsonStr = jsonMatch ? jsonMatch[0] : textContent;
-          return JSON.parse(jsonStr) as AIRecommendation;
-        } catch (err) {
-          lastError = err;
-        }
-      }
-
-      // If none of the common names worked, try listing models (if supported)
-      if (typeof this.client.listModels === 'function') {
-        try {
-          const listing = await this.client.listModels();
-          const genModel = (listing.models || []).find((md: any) => (
-            (md.supportedMethods || []).some((s: string) => /generate/i.test(s)) || /bison|gemini|chat/i.test(md.name)
-          ));
-          if (genModel) {
-            const model = this.client.getGenerativeModel({ model: genModel.name });
-            const response = await model.generateContent(prompt);
-            const textContent = response.response?.text?.();
-            if (!textContent) throw new Error('Empty response from listed model');
-            const jsonMatch = textContent.match(/\{[\s\S]*\}/);
-            const jsonStr = jsonMatch ? jsonMatch[0] : textContent;
-            return JSON.parse(jsonStr) as AIRecommendation;
+      const completion = await this.openaiClient.chat.completions.create({
+        model: this.modelName,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
           }
-        } catch (err) {
-          lastError = err;
-        }
-      }
+        ],
+        // Garante o retorno estrito em formato JSON
+        response_format: { type: 'json_object' }
+      });
 
-      throw lastError || new Error('No compatible generative model found');
+      const textContent = completion.choices[0]?.message?.content;
+      
+      if (!textContent) throw new Error('Empty response from model');
+
+      const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+      const jsonStr = jsonMatch ? jsonMatch[0] : textContent;
+      return JSON.parse(jsonStr) as AIRecommendation;
+
     } catch (error) {
       console.error('AIEngine error:', error);
       return this.buildFallbackRecommendation(context);
@@ -128,16 +117,12 @@ export class AIEngine {
     };
   }
 
-  /**
-   * Constrói prompt seguro sem expor dados sensíveis
-   * Inclui informações de TODAS as breaches
-   */
   private buildSafePrompt(context: {
     breaches: HIBPBreach[];
     riskScore: number;
   }): string {
     const breachesInfo = context.breaches
-      .map((breach, idx) => {
+      .map((breach) => {
         const dataTypes = breach.DataClasses?.join(', ') || 'unknown';
         const daysAgo = this.calculateDaysAgo(breach.BreachDate);
         const timeframe = daysAgo > 365
