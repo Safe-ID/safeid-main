@@ -1,8 +1,5 @@
 /**
- * Título do trabalho: Pipeline de Deploy
- * Nome: Lucas Vieira de Souza
- * Prontuario: SP3164845
- * * AIEngine - Motor de Inteligência Cognitiva
+ * AIEngine - Motor de Inteligência Cognitiva
  * Transforma análise estruturada em orientações semânticas.
  * Usa Grok Fast (grok-4-20-non-reasoning) via Azure AI Foundry com o SDK da OpenAI.
  */
@@ -31,10 +28,10 @@ export class AIEngine {
   private readonly modelName = 'grok-4-20-non-reasoning';
 
   constructor(apiKey: string) {
-    // Puxa o endpoint diretamente do .env
+    // Puxa o endpoint limpo diretamente do .env
     const envEndpoint = process.env.AI_ENDPOINT || '';
     
-    // Limpa espaços e barras no final para evitar erros de concatenação de rota
+    // Limpa espaços e barras no final para evitar erros de concatenação
     this.endpoint = envEndpoint.trim().replace(/\/$/, '');
 
     if (!this.endpoint) {
@@ -44,6 +41,7 @@ export class AIEngine {
     const key = (apiKey || '').trim();
     
     if (key && this.endpoint) {
+      // Instanciação limpa, sem defaultQuery ou defaultHeaders
       this.openaiClient = new OpenAI({
         baseURL: this.endpoint,
         apiKey: key,

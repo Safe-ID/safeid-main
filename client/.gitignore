@@ -7,6 +7,7 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+
 node_modules
 dist
 dist-ssr
@@ -22,3 +23,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.env
+
+deploy-s3-cloudfront.ps1
+provision-s3-cloudfront.ps1
+
+bucket-*.json
+dist-config.json
+dist.json
