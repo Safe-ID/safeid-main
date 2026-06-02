@@ -1,61 +1,41 @@
-import { C } from "./safeidData";
-
 export default function Navbar({ user, onSignOut, onNav }) {
   const initial = user?.email?.charAt(0)?.toUpperCase() || "U";
   const displayName = user?.email || "Convidado";
 
   return (
-    <nav style={{
-      padding: "14px 32px", display: "flex", alignItems: "center", justifyContent: "space-between",
-      borderBottom: `1px solid ${C.border}`, background: `${C.bg}E0`,
-      backdropFilter: "blur(20px)", position: "sticky", top: 0, zIndex: 100,
-    }}>
-      <div onClick={() => onNav("landing")} style={{ display: "flex", alignItems: "center", gap: 9, cursor: "pointer" }}>
-        <div style={{
-          width: 30, height: 30, borderRadius: 8,
-          background: `linear-gradient(135deg,${C.primary},${C.secondary})`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
+    <nav className="w-full flex items-center justify-between py-4 px-6 md:px-12 border-b border-safe-border bg-safe-bg/90 backdrop-blur-md sticky top-0 z-50">
+      <div onClick={() => onNav("landing")} className="flex items-center gap-3 cursor-pointer">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-safe-primary to-safe-secondary flex items-center justify-center">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="white">
             <path d="M8 1L2 3.5v4C2 11 5 14 8 15c3-1 6-4 6-7.5v-4L8 1z" />
           </svg>
         </div>
-        <span style={{ fontWeight: 700, fontSize: 17, letterSpacing: -0.5, color: C.text }}>
-          Safe<span style={{ color: C.secondary }}>ID</span>
+        <span className="font-bold text-lg tracking-tight text-safe-text">
+          Safe<span className="text-safe-secondary">ID</span>
         </span>
       </div>
 
-      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+      <div className="flex gap-3 items-center">
         {!user ? (
           <>
-            <button onClick={() => onNav("login")} style={{
-              background: "transparent", border: `1px solid ${C.borderL}`,
-              borderRadius: 8, color: C.muted, padding: "7px 16px",
-              fontSize: 13, cursor: "pointer", fontFamily: "inherit",
-            }}>Entrar</button>
-            <button onClick={() => onNav("register")} style={{
-              background: `linear-gradient(135deg,${C.primary},${C.primaryD})`,
-              border: "none", borderRadius: 8, color: "#fff",
-              padding: "8px 16px", fontSize: 13, fontWeight: 600,
-              cursor: "pointer", fontFamily: "inherit",
-            }}>Criar conta</button>
+            <button onClick={() => onNav("login")} className="bg-transparent border border-safe-borderL rounded-lg text-safe-muted py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-hover">
+              Entrar
+            </button>
+            <button onClick={() => onNav("register")} className="bg-gradient-to-br from-safe-primary to-safe-primaryD border-none rounded-lg text-white py-2 px-4 text-sm font-semibold cursor-pointer transition-opacity hover:opacity-90">
+              Criar conta
+            </button>
           </>
         ) : (
           <>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{
-                width: 30, height: 30, borderRadius: "50%",
-                background: `linear-gradient(135deg,${C.primary},${C.secondary})`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 12, fontWeight: 700, color: "#fff",
-              }}>{initial}</div>
-              <span style={{ color: C.muted, fontSize: 13 }}>{displayName}</span>
+            <div className="hidden sm:flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-safe-primary to-safe-secondary flex items-center justify-center text-xs font-bold text-white">
+                {initial}
+              </div>
+              <span className="text-safe-muted text-sm">{displayName}</span>
             </div>
-            <button onClick={onSignOut} style={{
-              background: "transparent", border: `1px solid ${C.border}`,
-              borderRadius: 8, color: C.dim, padding: "7px 14px",
-              fontSize: 12, cursor: "pointer", fontFamily: "inherit",
-            }}>Sair</button>
+            <button onClick={onSignOut} className="bg-transparent border border-safe-border rounded-lg text-safe-dim py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-hover hover:text-safe-muted">
+              Sair
+            </button>
           </>
         )}
       </div>

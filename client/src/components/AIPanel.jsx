@@ -1,41 +1,34 @@
-import { C } from "./safeidData";
-
 export default function AIPanel({ recommendation, updatedAt, classification, riskScore }) {
   const text = recommendation || "Ainda não há uma recomendação de IA disponível para esta conta.";
   const formattedUpdatedAt = updatedAt ? new Date(updatedAt).toLocaleString("pt-BR") : null;
 
   return (
-    <div style={{
-      background: "linear-gradient(135deg,#071220,#0A1A30)",
-      border: `1px solid ${C.borderL}`, borderRadius: 16, padding: 24,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
-        <div style={{
-          width: 30, height: 30, borderRadius: 8,
-          background: `${C.accent}18`, border: `1px solid ${C.accent}40`,
-          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14,
-        }}>✦</div>
+    <div className="bg-gradient-to-br from-safe-card to-[#0A1A30] border border-safe-borderL rounded-2xl p-5 sm:p-6">
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-8 h-8 rounded-lg bg-safe-accent/10 border border-safe-accent/30 flex items-center justify-center text-safe-accent text-sm shrink-0">
+          ✦
+        </div>
         <div>
-          <div style={{ color: C.text, fontWeight: 600, fontSize: 14 }}>SafeID AI · Plano de Ação</div>
-          <div style={{ color: C.dim, fontSize: 12 }}>Análise personalizada por inteligência artificial</div>
+          <div className="text-safe-text font-semibold text-sm">SafeID AI · Plano de Ação</div>
+          <div className="text-safe-dim text-xs">Análise personalizada por inteligência artificial</div>
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
-        <span style={{ background: `${C.primary}18`, border: `1px solid ${C.primary}35`, color: C.secondary, borderRadius: 999, padding: "4px 10px", fontSize: 11, fontWeight: 600 }}>
+      <div className="flex flex-wrap gap-2.5 mb-5">
+        <span className="bg-safe-primary/10 border border-safe-primary/30 text-safe-secondary rounded-full py-1 px-3 text-[11px] font-semibold whitespace-nowrap">
           RISCO {typeof riskScore === "number" ? `${riskScore}/100` : "N/D"}
         </span>
-        <span style={{ background: `${C.accent}14`, border: `1px solid ${C.accent}30`, color: C.accent, borderRadius: 999, padding: "4px 10px", fontSize: 11, fontWeight: 600 }}>
+        <span className="bg-safe-accent/10 border border-safe-accent/30 text-safe-accent rounded-full py-1 px-3 text-[11px] font-semibold whitespace-nowrap">
           {classification || "CLASSIFICAÇÃO NÃO DISPONÍVEL"}
         </span>
       </div>
 
-      <div style={{ color: C.muted, fontSize: 14, lineHeight: 1.75, whiteSpace: "pre-wrap" }}>
+      <div className="text-safe-muted text-sm sm:text-[15px] leading-relaxed whitespace-pre-wrap">
         {text}
       </div>
 
       {formattedUpdatedAt && (
-        <div style={{ marginTop: 14, color: C.dim, fontSize: 12 }}>
+        <div className="mt-4 text-safe-dim text-xs">
           Atualizado em {formattedUpdatedAt}
         </div>
       )}

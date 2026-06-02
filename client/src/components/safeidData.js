@@ -15,12 +15,7 @@ export const C = {
   warn: "#FCD34D",
 };
 
-export const BREACHES = [
-  { name: "LinkedIn",     date: "2021-06-22", classes: ["Email addresses","Geographic locations","Job titles","Names","Phone numbers"], count: 700000000, color: "#0A8FFF" },
-  { name: "Adobe",        date: "2019-10-04", classes: ["Email addresses","Passwords","Usernames","Credit card data"],                  count: 153000000, color: "#FF3B30" },
-  { name: "Dropbox",      date: "2016-08-31", classes: ["Email addresses","Passwords"],                                                  count:  68648009, color: "#0061FF" },
-  { name: "MyFitnessPal", date: "2018-03-25", classes: ["Email addresses","IP addresses","Passwords","Usernames"],                       count: 143606147, color: "#00B4D8" },
-];
+
 
 export const W = {
   "Passwords": 10, "Credit card data": 10, "Bank account numbers": 10,

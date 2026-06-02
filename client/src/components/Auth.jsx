@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { C } from "./safeidData";
 import { clearToken, login, setToken, signup } from "../lib/api";
 
 export default function Auth({ mode, onSuccess, onSwitch }) {
@@ -31,86 +30,66 @@ export default function Auth({ mode, onSuccess, onSwitch }) {
     }
   };
 
-  const inp = {
-    width: "100%", background: "#040C1A", border: `1px solid ${C.border}`,
-    borderRadius: 10, color: C.text, padding: "12px 14px",
-    fontSize: 14, fontFamily: "inherit", outline: "none", transition: "border-color 0.2s",
-  };
+  const inpClass = "w-full bg-[#040C1A] border border-safe-border rounded-xl text-safe-text py-3 px-3.5 text-sm outline-none transition-colors focus:border-safe-primary";
 
   return (
-    <div style={{ minHeight: "calc(100vh - 60px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "40px 24px" }}>
-      <div style={{ width: "100%", maxWidth: 420, animation: "slideUp 0.4s ease" }}>
-        <div style={{
-          background: C.bgCard, border: `1px solid ${C.borderL}`,
-          borderRadius: 20, padding: "36px 32px", boxShadow: `0 0 60px ${C.primary}0D`,
-        }}>
-          <div style={{ textAlign: "center", marginBottom: 28 }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: 12,
-              background: `linear-gradient(135deg,${C.primary},${C.secondary})`,
-              display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px",
-            }}>
+    <div className="min-h-[calc(100vh-60px)] flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-[420px] animate-slide-up">
+        <div className="bg-safe-card border border-safe-borderL rounded-2xl p-6 sm:p-8 shadow-[0_0_60px_rgba(26,111,255,0.05)]">
+          <div className="text-center mb-7">
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-safe-primary to-safe-secondary flex items-center justify-center mx-auto mb-4">
               <svg width="20" height="20" viewBox="0 0 16 16" fill="white">
                 <path d="M8 1L2 3.5v4C2 11 5 14 8 15c3-1 6-4 6-7.5v-4L8 1z" />
               </svg>
             </div>
-            <h2 style={{ color: C.text, fontSize: 22, fontWeight: 700, letterSpacing: -0.5, marginBottom: 6, fontFamily: "system-ui,sans-serif" }}>
+            <h2 className="text-safe-text text-xl sm:text-2xl font-bold tracking-tight mb-1.5 font-[system-ui,sans-serif]">
               {isReg ? "Criar sua conta" : "Entrar no SafeID"}
             </h2>
-            <p style={{ color: C.dim, fontSize: 13 }}>
+            <p className="text-safe-dim text-[13px]">
               {isReg ? "Monitore sua identidade digital gratuitamente" : "Bem-vindo de volta"}
             </p>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="flex flex-col gap-4">
             <div>
-              <div style={{ color: C.dim, fontSize: 11, fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>EMAIL</div>
+              <div className="text-safe-dim text-[11px] font-semibold mb-1.5 tracking-wide">EMAIL</div>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="seu@email.com" style={inp}
-                onFocus={e => e.target.style.borderColor = C.primary}
-                onBlur={e => e.target.style.borderColor = C.border}
+                placeholder="seu@email.com" className={inpClass}
                 onKeyDown={e => e.key === "Enter" && submit()} />
             </div>
             <div>
-              <div style={{ color: C.dim, fontSize: 11, fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>SENHA</div>
+              <div className="text-safe-dim text-[11px] font-semibold mb-1.5 tracking-wide">SENHA</div>
               <input type="password" value={pass} onChange={e => setPass(e.target.value)}
-                placeholder={isReg ? "Mínimo 8 caracteres" : "••••••••"} style={inp}
-                onFocus={e => e.target.style.borderColor = C.primary}
-                onBlur={e => e.target.style.borderColor = C.border}
+                placeholder={isReg ? "Mínimo 8 caracteres" : "••••••••"} className={inpClass}
                 onKeyDown={e => e.key === "Enter" && submit()} />
             </div>
             {isReg && (
               <div>
-                <div style={{ color: C.dim, fontSize: 11, fontWeight: 600, marginBottom: 6, letterSpacing: 0.5 }}>CONFIRMAR SENHA</div>
+                <div className="text-safe-dim text-[11px] font-semibold mb-1.5 tracking-wide">CONFIRMAR SENHA</div>
                 <input type="password" value={conf} onChange={e => setConf(e.target.value)}
-                  placeholder="Repita a senha" style={inp}
-                  onFocus={e => e.target.style.borderColor = C.primary}
-                  onBlur={e => e.target.style.borderColor = C.border}
+                  placeholder="Repita a senha" className={inpClass}
                   onKeyDown={e => e.key === "Enter" && submit()} />
               </div>
             )}
 
             {err && (
-              <div style={{ background: "#F8717115", border: "1px solid #F8717140", borderRadius: 8, padding: "10px 14px", color: C.danger, fontSize: 13 }}>
+              <div className="bg-safe-danger/10 border border-safe-danger/25 rounded-xl py-2.5 px-3.5 text-safe-danger text-[13px]">
                 {err}
               </div>
             )}
 
-            <button onClick={submit} disabled={loading} style={{
-              background: loading ? C.border : `linear-gradient(135deg,${C.primary},${C.primaryD})`,
-              border: "none", borderRadius: 10, color: "#fff", padding: "13px",
-              fontSize: 14, fontWeight: 600, cursor: loading ? "wait" : "pointer",
-              fontFamily: "inherit", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              transition: "all 0.2s", boxShadow: loading ? "none" : `0 0 20px ${C.primary}33`, marginTop: 4,
-            }}>
+            <button onClick={submit} disabled={loading} 
+              className={`mt-1 rounded-xl text-white py-3.5 text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                loading ? "bg-safe-border cursor-wait" : "bg-gradient-to-br from-safe-primary to-safe-primaryD cursor-pointer shadow-[0_0_20px_rgba(26,111,255,0.2)] hover:shadow-[0_0_30px_rgba(26,111,255,0.3)]"
+              }`}>
               {loading
-                ? <><div style={{ width: 14, height: 14, borderRadius: "50%", border: "2px solid #ffffff40", borderTopColor: "#fff", animation: "spin 0.8s linear infinite" }} />{isReg ? "Criando conta..." : "Entrando..."}</>
+                ? <><div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin" />{isReg ? "Criando conta..." : "Entrando..."}</>
                 : (isReg ? "Criar conta e verificar" : "Entrar")}
             </button>
 
-            <div style={{ textAlign: "center", color: C.dim, fontSize: 13 }}>
+            <div className="text-center text-safe-dim text-[13px] mt-2">
               {isReg ? "Já tem uma conta? " : "Não tem conta? "}
-              <span onClick={onSwitch} style={{ color: C.secondary, cursor: "pointer", fontWeight: 600 }}>
+              <span onClick={onSwitch} className="text-safe-secondary cursor-pointer font-semibold hover:underline">
                 {isReg ? "Entrar" : "Criar conta grátis"}
               </span>
             </div>

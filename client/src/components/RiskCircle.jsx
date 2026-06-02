@@ -39,8 +39,8 @@ export default function RiskCircle({ val, size }) {
   const ticks = Array.from({ length: 21 }, (_, i) => i);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-      <svg width={sz} height={sz * 0.86} viewBox={`0 0 ${sz} ${sz * 0.86}`} style={{ overflow: "visible" }}>
+    <div className="flex flex-col items-center gap-3">
+      <svg width={sz} height={sz * 0.86} viewBox={`0 0 ${sz} ${sz * 0.86}`} className="overflow-visible">
         {ticks.map(i => {
           const deg = S + (i / 20) * TOTAL;
           const ir = r - 9, or = r - 2;
@@ -70,13 +70,12 @@ export default function RiskCircle({ val, size }) {
           RISK SCORE
         </text>
       </svg>
-      <div style={{
-        display: "inline-flex", alignItems: "center", gap: 7,
-        background: `${col}18`, border: `1px solid ${col}40`,
-        borderRadius: 999, padding: "5px 16px",
-      }}>
-        <span style={{ width: 7, height: 7, borderRadius: "50%", background: col, display: "inline-block", boxShadow: `0 0 6px ${col}` }} />
-        <span style={{ color: col, fontSize: 12, fontWeight: 700, letterSpacing: "1.5px" }}>{lbl}</span>
+      <div 
+        className="inline-flex items-center gap-2 rounded-full py-1.5 px-4"
+        style={{ background: `${col}18`, border: `1px solid ${col}40` }}
+      >
+        <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: col, boxShadow: `0 0 6px ${col}` }} />
+        <span className="text-xs font-bold tracking-[1.5px]" style={{ color: col }}>{lbl}</span>
       </div>
     </div>
   );
