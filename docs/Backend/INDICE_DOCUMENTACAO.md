@@ -110,6 +110,22 @@ Conteúdo:
 
 ---
 
+### 7. 🧪 [GUIA_TESTES_E_FLUXO_IMPLEMENTACAO.md](./GUIA_TESTES_E_FLUXO_IMPLEMENTACAO.md)
+**Guia prático de testes e fluxo de implementação**
+
+Conteúdo:
+- 🧠 Visão simples e acessível do papel dos testes no projeto
+- ⚙️ Como rodar testes por camada (unitário, integração e E2E)
+- 📌 Quando usar cada tipo de teste
+- 🛠️ Exemplos reais de uso do SafeID
+- 🚦 Fluxo recomendado para implementar novas features com testes
+- ✅ Boas práticas para manter a base estável e evitar regressões
+
+**Público-alvo:** Desenvolvedores, Tech Leads, QA, time de produto
+**Tempo de leitura:** 10-15 minutos
+
+---
+
 ## 🗺️ MAPA DE NAVEGAÇÃO
 
 ```
@@ -190,6 +206,7 @@ Você está aqui → ÍNDICE (você está lendo)
 ### 🧪 Testes
 - Visão geral → [RESUMO_EXECUTIVO.md](./RESUMO_EXECUTIVO.md)
 - Exemplo Jest → [EXEMPLOS_PRATICOS.md](./EXEMPLOS_PRATICOS.md#7-testes-unitários-com-jest)
+- Plano de implantação → [PLANO_IMPLEMENTACAO_TESTES_CI.md](./PLANO_IMPLEMENTACAO_TESTES_CI.md)
 - Estratégia → [TECNOLOGIAS_E_BOAS_PRATICAS.md](./TECNOLOGIAS_E_BOAS_PRATICAS.md#-testes)
 
 ### 🏗️ Arquitetura

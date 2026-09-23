@@ -36,6 +36,8 @@ cp .env.example .env
 # Edite o arquivo .env com suas configurações
 ```
 
+Para habilitar login/cadastro com Google, configure também `FRONTEND_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `GOOGLE_CALLBACK_URL`.
+
 ### 3. Subir infraestrutura (com Docker)
 
 ```bash
@@ -99,6 +101,9 @@ A documentação Swagger em **http://localhost:3000/api/docs**
 - Login com sessão e refresh token
 - Estratégia de autenticação local
 - Proteção de rotas com guards
+- Login/cadastro com Google OAuth via `GET /api/v1/auth/google`
+- Callback OAuth em `GET /api/v1/auth/google/callback`
+- Exclusão da conta autenticada em `DELETE /api/v1/auth/me`
 
 ### Usuários (`usuarios`)
 - CRUD de usuários
