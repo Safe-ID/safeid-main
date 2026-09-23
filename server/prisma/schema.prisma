@@ -15,14 +15,15 @@ datasource db {
 // ============================================================================
 
 model User {
-  id              Int       @id @default(autoincrement())
-  email           String    @unique
-  passwordHash    String
-  scanSnapshot    Json?
-  scanSnapshotUpdatedAt DateTime?
-  
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id                    Int       @id @default(autoincrement())
+  email                 String    @unique
+  passwordHash          String?
+  googleId              String?   @unique
+  scanSnapshot          Json?
+  scanSnapshotUpdatedAt  DateTime?
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   // Relacionamentos
   scans           ScanHistory[]

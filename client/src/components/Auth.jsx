@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { clearToken, login, setToken, signup } from "../lib/api";
+import { API_BASE_URL, clearToken, login, setAuthTokens, signup } from "../lib/api";
 
 export default function Auth({ mode, onSuccess, onSwitch }) {
   const [email, setEmail] = useState("");
@@ -20,7 +20,7 @@ export default function Auth({ mode, onSuccess, onSwitch }) {
       clearToken();
       const payload = isReg ? await signup(email.trim(), pass) : await login(email.trim(), pass);
       if (payload?.access_token) {
-        setToken(payload.access_token);
+        setAuthTokens(payload);
       }
       onSuccess(payload.user);
     } catch (error) {
@@ -28,6 +28,11 @@ export default function Auth({ mode, onSuccess, onSwitch }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loginWithGoogle = () => {
+    clearToken();
+    window.location.href = `${API_BASE_URL}/api/v1/auth/google`;
   };
 
   const inpClass = "w-full bg-[#040C1A] border border-safe-border rounded-xl text-safe-text py-3 px-3.5 text-sm outline-none transition-colors focus:border-safe-primary";
@@ -85,6 +90,13 @@ export default function Auth({ mode, onSuccess, onSwitch }) {
               {loading
                 ? <><div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin" />{isReg ? "Criando conta..." : "Entrando..."}</>
                 : (isReg ? "Criar conta e verificar" : "Entrar")}
+            </button>
+
+            <button
+              onClick={loginWithGoogle}
+              className="rounded-xl border border-safe-border bg-transparent py-3 text-sm font-semibold text-safe-text transition-colors hover:bg-safe-hover"
+            >
+              {isReg ? "Continuar com Google" : "Entrar com Google"}
             </button>
 
             <div className="text-center text-safe-dim text-[13px] mt-2">

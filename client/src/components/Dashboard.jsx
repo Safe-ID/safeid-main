@@ -3,7 +3,7 @@ import { W, translateDataClass } from "./safeidData";
 import RiskCircle from "./RiskCircle";
 import BreachCard from "./BreachCard";
 import AIPanel from "./AIPanel";
-import { fetchMe } from "../lib/api";
+import { deleteAccount, fetchMe } from "../lib/api";
 
 function resolveLogoPath(logoPath) {
   if (!logoPath || typeof logoPath !== "string") return "";
@@ -18,10 +18,12 @@ function getLogoInitial(item) {
   return label.trim().charAt(0).toUpperCase() || "V";
 }
 
-export default function Dashboard({ user, onSignOut }) {
+export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
   const [profile, setProfile] = useState(user);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [tab, setTab] = useState("overview");
   const [pct, setPct] = useState(0);
 
@@ -91,6 +93,24 @@ export default function Dashboard({ user, onSignOut }) {
   const greetingName = profile?.email ? profile.email.split("@")[0] : "usuário";
   const totalBreaches = typeof scanSnapshot?.breachesFound === "number" ? scanSnapshot.breachesFound : breachData.length;
 
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm("Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.");
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      setActionError("");
+      await deleteAccount();
+      onDeleteAccount();
+    } catch (err) {
+      setActionError(err.message || "Não foi possível excluir a conta.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-4xl mx-auto pt-10 px-6 pb-20">
       <div className="mb-8 animate-slide-up">
@@ -112,6 +132,13 @@ export default function Dashboard({ user, onSignOut }) {
               <span className="w-2 h-2 rounded-full bg-safe-danger inline-block" />
               <span className="text-safe-danger text-sm font-semibold">{totalBreaches || 0} vazamentos detectados</span>
             </div>
+            <button
+              onClick={handleDeleteAccount}
+              disabled={deleting}
+              className="bg-transparent border border-safe-danger/50 rounded-xl text-safe-danger py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-danger/10 disabled:cursor-wait disabled:opacity-70"
+            >
+              {deleting ? "Excluindo..." : "Excluir conta"}
+            </button>
             <button onClick={onSignOut} className="bg-transparent border border-safe-border rounded-xl text-safe-dim py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-hover">
               Sair
             </button>
@@ -136,6 +163,13 @@ export default function Dashboard({ user, onSignOut }) {
         <div className="bg-gradient-to-br from-[#180808] to-[#200A0A] border border-safe-danger/40 rounded-2xl p-5 mb-6">
           <div className="text-safe-danger font-semibold text-base">Não foi possível carregar o dashboard</div>
           <div className="text-safe-dim text-sm mt-2">{error}</div>
+        </div>
+      )}
+
+      {!loading && actionError && (
+        <div className="bg-gradient-to-br from-[#180808] to-[#200A0A] border border-safe-danger/40 rounded-2xl p-5 mb-6">
+          <div className="text-safe-danger font-semibold text-base">Ação indisponível</div>
+          <div className="text-safe-dim text-sm mt-2">{actionError}</div>
         </div>
       )}
 

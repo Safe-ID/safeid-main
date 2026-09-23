@@ -1,5 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 const TOKEN_KEY = "safeid.access_token";
+const REFRESH_TOKEN_KEY = "safeid.refresh_token";
 
 function normalizeBaseUrl(url) {
   return url.replace(/\/$/, "");
@@ -13,8 +14,19 @@ export function setToken(token) {
   localStorage.setItem(TOKEN_KEY, token);
 }
 
+export function setAuthTokens(tokens) {
+  if (tokens?.access_token) {
+    localStorage.setItem(TOKEN_KEY, tokens.access_token);
+  }
+
+  if (tokens?.refresh_token) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
+  }
+}
+
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
 
 export async function request(path, options = {}) {
@@ -80,5 +92,11 @@ export async function createScan(email) {
   return request("/api/v1/scan", {
     method: "POST",
     body: JSON.stringify({ email }),
+  });
+}
+
+export async function deleteAccount() {
+  return request("/api/v1/auth/me", {
+    method: "DELETE",
   });
 }

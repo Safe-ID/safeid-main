@@ -3,7 +3,7 @@ import Navbar from "./components/Navbar";
 import Landing from "./components/Landing";
 import Auth from "./components/Auth";
 import Dashboard from "./components/Dashboard";
-import { clearToken, fetchMe, getToken, setToken } from "./lib/api";
+import { clearToken, fetchMe, getToken, setAuthTokens, setToken } from "./lib/api";
 
 export default function SafeID() {
   const [page, setPage] = useState("landing");
@@ -19,12 +19,22 @@ export default function SafeID() {
     setUser(u);
     setPage("dashboard");
   };
+  const onAccountDeleted = () => { clearToken(); setUser(null); setPage("landing"); };
   const onOut = () => { clearToken(); setUser(null); setPage("landing"); };
 
   useEffect(() => {
     let active = true;
     const restoreSession = async () => {
-      const token = getToken();
+      const oauthHash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const accessToken = oauthHash.get("access_token");
+      const refreshToken = oauthHash.get("refresh_token");
+
+      if (accessToken) {
+        setAuthTokens({ access_token: accessToken, refresh_token: refreshToken || undefined });
+        window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+      }
+
+      const token = accessToken || getToken();
       if (!token) {
         if (active) setBooting(false);
         return;
@@ -71,7 +81,7 @@ export default function SafeID() {
         {!booting && page === "landing" && <Landing onNav={goTo} />}
         {!booting && page === "register" && <Auth mode="register" onSuccess={(u) => onAuth(u)} onSwitch={() => setPage("login")} />}
         {!booting && page === "login" && <Auth mode="login" onSuccess={(u) => onAuth(u)} onSwitch={() => setPage("register")} />}
-        {!booting && page === "dashboard" && isAuthenticated && <Dashboard user={user} onSignOut={onOut} />}
+        {!booting && page === "dashboard" && isAuthenticated && <Dashboard user={user} onSignOut={onOut} onDeleteAccount={onAccountDeleted} />}
       </main>
 
       {!booting && page !== "dashboard" && (
