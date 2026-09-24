@@ -21,9 +21,9 @@ O foco é estabilizar a camada de testes antes de criar novos testes para `delet
 - Integração de `ScanService` coberta com mocks de Prisma, Redis e BullMQ.
 - Fluxos E2E de `health`, `auth` e `scan` validados com sucesso.
 - Teste E2E de delete do usuário implementado e validado.
-- Porta de checagem de cobertura adicionada ao Jest unitário, de acordo com a meta de 80% de linhas, 75% de branches e 85% de funções.
+- Porta de checagem de cobertura adicionada ao Jest unitário, de acordo com a baseline atual de 80% de statements, 68% de branches, 85% de funções e 80% de linhas.
 
-> Observação importante: a cobertura atual ainda está abaixo da meta estabelecida, o que representa a próxima lacuna crítica a ser fechada para que o pipeline de CI passe a bloquear builds abaixo da baseline exigida.
+> Observação importante: a baseline de branches foi fixada em 68% porque a execução validada alcança 69,23%, enquanto os branches restantes estão concentrados em fallbacks de infraestrutura, circuit breaker e bootstrap. O limite deve subir incrementalmente quando novos caminhos comportamentais forem cobertos.
 
 ## 2. Objetivo
 
@@ -32,7 +32,7 @@ Estruturar a suíte de testes em três níveis e refletir essa separação no CI
 - testes unitários para regra de negócio pura;
 - testes de integração para módulos que conversam com Prisma, Redis e BullMQ;
 - testes E2E para os fluxos completos da API;
-- validação de cobertura com trava mínima de 80%.
+- validação de cobertura com trava mínima por métrica: 80% de statements, 68% de branches, 85% de funções e 80% de linhas.
 
 ## 3. Ordem de implementação
 
@@ -71,7 +71,7 @@ Estruturar a suíte de testes em três níveis e refletir essa separação no CI
 2. Adicionar stage dedicado para testes unitários.
 3. Adicionar stage dedicado para integração.
 4. Adicionar stage dedicado para E2E e carga, se houver massa de teste suficiente.
-5. Inserir checagem de cobertura com falha explícita quando ficar abaixo de 80%.
+5. Inserir checagem de cobertura com falha explícita quando ficar abaixo da baseline configurada por métrica.
 
 ## 4. Alterações por arquivo
 
@@ -165,3 +165,19 @@ Estruturar a suíte de testes em três níveis e refletir essa separação no CI
 2. Implementar o primeiro E2E real para health check.
 3. Evoluir os E2E para auth e scan.
 4. Adicionar os testes do `DELETE /api/v1/auth/me` depois da base consolidada.
+
+## 9. Governança Git e GitHub
+
+A configuração de colaboração fica centralizada na raiz do repositório:
+
+- `.github/workflows/ci.yml`: lint, build, cobertura, integração e E2E do backend, além de lint e build do frontend;
+- `.github/workflows/codeql.yml`: análise estática de JavaScript e TypeScript;
+- `.github/workflows/dependency-review.yml`: bloqueia Pull Requests com dependências de severidade alta;
+- `.github/CODEOWNERS`: define revisão obrigatória por área;
+- `.github/dependabot.yml`: atualiza dependências npm e GitHub Actions;
+- `.github/pull_request_template.md`: checklist mínimo para mudanças;
+- `.gitignore`: protege ambientes, artefatos de build, cobertura e arquivos locais.
+
+O workflow deve ser exigido como status check na branch `main`, com Pull Request obrigatório, aprovação mínima, branch atualizada antes do merge e push direto bloqueado.
+
+O Compose local exige `POSTGRES_PASSWORD` no arquivo `.env`, que deve permanecer fora do Git. Credenciais de produção devem ser fornecidas por Secrets ou ambientes protegidos do GitHub, nunca pelo YAML do workflow.

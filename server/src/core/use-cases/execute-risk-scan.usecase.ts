@@ -65,7 +65,7 @@ export class ExecuteRiskScanUseCase {
 
     try {
       // 1. Checa cache
-      let cachedResult = await this.cacheService.get(`scan:${emailHash}`);
+      const cachedResult = await this.cacheService.get(`scan:${emailHash}`);
       
       if (cachedResult) {
         console.log(`[Cache HIT] ${emailHash}`);

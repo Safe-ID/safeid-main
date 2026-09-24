@@ -124,6 +124,20 @@ Conteúdo:
 **Público-alvo:** Desenvolvedores, Tech Leads, QA, time de produto
 **Tempo de leitura:** 10-15 minutos
 
+### 8. 🔐 [GITHUB_E_FLUXO_CONTRIBUICAO.md](../GITHUB_E_FLUXO_CONTRIBUICAO.md)
+**Manual simples de Git, GitHub, Pull Requests e CI**
+
+Conteúdo:
+- configuração da equipe e da branch `main`;
+- regras de aprovação e Code Owners;
+- caminho completo de uma alteração até o merge;
+- comandos de Git e GitHub CLI para iniciantes;
+- validações locais de frontend e backend;
+- diagnóstico de falhas comuns no PR.
+
+**Público-alvo:** Todos os desenvolvedores do projeto, especialmente quem está começando com Git e GitHub
+**Tempo de leitura:** 15-20 minutos
+
 ---
 
 ## 🗺️ MAPA DE NAVEGAÇÃO

@@ -1,0 +1,6 @@
+# Replace this team with the repository's actual maintainers team if needed.
+* @Safe-ID/maintainers
+
+/.github/ @Safe-ID/maintainers
+/server/ @Safe-ID/maintainers
+/client/ @Safe-ID/maintainers
