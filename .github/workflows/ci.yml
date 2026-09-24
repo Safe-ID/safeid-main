@@ -58,7 +58,7 @@ jobs:
       - run: npm run test:cov -- --runInBand
       - name: Upload coverage
         if: always()
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           files: server/coverage/lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
