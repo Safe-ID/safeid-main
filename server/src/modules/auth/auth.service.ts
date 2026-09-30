@@ -365,6 +365,13 @@ export class AuthService {
       where: { id: userId },
     });
 
+    // O banco apaga o histórico em cascata; o cache do scan fica no Redis e é apagado aqui
+    try {
+      await this.scanService.clearCachedScan(user.email);
+    } catch (error) {
+      console.warn('[AuthService] Could not clear cached scan after account deletion:', error);
+    }
+
     return {
       message: 'Conta deletada com sucesso',
     };

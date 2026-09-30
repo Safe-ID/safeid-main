@@ -269,6 +269,13 @@ export class ExecuteRiskScanUseCase {
     throw new Error(`Job timeout after ${timeoutMs}ms`);
   }
 
+  /**
+   * Remove do cache o resultado do scan desse email (usado na exclusão de conta)
+   */
+  async clearCachedResult(email: string): Promise<void> {
+    await this.cacheService.del(`scan:${this.hashEmail(email)}`);
+  }
+
   private hashEmail(email: string): string {
     return createHash('sha256').update(email.toLowerCase()).digest('hex');
   }
