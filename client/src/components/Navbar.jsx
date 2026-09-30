@@ -4,7 +4,14 @@ export default function Navbar({ user, onSignOut, onNav }) {
 
   return (
     <nav className="w-full flex items-center justify-between py-4 px-6 md:px-12 border-b border-safe-border bg-safe-bg/90 backdrop-blur-md sticky top-0 z-50">
-      <div onClick={() => onNav("landing")} className="flex items-center gap-3 cursor-pointer">
+      <div
+        role="link"
+        tabIndex={0}
+        aria-label="SafeID, ir para a página inicial"
+        onClick={() => onNav("landing")}
+        onKeyDown={(e) => e.key === "Enter" && onNav("landing")}
+        className="flex items-center gap-3 cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-safe-secondary"
+      >
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-safe-primary to-safe-secondary flex items-center justify-center">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="white">
             <path d="M8 1L2 3.5v4C2 11 5 14 8 15c3-1 6-4 6-7.5v-4L8 1z" />

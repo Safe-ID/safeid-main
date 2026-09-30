@@ -9,7 +9,7 @@
     "start": "node dist/main.js",
     "start:prod": "node dist/main.js",
     "dev": "nest start --watch",
-    "predev": "prisma generate",
+    "predev": "prisma generate && prisma migrate deploy",
     "build": "nest build",
     "prebuild": "prisma generate",
     "prisma:generate": "prisma generate",

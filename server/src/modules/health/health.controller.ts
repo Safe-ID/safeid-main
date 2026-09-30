@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode } from '@nestjs/common';
+import { Controller, Get, HttpCode, ServiceUnavailableException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SkipThrottle } from '@nestjs/throttler';
 import { HealthService, HealthStatus } from './health.service';
@@ -17,7 +17,18 @@ export class HealthController {
     description: 'Aplicação está saudável',
     type: Object,
   })
+  @ApiResponse({
+    status: 503,
+    description: 'Banco de dados ou Redis indisponível',
+  })
   async check(): Promise<HealthStatus> {
-    return this.healthService.getHealth();
+    const health = await this.healthService.getHealth();
+
+    // 503 faz o HEALTHCHECK do Docker e o ALB perceberem que a instância não está saudável
+    if (health.status !== 'ok') {
+      throw new ServiceUnavailableException(health);
+    }
+
+    return health;
   }
 }
