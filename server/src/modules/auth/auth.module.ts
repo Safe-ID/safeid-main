@@ -15,11 +15,15 @@ import { ScanModule } from '../scan/scan.module';
 @Module({
   imports: [
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: {
-        expiresIn: '24h' as any,
-      },
+    // registerAsync lê o segredo depois que o ConfigModule carregou o .env.
+    // Com register, o JWT_SECRET era lido antes e ficava undefined.
+    JwtModule.registerAsync({
+      useFactory: () => ({
+        secret: process.env.JWT_SECRET,
+        signOptions: {
+          expiresIn: '24h' as any,
+        },
+      }),
     }),
     DatabaseModule,
     ScanModule,
