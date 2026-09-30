@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { PrismaService } from '../../../infra/database/prisma.service';
@@ -36,6 +36,22 @@ export class ScanService {
     await this.persistUserScanSnapshot(userId, dto.email, result);
 
     return result;
+  }
+
+  /**
+   * Inicia análise usando o email cadastrado na conta do usuário
+   */
+  async submitScanForUser(userId: number): Promise<ScanResultDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    return this.submitScan(userId, { email: user.email });
   }
 
   async persistFallbackSnapshot(userId: number, email: string): Promise<void> {
