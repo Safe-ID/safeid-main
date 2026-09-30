@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { API_BASE_URL, clearToken, login, setAuthTokens, signup } from "../lib/api";
 
-export default function Auth({ mode, onSuccess, onSwitch }) {
+export default function Auth({ mode, notice, onSuccess, onSwitch }) {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [conf, setConf] = useState("");
@@ -74,6 +74,12 @@ export default function Auth({ mode, onSuccess, onSwitch }) {
                 <input id="auth-password-confirm" type="password" autoComplete="new-password" value={conf} onChange={e => setConf(e.target.value)}
                   placeholder="Repita a senha" className={inpClass}
                   onKeyDown={e => e.key === "Enter" && submit()} />
+              </div>
+            )}
+
+            {notice && !err && (
+              <div className="bg-safe-secondary/10 border border-safe-secondary/25 rounded-xl py-2.5 px-3.5 text-safe-secondary text-[13px]">
+                {notice}
               </div>
             )}
 

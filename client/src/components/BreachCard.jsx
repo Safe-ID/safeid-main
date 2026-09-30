@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { W, translateDataClass } from "./safeidData";
+import { W, translateDataClass, severityFromWeight } from "./safeidData";
 
 function resolveLogoPath(logoPath) {
   if (!logoPath || typeof logoPath !== "string") return "";
@@ -89,10 +89,9 @@ export default function BreachCard({ item, idx }) {
           </div>
           <div className="flex flex-wrap gap-1.5">
             {isBreachData ? (item.DataClasses || item.classes || []).map((cls) => {
-              const w = W[cls] || 2;
-              const colClass = w >= 8 ? "safe-danger" : w >= 5 ? "safe-warn" : "safe-secondary";
+              const severity = severityFromWeight(W[cls] || 2);
               return (
-                <span key={cls} className={`bg-${colClass}/10 border border-${colClass}/30 text-${colClass} text-[11px] font-medium px-2.5 py-1 rounded-full`}>
+                <span key={cls} className={`${severity.chip} border text-[11px] font-medium px-2.5 py-1 rounded-full`}>
                   {translateDataClass(cls)}
                 </span>
               );
@@ -106,10 +105,9 @@ export default function BreachCard({ item, idx }) {
                 {detail}
               </span>
             )) : item.classes.map(cls => {
-              const w = W[cls] || 2;
-              const colClass = w >= 8 ? "safe-danger" : w >= 5 ? "safe-warn" : "safe-secondary";
+              const severity = severityFromWeight(W[cls] || 2);
               return (
-                <span key={cls} className={`bg-${colClass}/10 border border-${colClass}/30 text-${colClass} text-[11px] font-medium px-2.5 py-1 rounded-full`}>
+                <span key={cls} className={`${severity.chip} border text-[11px] font-medium px-2.5 py-1 rounded-full`}>
                   {translateDataClass(cls)}
                 </span>
               );
