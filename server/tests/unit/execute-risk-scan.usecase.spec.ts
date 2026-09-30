@@ -28,6 +28,16 @@ describe('ExecuteRiskScanUseCase', () => {
     };
   });
 
+  it('clears the cached scan of an email using the same hashed key', async () => {
+    cacheService.del = jest.fn(async () => 1);
+
+    const useCase = new ExecuteRiskScanUseCase(repository, cacheService, hibpQueue, 'test-key');
+    await useCase.clearCachedResult('User@Example.com');
+
+    const expectedHash = require('crypto').createHash('sha256').update('user@example.com').digest('hex');
+    expect(cacheService.del).toHaveBeenCalledWith(`scan:${expectedHash}`);
+  });
+
   it('returns the cached result without enqueuing a new HIBP job', async () => {
     const cached = {
       riskScore: 58,

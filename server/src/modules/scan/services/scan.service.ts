@@ -105,6 +105,13 @@ export class ScanService {
   }
 
   /**
+   * Apaga o resultado do scan guardado no Redis para esse email
+   */
+  async clearCachedScan(email: string): Promise<void> {
+    await this.executeRiskScanUseCase.clearCachedResult(email);
+  }
+
+  /**
    * Cria repository implementation em tempo de execução
    */
   private createRepository() {

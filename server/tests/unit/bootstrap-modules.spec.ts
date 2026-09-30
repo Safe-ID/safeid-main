@@ -73,6 +73,12 @@ describe('bootstrap and module wiring coverage', () => {
     const queue = moduleRef.get('HIBP_QUEUE');
     expect(queue).toBeDefined();
     expect((require('bullmq').Queue as jest.Mock).mock.calls.length).toBeGreaterThan(0);
+    expect((require('bullmq').Queue as jest.Mock).mock.calls.at(-1)?.[1]).toMatchObject({
+      defaultJobOptions: {
+        removeOnComplete: { age: 60 },
+        removeOnFail: { age: 600 },
+      },
+    });
   });
 
   it('throws when a real HIBP queue is requested without an API key', async () => {
