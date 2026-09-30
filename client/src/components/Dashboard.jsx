@@ -211,10 +211,13 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-1 bg-safe-card border border-safe-border rounded-xl p-1.5 mb-6">
+          <div role="tablist" aria-label="Seções do painel" className="flex flex-col sm:flex-row gap-1 bg-safe-card border border-safe-border rounded-xl p-1.5 mb-6">
             {[{ id: "overview", label: "Visão Geral" }, { id: "breaches", label: `Vazamentos (${breachData.length})` }, { id: "ai", label: "✦ Plano IA" }].map(t => (
               <button 
                 key={t.id} 
+                type="button"
+                role="tab"
+                aria-selected={tab === t.id}
                 onClick={() => setTab(t.id)} 
                 className={`flex-1 py-2.5 px-4 rounded-lg text-sm transition-all cursor-pointer ${
                   tab === t.id 
