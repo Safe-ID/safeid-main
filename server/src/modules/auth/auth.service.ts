@@ -13,6 +13,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../infra/database/prisma.service';
 import { ScanService } from '../scan/services/scan.service';
+import { openBreachData } from '../../shared/crypto/breach-data.cipher';
 import {
   SignupDto,
   LoginDto,
@@ -382,10 +383,15 @@ export class AuthService {
       throw new UnauthorizedException('Usuário não encontrado');
     }
 
+    const snapshot = user.scanSnapshot as ScanSnapshotDto | null;
+
     return {
       id: user.id,
       email: user.email,
-      scanSnapshot: user.scanSnapshot as ScanSnapshotDto | null,
+      // Os vazamentos ficam criptografados no banco e são abertos só na resposta
+      scanSnapshot: snapshot
+        ? { ...snapshot, breachData: openBreachData(snapshot.breachData) }
+        : null,
       scanSnapshotUpdatedAt: user.scanSnapshotUpdatedAt,
     };
   }
