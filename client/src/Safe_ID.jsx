@@ -3,22 +3,36 @@ import Navbar from "./components/Navbar";
 import Landing from "./components/Landing";
 import Auth from "./components/Auth";
 import Dashboard from "./components/Dashboard";
-import { clearToken, fetchMe, getToken, setAuthTokens, setToken } from "./lib/api";
+import { SESSION_EXPIRED_EVENT, clearToken, fetchMe, getToken, setAuthTokens, setToken } from "./lib/api";
 
 export default function SafeID() {
   const [page, setPage] = useState("landing");
   const [user, setUser] = useState(null);
   const [booting, setBooting] = useState(true);
+  const [notice, setNotice] = useState("");
 
   const goTo = (p) => {
     if (p === "landing") setUser(null);
+    setNotice("");
     setPage(p);
   };
   const onAuth = (u, token) => {
     if (token) setToken(token);
+    setNotice("");
     setUser(u);
     setPage("dashboard");
   };
+
+  useEffect(() => {
+    const onSessionExpired = () => {
+      setUser(null);
+      setNotice("Sua sessão expirou. Entre novamente para continuar.");
+      setPage("login");
+    };
+
+    window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+  }, []);
   const onAccountDeleted = () => { clearToken(); setUser(null); setPage("landing"); };
   const onOut = () => { clearToken(); setUser(null); setPage("landing"); };
 
@@ -49,7 +63,8 @@ export default function SafeID() {
         clearToken();
         if (active) {
           setUser(null);
-          setPage("landing");
+          // Se o token venceu, o aviso de sessão expirada já levou para o login
+          setPage((current) => (current === "login" ? current : "landing"));
         }
       } finally {
         if (active) setBooting(false);
@@ -80,7 +95,7 @@ export default function SafeID() {
 
         {!booting && page === "landing" && <Landing onNav={goTo} />}
         {!booting && page === "register" && <Auth mode="register" onSuccess={(u) => onAuth(u)} onSwitch={() => setPage("login")} />}
-        {!booting && page === "login" && <Auth mode="login" onSuccess={(u) => onAuth(u)} onSwitch={() => setPage("register")} />}
+        {!booting && page === "login" && <Auth mode="login" notice={notice} onSuccess={(u) => onAuth(u)} onSwitch={() => { setNotice(""); setPage("register"); }} />}
         {!booting && page === "dashboard" && isAuthenticated && <Dashboard user={user} onSignOut={onOut} onDeleteAccount={onAccountDeleted} />}
       </main>
 

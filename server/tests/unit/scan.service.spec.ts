@@ -9,6 +9,7 @@ describe('ScanService', () => {
     prismaMock = {
       user: {
         update: jest.fn(),
+        findUnique: jest.fn(),
       },
       scanHistory: {
         findMany: jest.fn(),
@@ -29,6 +30,21 @@ describe('ScanService', () => {
     (service as any).executeRiskScanUseCase = {
       execute: jest.fn(),
     };
+  });
+
+  it('scans only the email registered on the account', async () => {
+    const submitSpy = jest.spyOn(service, 'submitScan').mockResolvedValue({ jobId: 'job-own' } as any);
+    prismaMock.user.findUnique.mockResolvedValue({ email: 'owner@example.com' });
+
+    await expect(service.submitScanForUser(5)).resolves.toMatchObject({ jobId: 'job-own' });
+    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+      where: { id: 5 },
+      select: { email: true },
+    });
+    expect(submitSpy).toHaveBeenCalledWith(5, { email: 'owner@example.com' });
+
+    prismaMock.user.findUnique.mockResolvedValue(null);
+    await expect(service.submitScanForUser(999)).rejects.toThrow('Usuário não encontrado');
   });
 
   it('executes a scan and persists the user snapshot', async () => {
@@ -135,7 +151,7 @@ describe('ScanService', () => {
       classification: 'CRITICAL',
       breachesFound: 3,
       recommendation: 'Urgent review',
-      breachData: '{"source":"public-breach"}',
+      breachData: { source: 'public-breach' },
     });
   });
 
