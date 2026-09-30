@@ -41,11 +41,11 @@ Para rodar localmente com o frontend, ajuste pelo menos:
 
 - `DATABASE_URL` e `POSTGRES_PASSWORD` (a senha é usada pelo Postgres do `docker-compose`)
 - `JWT_SECRET` e `REFRESH_TOKEN_SECRET` com valores próprios
-- `CORS_ORIGIN=http://localhost:5173` (endereço do Vite; sem isso o navegador bloqueia as chamadas do front)
+- `CORS_ORIGIN=http://localhost:3001` (porta do Vite configurada no `client/vite.config.js`; com o valor do `.env.example` o navegador bloqueia as chamadas do front)
 - `HIBP_API_KEY` (ou `HIBP_USE_MOCK=true` para usar o cliente falso)
 - `AI_API_KEY` e `AI_ENDPOINT` (opcional: sem eles o scan usa a recomendação padrão)
 
-Para habilitar login/cadastro com Google, configure também `FRONTEND_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `GOOGLE_CALLBACK_URL`.
+Para habilitar login/cadastro com Google, configure também `FRONTEND_URL` (localmente `http://localhost:3001`), `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `GOOGLE_CALLBACK_URL`.
 
 ### 3. Subir infraestrutura (com Docker)
 
