@@ -8,10 +8,12 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { ScanService } from './services/scan.service';
 import { ScanResultDto, ScanHistoryDto } from './dto/scan.dto';
 import { CurrentUser } from '../../api/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RATE_LIMITS } from '../../infra/rate-limit/rate-limit.module';
 
 @ApiTags('scan')
 @ApiBearerAuth()
@@ -21,6 +23,7 @@ export class ScanController {
   constructor(private scanService: ScanService) {}
 
   @Post()
+  @Throttle(RATE_LIMITS.scan)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Run a breach analysis for the logged-in user email' })
   @ApiResponse({
