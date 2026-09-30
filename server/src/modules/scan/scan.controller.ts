@@ -2,7 +2,6 @@ import {
   Controller,
   Post,
   Get,
-  Body,
   Param,
   UseGuards,
   HttpCode,
@@ -10,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { ScanService } from './services/scan.service';
-import { CreateScanDto, ScanResultDto, ScanHistoryDto } from './dto/scan.dto';
+import { ScanResultDto, ScanHistoryDto } from './dto/scan.dto';
 import { CurrentUser } from '../../api/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -23,17 +22,16 @@ export class ScanController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Submit email for breach analysis' })
+  @ApiOperation({ summary: 'Run a breach analysis for the logged-in user email' })
   @ApiResponse({
     status: 201,
     description: 'Scan submitted successfully',
     type: ScanResultDto,
   })
-  async submitScan(
-    @CurrentUser('sub') userId: number,
-    @Body() dto: CreateScanDto,
-  ): Promise<ScanResultDto> {
-    return this.scanService.submitScan(userId, dto);
+  async submitScan(@CurrentUser('sub') userId: number): Promise<ScanResultDto> {
+    // O email vem da conta logada, nunca do corpo da requisição,
+    // para ninguém consultar os vazamentos de outra pessoa
+    return this.scanService.submitScanForUser(userId);
   }
 
   @Get('history')
