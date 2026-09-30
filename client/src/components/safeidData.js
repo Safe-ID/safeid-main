@@ -23,6 +23,32 @@ export const W = {
   "Names": 2, "Geographic locations": 2, "Job titles": 1, "IP addresses": 3,
 };
 
+// Classes completas por gravidade. O Tailwind só gera classes que aparecem
+// escritas por inteiro no código, então elas não podem ser montadas com `bg-${cor}`.
+export const SEVERITY_CLASSES = {
+  danger: {
+    chip: "bg-safe-danger/10 border-safe-danger/30 text-safe-danger",
+    softChip: "bg-safe-danger/10 border-safe-danger/20 text-safe-danger",
+    dot: "bg-safe-danger shadow-safe-danger/50",
+  },
+  warn: {
+    chip: "bg-safe-warn/10 border-safe-warn/30 text-safe-warn",
+    softChip: "bg-safe-warn/10 border-safe-warn/20 text-safe-warn",
+    dot: "bg-safe-warn shadow-safe-warn/50",
+  },
+  secondary: {
+    chip: "bg-safe-secondary/10 border-safe-secondary/30 text-safe-secondary",
+    softChip: "bg-safe-secondary/10 border-safe-secondary/20 text-safe-secondary",
+    dot: "bg-safe-secondary shadow-safe-secondary/50",
+  },
+};
+
+export function severityFromWeight(weight) {
+  if (weight >= 8) return SEVERITY_CLASSES.danger;
+  if (weight >= 5) return SEVERITY_CLASSES.warn;
+  return SEVERITY_CLASSES.secondary;
+}
+
 export const DATA_CLASS_TRANSLATIONS = {
   "Account balances": "Saldos de conta",
   "Address book contacts": "Contatos da agenda",
