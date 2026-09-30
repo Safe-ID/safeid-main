@@ -27,6 +27,12 @@ export class ScanResultDto {
   @ApiProperty({ nullable: true })
   recommendation?: string;
 
+  @ApiProperty({ type: [String], nullable: true })
+  mitigationSteps?: string[];
+
+  @ApiProperty({ enum: ['HIGH', 'MEDIUM', 'LOW'], nullable: true })
+  urgencyLevel?: string;
+
   @ApiProperty()
   isVerified!: boolean;
 }

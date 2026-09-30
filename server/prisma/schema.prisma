@@ -48,9 +48,11 @@ model ScanHistory {
   classification  String    // LOW, MODERATE, CRITICAL
   
   breachesFound   Int?      // Número de breaches encontrados
-  breachData      String?   // JSON serializado com info dos breaches (criptografado em repouso)
+  breachData      String?   // JSON dos breaches, criptografado com AES-256-GCM quando ENCRYPTION_KEY existe
   
   recommendation  String?   // Texto da recomendação da IA (português)
+  mitigationSteps Json?     // Lista de passos de mitigação sugeridos pela IA
+  urgencyLevel    String?   // HIGH, MEDIUM, LOW
   
   isVerified      Boolean   @default(false)
   processedAt     DateTime?
