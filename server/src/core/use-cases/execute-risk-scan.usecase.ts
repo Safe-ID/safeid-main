@@ -97,6 +97,7 @@ export class ExecuteRiskScanUseCase {
           const aiResult = await this.aiEngine.generateRecommendation({
             breaches: breaches,
             riskScore: riskCalc.totalScore,
+            classification: riskCalc.classification,
           });
           recommendation = aiResult.executive_summary;
         } catch (error) {
