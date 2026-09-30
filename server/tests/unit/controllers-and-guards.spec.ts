@@ -44,19 +44,18 @@ describe('controller and guard unit coverage', () => {
 
   it('scan controller delegates to the scan service for submit, history and detail', async () => {
     const service = {
-      submitScan: jest.fn(async () => ({ jobId: 'job-1', riskScore: 5, classification: 'LOW' })),
+      submitScanForUser: jest.fn(async () => ({ jobId: 'job-1', riskScore: 5, classification: 'LOW' })),
       getUserHistory: jest.fn(async () => [{ id: 'job-1', riskScore: 5, classification: 'LOW' }]),
       getScanDetail: jest.fn(async () => ({ jobId: 'job-1', riskScore: 10, classification: 'MODERATE' })),
     } as any;
 
     const controller = new ScanController(service);
-    const dto = { email: 'user@example.com' };
 
-    await expect(controller.submitScan(12, dto)).resolves.toMatchObject({ jobId: 'job-1' });
+    await expect(controller.submitScan(12)).resolves.toMatchObject({ jobId: 'job-1' });
     await expect(controller.getHistory(12)).resolves.toEqual([{ id: 'job-1', riskScore: 5, classification: 'LOW' }]);
     await expect(controller.getScanDetail(12, 'job-1')).resolves.toMatchObject({ jobId: 'job-1' });
 
-    expect(service.submitScan).toHaveBeenCalledWith(12, dto);
+    expect(service.submitScanForUser).toHaveBeenCalledWith(12);
     expect(service.getUserHistory).toHaveBeenCalledWith(12);
     expect(service.getScanDetail).toHaveBeenCalledWith(12, 'job-1');
   });
