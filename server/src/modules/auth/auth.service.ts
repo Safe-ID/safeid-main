@@ -206,9 +206,12 @@ export class AuthService {
     });
 
     if (existingByEmail) {
+      // O Google comprovou que a pessoa é dona do email. Uma senha cadastrada antes
+      // pode ter sido criada por outra pessoa (o cadastro não verifica o email),
+      // então ela é removida e a conta passa a entrar pelo Google.
       return this.prisma.user.update({
         where: { id: existingByEmail.id },
-        data: { googleId: input.googleId },
+        data: { googleId: input.googleId, passwordHash: null },
       });
     }
 
@@ -243,26 +246,25 @@ export class AuthService {
       where: { email: dto.email.toLowerCase() },
     });
 
+    // Contas criadas pelo Google não recebem senha pelo cadastro,
+    // senão qualquer pessoa poderia definir uma senha para o email de outra
     if (existingUser?.passwordHash) {
       throw new ConflictException('Email já registrado');
+    }
+
+    if (existingUser) {
+      throw new ConflictException('Este email já está cadastrado com o Google. Entre usando o Google.');
     }
 
     // Hash password
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    const user = existingUser
-      ? await this.prisma.user.update({
-          where: { id: existingUser.id },
-          data: {
-            passwordHash,
-          },
-        })
-      : await this.prisma.user.create({
-          data: {
-            email: dto.email.toLowerCase(),
-            passwordHash,
-          },
-        });
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email.toLowerCase(),
+        passwordHash,
+      },
+    });
 
     let scanFailure: unknown = null;
     try {
