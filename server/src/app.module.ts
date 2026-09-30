@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { validateEnv } from './shared/config/env.validation';
 
 // Module imports
 import { HealthModule } from './modules/health/health.module';
@@ -14,9 +15,11 @@ import { QueueModule } from './infra/queue/queue.module';
 @Module({
   imports: [
     // Configuration
+    // validateEnv só avisa no log sobre segredos faltando ou com valor de exemplo
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env', '.env.example'],
+      validate: validateEnv,
     }),
 
     // Infrastructure

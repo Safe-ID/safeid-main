@@ -31,6 +31,7 @@ describe('bootstrap and module wiring coverage', () => {
     process.env.REDIS_HOST = 'localhost';
     process.env.REDIS_PORT = '6379';
     process.env.JWT_SECRET = 'unit-test-secret';
+    process.env.REFRESH_TOKEN_SECRET = 'unit-test-refresh-secret';
     process.env.APP_PORT = '3001';
     process.env.NODE_ENV = 'test';
     process.env.SWAGGER_ENABLED = 'false';
