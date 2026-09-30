@@ -27,11 +27,13 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { SignupDto, LoginDto } from './dto/auth.dto';
 import { AuthResponseDto, JwtPayload } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from '../../api/decorators/current-user.decorator';
+import { RATE_LIMITS } from '../../infra/rate-limit/rate-limit.module';
 
 const authResponseSchema = {
   type: 'object',
@@ -53,6 +55,8 @@ const authResponseSchema = {
             classification: { type: 'string' },
             breachesFound: { type: 'number' },
             recommendation: { type: 'string', nullable: true },
+            mitigationSteps: { type: 'array', items: { type: 'string' }, nullable: true },
+            urgencyLevel: { type: 'string', nullable: true },
             isVerified: { type: 'boolean' },
             processedAt: { type: 'string', nullable: true },
           },
@@ -70,6 +74,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('signup')
+  @Throttle(RATE_LIMITS.signup)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Registra novo usuário' })
   @ApiResponse({
@@ -90,6 +95,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle(RATE_LIMITS.login)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Faz login do usuário' })
   @ApiResponse({
