@@ -39,6 +39,7 @@ describe('AuthService', () => {
     scanServiceMock = {
       submitScan: jest.fn(),
       persistFallbackSnapshot: jest.fn(),
+      clearCachedScan: jest.fn(),
     };
 
     service = new AuthService(prismaMock as any, jwtServiceMock as any, scanServiceMock as any);
@@ -131,6 +132,15 @@ describe('AuthService', () => {
 
     expect(result).toEqual({ message: 'Conta deletada com sucesso' });
     expect(prismaMock.user.delete).toHaveBeenCalledWith({ where: { id: 33 } });
+    expect(scanServiceMock.clearCachedScan).toHaveBeenCalledWith('delete@example.com');
+  });
+
+  it('still deletes the account when the cached scan cannot be cleared', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ id: 34, email: 'redis-down@example.com' });
+    prismaMock.user.delete.mockResolvedValue({ id: 34 });
+    scanServiceMock.clearCachedScan.mockRejectedValue(new Error('Redis down'));
+
+    await expect(service.deleteAccount(34)).resolves.toEqual({ message: 'Conta deletada com sucesso' });
   });
 
   it('returns a valid Google auth URL with state', async () => {

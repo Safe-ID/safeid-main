@@ -96,6 +96,23 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
   const greetingName = profile?.email ? profile.email.split("@")[0] : "usuário";
   const totalBreaches = typeof scanSnapshot?.breachesFound === "number" ? scanSnapshot.breachesFound : breachData.length;
 
+  // Separa "nunca verificado" e "não deu para verificar" de "verificado e sem vazamentos"
+  const scanStatus = !scanSnapshot
+    ? "pending"
+    : scanSnapshot.isVerified === false
+      ? "unverified"
+      : totalBreaches > 0
+        ? "breached"
+        : "clean";
+
+  const STATUS_BADGES = {
+    pending: { label: "Ainda não verificado", className: "bg-safe-card border-safe-borderL text-safe-muted", dot: "bg-safe-muted" },
+    unverified: { label: "Verificação pendente", className: "bg-safe-warn/15 border-safe-warn/40 text-safe-warn", dot: "bg-safe-warn" },
+    breached: { label: `${totalBreaches} vazamentos detectados`, className: "bg-safe-danger/15 border-safe-danger/40 text-safe-danger", dot: "bg-safe-danger" },
+    clean: { label: "Nenhum vazamento encontrado", className: "bg-safe-accent/15 border-safe-accent/40 text-safe-accent", dot: "bg-safe-accent" },
+  };
+  const statusBadge = STATUS_BADGES[scanStatus];
+
   const handleRescan = async () => {
     try {
       setScanning(true);
@@ -146,9 +163,9 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
           </div>
           
           <div className="flex flex-wrap items-center gap-3 mt-4 sm:mt-0">
-            <div className="flex items-center gap-2 bg-safe-danger/15 border border-safe-danger/40 rounded-xl py-2 px-4 h-fit">
-              <span className="w-2 h-2 rounded-full bg-safe-danger inline-block" />
-              <span className="text-safe-danger text-sm font-semibold">{totalBreaches || 0} vazamentos detectados</span>
+            <div className={`flex items-center gap-2 border rounded-xl py-2 px-4 h-fit ${statusBadge.className}`}>
+              <span className={`w-2 h-2 rounded-full inline-block ${statusBadge.dot}`} />
+              <span className="text-sm font-semibold">{statusBadge.label}</span>
             </div>
             <button
               onClick={handleRescan}
@@ -201,7 +218,29 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
 
       {!loading && !error && (
         <>
-          {totalBreaches > 0 && (
+          {scanStatus === "clean" && (
+            <div className="bg-safe-accent/5 border border-safe-accent/30 rounded-2xl p-5 flex items-center gap-4 mb-6 animate-slide-up">
+              <div className="w-10 h-10 rounded-xl bg-safe-accent/10 flex items-center justify-center text-xl text-safe-accent shrink-0">✓</div>
+              <div>
+                <div className="text-safe-accent font-semibold text-base">Nenhum vazamento encontrado para {profile?.email}</div>
+                <div className="text-safe-muted text-sm mt-1">Seu email não aparece nas bases de vazamentos consultadas. Continue usando senhas únicas e a verificação em duas etapas.</div>
+              </div>
+            </div>
+          )}
+
+          {(scanStatus === "pending" || scanStatus === "unverified") && (
+            <div className="bg-safe-warn/5 border border-safe-warn/30 rounded-2xl p-5 flex items-center gap-4 mb-6 animate-slide-up">
+              <div className="w-10 h-10 rounded-xl bg-safe-warn/10 flex items-center justify-center text-xl text-safe-warn shrink-0">!</div>
+              <div>
+                <div className="text-safe-warn font-semibold text-base">
+                  {scanStatus === "pending" ? "Ainda não verificamos o seu email" : "Não conseguimos verificar o seu email agora"}
+                </div>
+                <div className="text-safe-muted text-sm mt-1">Clique em "Verificar novamente" para consultar os vazamentos. Até lá, o score abaixo não vale como resultado.</div>
+              </div>
+            </div>
+          )}
+
+          {scanStatus === "breached" && (
             <div className="bg-gradient-to-br from-[#180808] to-[#200A0A] border border-safe-danger/40 rounded-2xl p-5 flex items-center gap-4 mb-6 animate-slide-up">
               <div className="w-10 h-10 rounded-xl bg-safe-danger/10 flex items-center justify-center text-xl shrink-0">⚠</div>
               <div>
@@ -211,10 +250,13 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-1 bg-safe-card border border-safe-border rounded-xl p-1.5 mb-6">
+          <div role="tablist" aria-label="Seções do painel" className="flex flex-col sm:flex-row gap-1 bg-safe-card border border-safe-border rounded-xl p-1.5 mb-6">
             {[{ id: "overview", label: "Visão Geral" }, { id: "breaches", label: `Vazamentos (${breachData.length})` }, { id: "ai", label: "✦ Plano IA" }].map(t => (
               <button 
                 key={t.id} 
+                type="button"
+                role="tab"
+                aria-selected={tab === t.id}
                 onClick={() => setTab(t.id)} 
                 className={`flex-1 py-2.5 px-4 rounded-lg text-sm transition-all cursor-pointer ${
                   tab === t.id 
@@ -231,7 +273,7 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
             <div className="animate-fade-in">
               <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-4 mb-6">
                 <div className="bg-safe-card border border-safe-border rounded-2xl p-8 flex flex-col items-center justify-center">
-                  <RiskCircle val={riskScore} size={220} />
+                  <RiskCircle val={riskScore} size={220} label={scanStatus === "pending" || scanStatus === "unverified" ? "PENDENTE" : undefined} />
                 </div>
                 
                 <div className="flex flex-col gap-3">

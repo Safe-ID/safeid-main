@@ -59,21 +59,21 @@ export default function Auth({ mode, notice, onSuccess, onSwitch, onOpenPrivacy 
 
           <div className="flex flex-col gap-4">
             <div>
-              <div className="text-safe-dim text-[11px] font-semibold mb-1.5 tracking-wide">EMAIL</div>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+              <label htmlFor="auth-email" className="block text-safe-dim text-[11px] font-semibold mb-1.5 tracking-wide">EMAIL</label>
+              <input id="auth-email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="seu@email.com" className={inpClass}
                 onKeyDown={e => e.key === "Enter" && submit()} />
             </div>
             <div>
-              <div className="text-safe-dim text-[11px] font-semibold mb-1.5 tracking-wide">SENHA</div>
-              <input type="password" value={pass} onChange={e => setPass(e.target.value)}
+              <label htmlFor="auth-password" className="block text-safe-dim text-[11px] font-semibold mb-1.5 tracking-wide">SENHA</label>
+              <input id="auth-password" type="password" autoComplete={isReg ? "new-password" : "current-password"} value={pass} onChange={e => setPass(e.target.value)}
                 placeholder={isReg ? "Mínimo 8 caracteres" : "••••••••"} className={inpClass}
                 onKeyDown={e => e.key === "Enter" && submit()} />
             </div>
             {isReg && (
               <div>
-                <div className="text-safe-dim text-[11px] font-semibold mb-1.5 tracking-wide">CONFIRMAR SENHA</div>
-                <input type="password" value={conf} onChange={e => setConf(e.target.value)}
+                <label htmlFor="auth-password-confirm" className="block text-safe-dim text-[11px] font-semibold mb-1.5 tracking-wide">CONFIRMAR SENHA</label>
+                <input id="auth-password-confirm" type="password" autoComplete="new-password" value={conf} onChange={e => setConf(e.target.value)}
                   placeholder="Repita a senha" className={inpClass}
                   onKeyDown={e => e.key === "Enter" && submit()} />
               </div>
@@ -135,9 +135,9 @@ export default function Auth({ mode, notice, onSuccess, onSwitch, onOpenPrivacy 
 
             <div className="text-center text-safe-dim text-[13px] mt-2">
               {isReg ? "Já tem uma conta? " : "Não tem conta? "}
-              <span onClick={onSwitch} className="text-safe-secondary cursor-pointer font-semibold hover:underline">
+              <button type="button" onClick={onSwitch} className="bg-transparent border-none p-0 text-[13px] text-safe-secondary cursor-pointer font-semibold hover:underline">
                 {isReg ? "Entrar" : "Criar conta grátis"}
-              </span>
+              </button>
             </div>
           </div>
         </div>

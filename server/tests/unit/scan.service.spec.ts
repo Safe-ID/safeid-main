@@ -100,6 +100,14 @@ describe('ScanService', () => {
     });
   });
 
+  it('delegates cache cleanup to the use case', async () => {
+    (service as any).executeRiskScanUseCase.clearCachedResult = jest.fn(async () => undefined);
+
+    await service.clearCachedScan('user@example.com');
+
+    expect((service as any).executeRiskScanUseCase.clearCachedResult).toHaveBeenCalledWith('user@example.com');
+  });
+
   it('returns the user scan history mapped to the external DTO format', async () => {
     prismaMock.scanHistory.findMany.mockResolvedValue([
       {

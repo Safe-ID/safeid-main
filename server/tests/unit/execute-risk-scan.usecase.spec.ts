@@ -28,6 +28,16 @@ describe('ExecuteRiskScanUseCase', () => {
     };
   });
 
+  it('clears the cached scan of an email using the same hashed key', async () => {
+    cacheService.del = jest.fn(async () => 1);
+
+    const useCase = new ExecuteRiskScanUseCase(repository, cacheService, hibpQueue, 'test-key');
+    await useCase.clearCachedResult('User@Example.com');
+
+    const expectedHash = require('crypto').createHash('sha256').update('user@example.com').digest('hex');
+    expect(cacheService.del).toHaveBeenCalledWith(`scan:${expectedHash}`);
+  });
+
   it('returns the cached result without enqueuing a new HIBP job', async () => {
     const cached = {
       riskScore: 58,
@@ -58,6 +68,28 @@ describe('ExecuteRiskScanUseCase', () => {
 
     expect(hibpQueue.add).not.toHaveBeenCalled();
     expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it('hashes the email with HMAC when EMAIL_HASH_SECRET is set', async () => {
+    const { createHash, createHmac } = require('crypto');
+    const useCase = new ExecuteRiskScanUseCase(repository, cacheService, hibpQueue, 'test-key');
+    const original = process.env.EMAIL_HASH_SECRET;
+
+    process.env.EMAIL_HASH_SECRET = 'hash-secret';
+    const withSecret = (useCase as any).hashEmail('User@Example.com');
+    expect(withSecret).toBe(createHmac('sha256', 'hash-secret').update('user@example.com').digest('hex'));
+    expect(withSecret).not.toBe(createHash('sha256').update('user@example.com').digest('hex'));
+
+    delete process.env.EMAIL_HASH_SECRET;
+    expect((useCase as any).hashEmail('User@Example.com')).toBe(
+      createHash('sha256').update('user@example.com').digest('hex'),
+    );
+
+    if (original === undefined) {
+      delete process.env.EMAIL_HASH_SECRET;
+    } else {
+      process.env.EMAIL_HASH_SECRET = original;
+    }
   });
 
   it('runs the full scan flow for a cache miss and persists the result', async () => {
