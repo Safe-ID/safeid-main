@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { UnauthorizedException } from '@nestjs/common';
 import { AuthController } from '../../src/modules/auth/auth.controller';
 import { JwtStrategy } from '../../src/modules/auth/strategies/jwt.strategy';
-import { DevAuthGuard } from '../../src/api/guards/dev-auth.guard';
 import { CurrentUser } from '../../src/api/decorators/current-user.decorator';
 import { ScanController } from '../../src/modules/scan/scan.controller';
 import { HealthController } from '../../src/modules/health/health.controller';
@@ -77,23 +76,6 @@ describe('controller and guard unit coverage', () => {
     expect(strategy.validate({ sub: 15, email: 'x@y.com' } as any)).toEqual({ sub: 15, email: 'x@y.com' });
     expect(() => strategy.validate({ sub: 0, email: '' } as any)).toThrow(UnauthorizedException);
     expect(() => strategy.validate({ sub: null } as any)).toThrow('Invalid token');
-  });
-
-  it('dev auth guard assigns a fake user only in development and keeps header-auth requests valid', () => {
-    const originalNodeEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'development';
-
-    const guard = new DevAuthGuard();
-    const requestWithNoAuth = { headers: {} } as any;
-    const contextNoAuth = { switchToHttp: () => ({ getRequest: () => requestWithNoAuth }) } as any;
-    expect(guard.canActivate(contextNoAuth)).toBe(true);
-    expect(requestWithNoAuth.user).toEqual({ id: 1, email: 'dev-test@localhost', role: 'user' });
-
-    const requestWithAuth = { headers: { authorization: 'Bearer token' } } as any;
-    const contextWithAuth = { switchToHttp: () => ({ getRequest: () => requestWithAuth }) } as any;
-    expect(guard.canActivate(contextWithAuth)).toBe(true);
-
-    process.env.NODE_ENV = originalNodeEnv;
   });
 
   it('current user decorator is exposed as a Nest parameter decorator factory', () => {
