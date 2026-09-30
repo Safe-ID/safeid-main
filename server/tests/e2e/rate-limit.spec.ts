@@ -62,4 +62,20 @@ describe('Rate limit E2E', () => {
     expect(blocked.status).toBe(429);
     expect(body.message).toContain('Muitas requisições');
   });
+
+  it('counts each client separately when the API is behind a proxy', async () => {
+    const attemptFrom = (clientIp: string) =>
+      fetch(`${baseUrl}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': `${clientIp}, 10.0.0.1` },
+        body: JSON.stringify({ email: 'user@example.com', password: 'wrong-password' }),
+      });
+
+    for (let i = 0; i < 5; i++) {
+      expect((await attemptFrom('203.0.113.10')).status).toBe(401);
+    }
+
+    expect((await attemptFrom('203.0.113.10')).status).toBe(429);
+    expect((await attemptFrom('198.51.100.20')).status).toBe(401);
+  });
 });
