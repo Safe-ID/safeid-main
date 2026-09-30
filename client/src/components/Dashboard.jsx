@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { W, translateDataClass } from "./safeidData";
+import { W, translateDataClass, severityFromWeight } from "./safeidData";
 import RiskCircle from "./RiskCircle";
 import BreachCard from "./BreachCard";
 import AIPanel from "./AIPanel";
-import { deleteAccount, fetchMe } from "../lib/api";
+import { createScan, deleteAccount, fetchMe } from "../lib/api";
 
 function resolveLogoPath(logoPath) {
   if (!logoPath || typeof logoPath !== "string") return "";
@@ -24,6 +24,7 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [tab, setTab] = useState("overview");
   const [pct, setPct] = useState(0);
 
@@ -65,6 +66,8 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
   const riskScore = typeof scanSnapshot?.riskScore === "number" ? scanSnapshot.riskScore : 0;
   const classification = scanSnapshot?.classification || "N/D";
   const recommendation = scanSnapshot?.recommendation || "";
+  const mitigationSteps = Array.isArray(scanSnapshot?.mitigationSteps) ? scanSnapshot.mitigationSteps : [];
+  const urgencyLevel = scanSnapshot?.urgencyLevel || null;
   const updatedAt = profile?.scanSnapshotUpdatedAt || scanSnapshot?.processedAt || null;
 
   const rawBreachData = scanSnapshot?.breachData;
@@ -92,6 +95,21 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
 
   const greetingName = profile?.email ? profile.email.split("@")[0] : "usuário";
   const totalBreaches = typeof scanSnapshot?.breachesFound === "number" ? scanSnapshot.breachesFound : breachData.length;
+
+  const handleRescan = async () => {
+    try {
+      setScanning(true);
+      setActionError("");
+      // O backend sempre usa o email da conta logada
+      await createScan(profile?.email);
+      const me = await fetchMe();
+      setProfile(me);
+    } catch (err) {
+      setActionError(err.message || "Não foi possível fazer um novo scan.");
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const handleDeleteAccount = async () => {
     const confirmed = window.confirm("Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.");
@@ -132,6 +150,14 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
               <span className="w-2 h-2 rounded-full bg-safe-danger inline-block" />
               <span className="text-safe-danger text-sm font-semibold">{totalBreaches || 0} vazamentos detectados</span>
             </div>
+            <button
+              onClick={handleRescan}
+              disabled={scanning || loading}
+              className="bg-gradient-to-br from-safe-primary to-safe-primaryD border-none rounded-xl text-white py-2 px-4 text-sm font-semibold cursor-pointer transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-70 flex items-center gap-2"
+            >
+              {scanning && <span className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin" />}
+              {scanning ? "Verificando..." : "Verificar novamente"}
+            </button>
             <button
               onClick={handleDeleteAccount}
               disabled={deleting}
@@ -256,11 +282,9 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
                 <div className="relative">
                   <div className="absolute left-[15px] top-0 bottom-0 w-[1px] bg-safe-border" />
                   {breachTimeline.map((item, i) => {
-                    const itemColor = (item?.DataClasses || item?.classes || []).some((cls) => (W[cls] || 0) >= 8)
-                      ? "safe-danger"
-                      : (item?.DataClasses || item?.classes || []).some((cls) => (W[cls] || 0) >= 5)
-                        ? "safe-warn"
-                        : "safe-secondary";
+                    const itemSeverity = severityFromWeight(
+                      Math.max(0, ...(item?.DataClasses || item?.classes || []).map((cls) => W[cls] || 0)),
+                    );
                     const breachDate = item?.BreachDate || item?.date || item?.createdAt;
                     const pwnCount = item?.PwnCount ?? item?.pwnCount ?? item?.count;
                     const logoPath = resolveLogoPath(item?.LogoPath || item?.logoPath);
@@ -268,7 +292,7 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
 
                     return (
                       <div key={item.id || item.Name || item.Title || i} className={`flex gap-[20px] pl-[36px] relative ${i < breachTimeline.length - 1 ? "mb-[20px]" : ""}`}>
-                        <div className={`absolute left-[10px] top-[5px] w-[10px] h-[10px] rounded-full bg-${itemColor} shadow-[0_0_8px_var(--tw-shadow-color)] shadow-${itemColor}/50`} />
+                        <div className={`absolute left-[10px] top-[5px] w-[10px] h-[10px] rounded-full ${itemSeverity.dot} shadow-[0_0_8px_var(--tw-shadow-color)]`} />
                         <div className="flex-1">
                           <div className="flex items-center gap-[10px] flex-wrap">
                             {logoPath ? (
@@ -276,7 +300,7 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
                                 <img src={logoPath} alt="vazamento" className="w-full h-full object-cover" onError={e => e.currentTarget.style.display = "none"} />
                               </div>
                             ) : (
-                              <div className={`w-[30px] h-[30px] rounded-[8px] bg-${itemColor}/10 border border-${itemColor}/30 flex items-center justify-center text-${itemColor} text-[13px] font-bold shrink-0`}>
+                              <div className={`w-[30px] h-[30px] rounded-[8px] ${itemSeverity.chip} border flex items-center justify-center text-[13px] font-bold shrink-0`}>
                                 {logoInitial}
                               </div>
                             )}
@@ -286,9 +310,9 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
                           
                           <div className="flex gap-[6px] mt-[6px] flex-wrap">
                             {(item?.DataClasses || item?.classes || []).slice(0, 3).map((dataClass) => {
-                              const col = (W[dataClass] || 2) >= 8 ? "safe-danger" : (W[dataClass] || 2) >= 5 ? "safe-warn" : "safe-secondary";
+                              const severity = severityFromWeight(W[dataClass] || 2);
                               return (
-                                <span key={dataClass} className={`bg-${col}/10 border border-${col}/20 text-${col} text-[10px] py-[2px] px-[8px] rounded-full`}>
+                                <span key={dataClass} className={`${severity.softChip} border text-[10px] py-[2px] px-[8px] rounded-full`}>
                                   {translateDataClass(dataClass)}
                                 </span>
                               );
@@ -317,7 +341,7 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
 
           {tab === "ai" && (
             <div className="animate-fade-in">
-              <AIPanel recommendation={recommendation} updatedAt={updatedAt} classification={classification} riskScore={riskScore} />
+              <AIPanel recommendation={recommendation} mitigationSteps={mitigationSteps} urgencyLevel={urgencyLevel} updatedAt={updatedAt} classification={classification} riskScore={riskScore} />
             </div>
           )}
         </>
