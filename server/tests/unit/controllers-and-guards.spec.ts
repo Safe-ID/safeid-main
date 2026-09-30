@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { UnauthorizedException } from '@nestjs/common';
+import { ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { AuthController } from '../../src/modules/auth/auth.controller';
 import { JwtStrategy } from '../../src/modules/auth/strategies/jwt.strategy';
 import { DevAuthGuard } from '../../src/api/guards/dev-auth.guard';
@@ -69,6 +69,9 @@ describe('controller and guard unit coverage', () => {
     const controller = new HealthController(service);
     await expect(controller.check()).resolves.toMatchObject({ status: 'ok' });
     expect(service.getHealth).toHaveBeenCalledTimes(1);
+
+    service.getHealth.mockResolvedValueOnce({ status: 'error', timestamp: '2026-01-01T00:00:00.000Z' });
+    await expect(controller.check()).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 
   it('jwt strategy validates payloads and rejects invalid token data', () => {
