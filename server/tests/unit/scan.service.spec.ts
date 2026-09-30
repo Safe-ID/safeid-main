@@ -135,7 +135,7 @@ describe('ScanService', () => {
       classification: 'CRITICAL',
       breachesFound: 3,
       recommendation: 'Urgent review',
-      breachData: '{"source":"public-breach"}',
+      breachData: { source: 'public-breach' },
     });
   });
 
