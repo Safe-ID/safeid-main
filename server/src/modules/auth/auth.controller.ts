@@ -53,6 +53,8 @@ const authResponseSchema = {
             classification: { type: 'string' },
             breachesFound: { type: 'number' },
             recommendation: { type: 'string', nullable: true },
+            mitigationSteps: { type: 'array', items: { type: 'string' }, nullable: true },
+            urgencyLevel: { type: 'string', nullable: true },
             isVerified: { type: 'boolean' },
             processedAt: { type: 'string', nullable: true },
           },

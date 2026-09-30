@@ -65,6 +65,8 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
   const riskScore = typeof scanSnapshot?.riskScore === "number" ? scanSnapshot.riskScore : 0;
   const classification = scanSnapshot?.classification || "N/D";
   const recommendation = scanSnapshot?.recommendation || "";
+  const mitigationSteps = Array.isArray(scanSnapshot?.mitigationSteps) ? scanSnapshot.mitigationSteps : [];
+  const urgencyLevel = scanSnapshot?.urgencyLevel || null;
   const updatedAt = profile?.scanSnapshotUpdatedAt || scanSnapshot?.processedAt || null;
 
   const rawBreachData = scanSnapshot?.breachData;
@@ -317,7 +319,7 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
 
           {tab === "ai" && (
             <div className="animate-fade-in">
-              <AIPanel recommendation={recommendation} updatedAt={updatedAt} classification={classification} riskScore={riskScore} />
+              <AIPanel recommendation={recommendation} mitigationSteps={mitigationSteps} urgencyLevel={urgencyLevel} updatedAt={updatedAt} classification={classification} riskScore={riskScore} />
             </div>
           )}
         </>
