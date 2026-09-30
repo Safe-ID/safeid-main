@@ -33,9 +33,9 @@ export default function Landing({ onNav }) {
       <section className="w-full max-w-4xl px-6 pb-20 mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-14">
           {[
-            { val: "14B+", label: "Credenciais monitoradas", col: "text-safe-secondary" },
-            { val: "780+", label: "Serviços verificados", col: "text-safe-accent" },
-            { val: "99.9%", label: "Disponibilidade", col: "text-[#A78BFA]" },
+            { val: "HIBP", label: "Base de vazamentos consultada", col: "text-safe-secondary" },
+            { val: "3", label: "Fatores no score de risco", col: "text-safe-accent" },
+            { val: "0", label: "E-mails enviados para a IA", col: "text-[#A78BFA]" },
           ].map(s => (
             <div key={s.label} className="bg-safe-card border border-safe-border rounded-2xl p-6 text-center">
               <div className={`${s.col} text-4xl font-bold tracking-tight`}>{s.val}</div>
@@ -50,8 +50,8 @@ export default function Landing({ onNav }) {
         
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-14">
           {[
-            { n: "01", icon: "🔍", title: "Consulta OSINT", desc: "Verificamos seu email em +780 bases de vazamentos via Have I Been Pwned." },
-            { n: "02", icon: "⚡", title: "Score de Risco", desc: "Algoritmo ponderado calcula a gravidade real com base na criticidade dos dados expostos." },
+            { n: "01", icon: "🔍", title: "Consulta OSINT", desc: "Verificamos seu email nas bases públicas de vazamentos do Have I Been Pwned." },
+            { n: "02", icon: "⚡", title: "Score de Risco", desc: "Algoritmo ponderado calcula a gravidade com base nos dados expostos, na data do vazamento e na verificação." },
             { n: "03", icon: "✦", title: "IA Personalizada", desc: "Transformamos dados técnicos em um plano de ação claro, em linguagem acessível." },
           ].map((f, i) => (
              <div key={i} className="bg-safe-card border border-safe-border rounded-2xl p-6 transition-all duration-200 hover:border-safe-borderL hover:bg-safe-hover">

@@ -1,9 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { PrismaService } from '../../../infra/database/prisma.service';
 import { ExecuteRiskScanUseCase } from '../../../core/use-cases/execute-risk-scan.usecase';
 import { CreateScanDto, ScanResultDto, ScanHistoryDto } from '../dto/scan.dto';
+import { openBreachData, sealBreachData } from '../../../shared/crypto/breach-data.cipher';
 
 @Injectable()
 export class ScanService {
@@ -35,6 +36,22 @@ export class ScanService {
     await this.persistUserScanSnapshot(userId, dto.email, result);
 
     return result;
+  }
+
+  /**
+   * Inicia análise usando o email cadastrado na conta do usuário
+   */
+  async submitScanForUser(userId: number): Promise<ScanResultDto> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    return this.submitScan(userId, { email: user.email });
   }
 
   async persistFallbackSnapshot(userId: number, email: string): Promise<void> {
@@ -98,7 +115,9 @@ export class ScanService {
       classification: scan.classification,
       breachesFound: scan.breachesFound,
       recommendation: scan.recommendation,
-      breachData: scan.breachData,
+      mitigationSteps: scan.mitigationSteps,
+      urgencyLevel: scan.urgencyLevel,
+      breachData: openBreachData(scan.breachData),
       processedAt: scan.processedAt,
       createdAt: scan.createdAt,
     };
@@ -128,8 +147,11 @@ export class ScanService {
             riskScore: scan.riskScore,
             classification: scan.classification,
             breachesFound: scan.breachesFound,
-            breachData: scan.breachData ? JSON.stringify(scan.breachData) : null,
+            // Criptografado com ENCRYPTION_KEY antes de ir para o banco
+            breachData: sealBreachData(scan.breachData),
             recommendation: scan.recommendation,
+            mitigationSteps: scan.mitigationSteps ?? undefined,
+            urgencyLevel: scan.urgencyLevel ?? null,
             isVerified: scan.isVerified,
             processedAt: scan.processedAt,
           },
@@ -177,9 +199,12 @@ export class ScanService {
           classification: latestHistory.classification,
           breachesFound: latestHistory.breachesFound || 0,
           recommendation: latestHistory.recommendation,
+          mitigationSteps: latestHistory.mitigationSteps ?? null,
+          urgencyLevel: latestHistory.urgencyLevel ?? null,
           isVerified: latestHistory.isVerified,
           processedAt: latestHistory.processedAt,
-          breachData: this.parseJson(latestHistory.breachData),
+          // O snapshot também guarda os vazamentos criptografados
+          breachData: sealBreachData(openBreachData(latestHistory.breachData)),
         }
       : {
           jobId: result.jobId,
@@ -187,6 +212,8 @@ export class ScanService {
           classification: result.classification,
           breachesFound: result.breachesFound,
           recommendation: result.recommendation ?? null,
+          mitigationSteps: result.mitigationSteps ?? null,
+          urgencyLevel: result.urgencyLevel ?? null,
           isVerified: result.isVerified,
           processedAt: new Date(),
           breachData: null,
@@ -199,17 +226,5 @@ export class ScanService {
         scanSnapshotUpdatedAt: new Date(),
       },
     });
-  }
-
-  private parseJson(value: string | null | undefined) {
-    if (!value) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(value);
-    } catch {
-      return null;
-    }
   }
 }
