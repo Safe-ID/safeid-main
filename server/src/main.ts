@@ -1,17 +1,25 @@
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import compression from 'compression';
 import session from 'express-session';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Environment variables
   const port = process.env.APP_PORT || 3000;
   const nodeEnv = process.env.NODE_ENV || 'development';
+
+  // Atrás de CloudFront/ALB, o IP real do cliente vem no X-Forwarded-For.
+  // TRUST_PROXY diz quantos proxies confiar, para o limite de requisições contar por usuário.
+  if (process.env.TRUST_PROXY) {
+    const hops = Number(process.env.TRUST_PROXY);
+    app.set('trust proxy', Number.isInteger(hops) ? hops : process.env.TRUST_PROXY);
+  }
 
   // Security middleware
   app.use(helmet());

@@ -10,6 +10,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { DatabaseModule } from './infra/database/database.module';
 import { CacheModule } from './infra/cache/cache.module';
 import { QueueModule } from './infra/queue/queue.module';
+import { RateLimitModule } from './infra/rate-limit/rate-limit.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { QueueModule } from './infra/queue/queue.module';
     DatabaseModule,
     CacheModule,
     QueueModule,
+    RateLimitModule,
 
     // Domain Modules
     AuthModule,
