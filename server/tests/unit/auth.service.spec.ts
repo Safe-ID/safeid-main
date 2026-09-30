@@ -1,4 +1,4 @@
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, UnauthorizedException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import axios from 'axios';
 import * as bcrypt from 'bcryptjs';
@@ -181,19 +181,32 @@ describe('AuthService', () => {
     );
   });
 
+  it('does not let signup set a password on an account created with Google', async () => {
+    prismaMock.user.findUnique.mockResolvedValueOnce({
+      id: 18,
+      email: 'google-only@example.com',
+      googleId: 'google-18',
+      passwordHash: null,
+    });
+
+    await expect(service.signup({
+      email: 'google-only@example.com',
+      password: 'AttackerPass123',
+    })).rejects.toBeInstanceOf(ConflictException);
+
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+    expect(prismaMock.user.create).not.toHaveBeenCalled();
+  });
+
   it('covers fallback signup and profile failure branches', async () => {
     prismaMock.user.findUnique
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         id: 19,
         email: 'fallback@example.com',
-        passwordHash: null,
-      })
-      .mockResolvedValueOnce({
-        id: 19,
-        email: 'fallback@example.com',
-        passwordHash: null,
+        passwordHash: 'hash',
       });
-    prismaMock.user.update.mockResolvedValue({
+    prismaMock.user.create.mockResolvedValue({
       id: 19,
       email: 'fallback@example.com',
       passwordHash: 'hash',
@@ -231,6 +244,10 @@ describe('AuthService', () => {
       googleId: 'g-2',
     });
     await expect((service as any).upsertGoogleUser({ googleId: 'g-2', email: 'linked@example.com' })).resolves.toMatchObject({ id: 22, googleId: 'g-2' });
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: 22 },
+      data: { googleId: 'g-2', passwordHash: null },
+    });
 
     const validState = (service as any).createGoogleOAuthState();
     expect(() => (service as any).verifyGoogleOAuthState(`${validState}x`)).toThrow('State inválido');

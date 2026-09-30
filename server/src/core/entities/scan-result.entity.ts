@@ -12,6 +12,8 @@ export interface ScanResult {
   breachesFound: number | null;
   breachData?: any; // JSON dos breaches (pode ser serializado ou array)
   recommendation?: string | null; // Texto da recomendação IA
+  mitigationSteps?: unknown; // Passos de mitigação sugeridos pela IA (array de strings em JSON)
+  urgencyLevel?: string | null; // HIGH, MEDIUM ou LOW
   isVerified?: boolean;
   processedAt?: Date | null;
   createdAt: Date;

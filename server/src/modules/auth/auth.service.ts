@@ -1,6 +1,6 @@
 /**
  * Authentication Service
- * Gerencia signup, login, valida��o de credentials
+ * Gerencia signup, login, validação de credentials
  */
 
 import {
@@ -13,6 +13,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../infra/database/prisma.service';
 import { ScanService } from '../scan/services/scan.service';
+import { openBreachData } from '../../shared/crypto/breach-data.cipher';
 import {
   SignupDto,
   LoginDto,
@@ -206,9 +207,12 @@ export class AuthService {
     });
 
     if (existingByEmail) {
+      // O Google comprovou que a pessoa é dona do email. Uma senha cadastrada antes
+      // pode ter sido criada por outra pessoa (o cadastro não verifica o email),
+      // então ela é removida e a conta passa a entrar pelo Google.
       return this.prisma.user.update({
         where: { id: existingByEmail.id },
-        data: { googleId: input.googleId },
+        data: { googleId: input.googleId, passwordHash: null },
       });
     }
 
@@ -222,47 +226,46 @@ export class AuthService {
   }
 
   /**
-   * Registra novo usu�rio
-   * Valida email, hash password, cria usu�rio
+   * Registra novo usuário
+   * Valida email, hash password, cria usuário
    */
   async signup(dto: SignupDto): Promise<AuthResponseDto> {
     // Validar email
     if (!dto.email || !dto.email.includes('@')) {
-      throw new BadRequestException('Email inv�lido');
+      throw new BadRequestException('Email inválido');
     }
 
-    // Validar password (m�nimo 8 caracteres)
+    // Validar password (mínimo 8 caracteres)
     if (!dto.password || dto.password.length < 8) {
       throw new BadRequestException(
-        'Senha deve ter no m�nimo 8 caracteres',
+        'Senha deve ter no mínimo 8 caracteres',
       );
     }
 
-    // Verificar se email j� existe
+    // Verificar se email já existe
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email.toLowerCase() },
     });
 
+    // Contas criadas pelo Google não recebem senha pelo cadastro,
+    // senão qualquer pessoa poderia definir uma senha para o email de outra
     if (existingUser?.passwordHash) {
-      throw new ConflictException('Email j� registrado');
+      throw new ConflictException('Email já registrado');
+    }
+
+    if (existingUser) {
+      throw new ConflictException('Este email já está cadastrado com o Google. Entre usando o Google.');
     }
 
     // Hash password
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    const user = existingUser
-      ? await this.prisma.user.update({
-          where: { id: existingUser.id },
-          data: {
-            passwordHash,
-          },
-        })
-      : await this.prisma.user.create({
-          data: {
-            email: dto.email.toLowerCase(),
-            passwordHash,
-          },
-        });
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email.toLowerCase(),
+        passwordHash,
+      },
+    });
 
     let scanFailure: unknown = null;
     try {
@@ -290,21 +293,21 @@ export class AuthService {
   }
 
   /**
-   * Login de usu�rio
+   * Login de usuário
    * Valida credentials, gera JWT
    */
   async login(dto: LoginDto): Promise<AuthResponseDto> {
     if (!dto.email || !dto.password) {
-      throw new BadRequestException('Email e senha s�o obrigat�rios');
+      throw new BadRequestException('Email e senha são obrigatórios');
     }
 
-    // Buscar usu�rio
+    // Buscar usuário
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email.toLowerCase() },
     });
 
     if (!user) {
-      throw new UnauthorizedException('Email ou senha inv�lidos');
+      throw new UnauthorizedException('Email ou senha inválidos');
     }
 
     if (!user.passwordHash) {
@@ -318,7 +321,7 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Email ou senha inv�lidos');
+      throw new UnauthorizedException('Email ou senha inválidos');
     }
 
     // Gerar tokens
@@ -343,7 +346,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Usu�rio n�o encontrado');
+      throw new UnauthorizedException('Usuário não encontrado');
     }
 
     return { id: user.id, email: user.email };
@@ -382,10 +385,15 @@ export class AuthService {
       throw new UnauthorizedException('Usuário não encontrado');
     }
 
+    const snapshot = user.scanSnapshot as ScanSnapshotDto | null;
+
     return {
       id: user.id,
       email: user.email,
-      scanSnapshot: user.scanSnapshot as ScanSnapshotDto | null,
+      // Os vazamentos ficam criptografados no banco e são abertos só na resposta
+      scanSnapshot: snapshot
+        ? { ...snapshot, breachData: openBreachData(snapshot.breachData) }
+        : null,
       scanSnapshotUpdatedAt: user.scanSnapshotUpdatedAt,
     };
   }
