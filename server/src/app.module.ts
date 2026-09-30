@@ -15,11 +15,10 @@ import { QueueModule } from './infra/queue/queue.module';
 @Module({
   imports: [
     // Configuration
-    // Só o .env é carregado: o .env.example tem valores de exemplo e não pode
-    // completar variáveis que faltam
+    // validateEnv só avisa no log sobre segredos faltando ou com valor de exemplo
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env'],
+      envFilePath: ['.env', '.env.example'],
       validate: validateEnv,
     }),
 

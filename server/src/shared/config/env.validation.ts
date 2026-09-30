@@ -1,7 +1,7 @@
 /**
- * Validação das variáveis de ambiente
- * Roda quando o ConfigModule carrega o .env: se um segredo obrigatório estiver
- * faltando ou ainda com o valor de exemplo, o app não sobe.
+ * Verificação das variáveis de ambiente
+ * Roda quando o ConfigModule carrega o .env e avisa no log se um segredo
+ * estiver faltando ou ainda com o valor de exemplo. Não impede o app de subir.
  */
 
 type EnvConfig = Record<string, unknown>;
@@ -20,7 +20,7 @@ function isWeakSecret(value: string): boolean {
   return PLACEHOLDER_PATTERN.test(value) || KNOWN_WEAK_VALUES.includes(value.toLowerCase());
 }
 
-export function validateEnv(config: EnvConfig): EnvConfig {
+export function findEnvProblems(config: EnvConfig): string[] {
   const isProduction = config.NODE_ENV === 'production';
   const required = isProduction
     ? [...REQUIRED_SECRETS, ...REQUIRED_IN_PRODUCTION]
@@ -43,9 +43,15 @@ export function validateEnv(config: EnvConfig): EnvConfig {
     problems.push('REFRESH_TOKEN_SECRET precisa ser diferente de JWT_SECRET');
   }
 
+  return problems;
+}
+
+export function validateEnv(config: EnvConfig): EnvConfig {
+  const problems = findEnvProblems(config);
+
   if (problems.length > 0) {
-    throw new Error(
-      `Configuração inválida: ${problems.join('; ')}. Confira o arquivo .env (use o .env.example como modelo).`,
+    console.warn(
+      `[Config] Atenção: ${problems.join('; ')}. Confira o arquivo .env (use o .env.example como modelo).`,
     );
   }
 

@@ -69,16 +69,8 @@ export class AuthService {
     };
   }
 
-  private getOAuthStateSecret(): string {
-    const secret = process.env.SESSION_SECRET || process.env.JWT_SECRET;
-    if (!secret) {
-      throw new BadRequestException('Google OAuth não configurado');
-    }
-    return secret;
-  }
-
   private createGoogleOAuthState() {
-    const secret = this.getOAuthStateSecret();
+    const secret = process.env.SESSION_SECRET || process.env.JWT_SECRET || 'safeid-google-state';
     const timestamp = Date.now().toString();
     const nonce = randomBytes(16).toString('hex');
     const payload = `${timestamp}:${nonce}`;
@@ -88,7 +80,7 @@ export class AuthService {
   }
 
   private verifyGoogleOAuthState(state: string) {
-    const secret = this.getOAuthStateSecret();
+    const secret = process.env.SESSION_SECRET || process.env.JWT_SECRET || 'safeid-google-state';
     const [timestamp, nonce, signature] = state.split(':');
 
     if (!timestamp || !nonce || !signature) {

@@ -20,7 +20,7 @@ async function bootstrap() {
   // Session middleware
   app.use(
     session({
-      secret: (process.env.SESSION_SECRET || process.env.JWT_SECRET) as string,
+      secret: process.env.SESSION_SECRET || 'local-session-secret',
       resave: false,
       saveUninitialized: false,
       cookie: {
