@@ -34,8 +34,17 @@ export default function BreachCard({ item, idx }) {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-expanded={open}
       onClick={() => setOpen(!open)}
-      className={`bg-safe-card border rounded-2xl p-4 sm:p-4.5 cursor-pointer transition-all duration-200 hover:bg-safe-hover ${open ? 'border-safe-borderL' : 'border-safe-border'}`}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          setOpen(!open);
+        }
+      }}
+      className={`bg-safe-card border rounded-2xl p-4 sm:p-4.5 cursor-pointer transition-all duration-200 hover:bg-safe-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-safe-secondary ${open ? 'border-safe-borderL' : 'border-safe-border'}`}
       style={{ animation: `slideUp 0.4s ease ${idx * 70}ms both` }}
     >
       <div className="flex items-center justify-between gap-3">
@@ -67,7 +76,7 @@ export default function BreachCard({ item, idx }) {
               RECENTE
             </span>
           )}
-          <svg width="14" height="14" viewBox="0 0 14 14" className={`text-safe-dim transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
+          <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" className={`text-safe-dim transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
             <path d="M2 5l5 5 5-5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
           </svg>
         </div>
