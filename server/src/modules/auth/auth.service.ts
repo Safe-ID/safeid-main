@@ -216,11 +216,13 @@ export class AuthService {
       });
     }
 
+    // A tela de login avisa que continuar com o Google é aceitar a Política de Privacidade
     return this.prisma.user.create({
       data: {
         email: input.email,
         googleId: input.googleId,
         passwordHash: null,
+        termsAcceptedAt: new Date(),
       },
     });
   }
@@ -239,6 +241,13 @@ export class AuthService {
     if (!dto.password || dto.password.length < 8) {
       throw new BadRequestException(
         'Senha deve ter no mínimo 8 caracteres',
+      );
+    }
+
+    // Consentimento da LGPD: sem aceitar a Política de Privacidade não cria a conta
+    if (dto.acceptTerms !== true) {
+      throw new BadRequestException(
+        'É preciso aceitar a Política de Privacidade para criar a conta',
       );
     }
 
@@ -264,6 +273,7 @@ export class AuthService {
       data: {
         email: dto.email.toLowerCase(),
         passwordHash,
+        termsAcceptedAt: new Date(),
       },
     });
 

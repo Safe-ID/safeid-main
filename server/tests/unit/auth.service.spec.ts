@@ -68,6 +68,7 @@ describe('AuthService', () => {
     const result = await service.signup({
       email: 'new@example.com',
       password: 'StrongPass123',
+      acceptTerms: true,
     });
 
     expect(result.access_token).toBe('token-11-access');
@@ -191,6 +192,27 @@ describe('AuthService', () => {
     );
   });
 
+  it('requires the privacy policy to be accepted and records when it was accepted', async () => {
+    await expect(service.signup({
+      email: 'no-consent@example.com',
+      password: 'StrongPass123',
+      acceptTerms: false,
+    })).rejects.toThrow('É preciso aceitar a Política de Privacidade para criar a conta');
+    expect(prismaMock.user.create).not.toHaveBeenCalled();
+
+    prismaMock.user.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 12, email: 'consent@example.com', passwordHash: 'hash' });
+    prismaMock.user.create.mockResolvedValue({ id: 12, email: 'consent@example.com', passwordHash: 'hash' });
+    scanServiceMock.submitScan.mockResolvedValue(undefined);
+
+    await service.signup({ email: 'consent@example.com', password: 'StrongPass123', acceptTerms: true });
+
+    expect(prismaMock.user.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ email: 'consent@example.com', termsAcceptedAt: expect.any(Date) }),
+    });
+  });
+
   it('does not let signup set a password on an account created with Google', async () => {
     prismaMock.user.findUnique.mockResolvedValueOnce({
       id: 18,
@@ -202,6 +224,7 @@ describe('AuthService', () => {
     await expect(service.signup({
       email: 'google-only@example.com',
       password: 'AttackerPass123',
+      acceptTerms: true,
     })).rejects.toBeInstanceOf(ConflictException);
 
     expect(prismaMock.user.update).not.toHaveBeenCalled();
@@ -227,6 +250,7 @@ describe('AuthService', () => {
     const result = await service.signup({
       email: 'fallback@example.com',
       password: 'StrongPass123',
+      acceptTerms: true,
     });
 
     expect(result.user.email).toBe('fallback@example.com');

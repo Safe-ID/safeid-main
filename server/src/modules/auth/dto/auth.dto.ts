@@ -3,7 +3,7 @@
  * Using interfaces instead of classes to avoid strict initialization requirements
  */
 
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsString, MinLength } from 'class-validator';
 
 export interface ScanSnapshotDto {
   jobId: string;
@@ -32,6 +32,10 @@ export class SignupDto {
   @IsString()
   @MinLength(6)
   password!: string;
+
+  // Aceite da Política de Privacidade (consentimento exigido pela LGPD)
+  @IsBoolean()
+  acceptTerms!: boolean;
 }
 
 export class LoginDto {

@@ -78,10 +78,10 @@ export async function login(email, password) {
   });
 }
 
-export async function signup(email, password) {
+export async function signup(email, password, acceptTerms) {
   return request("/api/v1/auth/signup", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, acceptTerms }),
     token: null,
   });
 }

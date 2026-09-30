@@ -21,6 +21,7 @@ model User {
   googleId              String?   @unique
   scanSnapshot          Json?
   scanSnapshotUpdatedAt  DateTime?
+  termsAcceptedAt       DateTime? // Quando o usuário aceitou a Política de Privacidade (LGPD)
 
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt

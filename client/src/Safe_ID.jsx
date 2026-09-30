@@ -3,6 +3,7 @@ import Navbar from "./components/Navbar";
 import Landing from "./components/Landing";
 import Auth from "./components/Auth";
 import Dashboard from "./components/Dashboard";
+import Privacy from "./components/Privacy";
 import { SESSION_EXPIRED_EVENT, clearToken, fetchMe, getToken, setAuthTokens, setToken } from "./lib/api";
 
 export default function SafeID() {
@@ -10,6 +11,14 @@ export default function SafeID() {
   const [user, setUser] = useState(null);
   const [booting, setBooting] = useState(true);
   const [notice, setNotice] = useState("");
+  // Página de onde a pessoa abriu a Política de Privacidade, para o botão Voltar
+  const [privacyReturn, setPrivacyReturn] = useState("landing");
+
+  const openPrivacy = () => {
+    setPrivacyReturn(page === "privacy" ? privacyReturn : page);
+    setPage("privacy");
+    window.scrollTo(0, 0);
+  };
 
   const goTo = (p) => {
     if (p === "landing") setUser(null);
@@ -94,8 +103,9 @@ export default function SafeID() {
         )}
 
         {!booting && page === "landing" && <Landing onNav={goTo} />}
-        {!booting && page === "register" && <Auth mode="register" onSuccess={(u) => onAuth(u)} onSwitch={() => setPage("login")} />}
-        {!booting && page === "login" && <Auth mode="login" notice={notice} onSuccess={(u) => onAuth(u)} onSwitch={() => { setNotice(""); setPage("register"); }} />}
+        {!booting && page === "register" && <Auth mode="register" onSuccess={(u) => onAuth(u)} onSwitch={() => setPage("login")} onOpenPrivacy={openPrivacy} />}
+        {!booting && page === "login" && <Auth mode="login" notice={notice} onSuccess={(u) => onAuth(u)} onSwitch={() => { setNotice(""); setPage("register"); }} onOpenPrivacy={openPrivacy} />}
+        {!booting && page === "privacy" && <Privacy onBack={() => setPage(privacyReturn)} />}
         {!booting && page === "dashboard" && isAuthenticated && <Dashboard user={user} onSignOut={onOut} onDeleteAccount={onAccountDeleted} />}
       </main>
 
@@ -103,11 +113,14 @@ export default function SafeID() {
         <footer className="border-t border-safe-border py-5 px-8 flex items-center justify-between text-safe-dim text-xs">
           <div><span className="text-safe-secondary font-bold">SafeID</span> · IFSP São Paulo · TADS 2026</div>
           <div className="flex gap-5">
-            {['Privacidade', 'LGPD', 'GitHub'].map(l => (
-              <span key={l} className="cursor-pointer transition-colors hover:text-safe-text">
+            {['Privacidade', 'LGPD'].map(l => (
+              <button key={l} type="button" onClick={openPrivacy} className="bg-transparent border-none p-0 text-xs text-safe-dim cursor-pointer transition-colors hover:text-safe-text">
                 {l}
-              </span>
+              </button>
             ))}
+            <a href="https://github.com/Safe-ID/safeid-main" target="_blank" rel="noopener noreferrer" className="text-safe-dim no-underline transition-colors hover:text-safe-text">
+              GitHub
+            </a>
           </div>
         </footer>
       )}
