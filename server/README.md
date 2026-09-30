@@ -8,12 +8,13 @@ Desenvolvido com **Node.js + NestJS**, seguindo os padrões de **Clean Architect
 
 A estrutura segue a divisão clara entre camadas:
 
-- **`src/@types`**: Tipos TypeScript globais
-- **`src/api`**: Camada de apresentação (controllers, middlewares, routes)
-- **`src/core`**: Camada de domínio (entities, repositories, use-cases)
-- **`src/infra`**: Camada de infraestrutura (database, cache, http)
-- **`src/shared`**: Recursos compartilhados (utils, crypto, schemas)
-- **`tests`**: Testes unitários, integração e e2e
+- **`src/modules`**: Módulos NestJS com controllers, services e DTOs (`auth`, `scan`, `health`)
+- **`src/core`**: Camada de domínio (engines de risco e IA, entities, repositories, use-cases)
+- **`src/infra`**: Camada de infraestrutura (Prisma, Redis, fila BullMQ, cliente HIBP)
+- **`src/api`**: Decorators compartilhados pelos controllers (ex.: `@CurrentUser`)
+- **`src/shared`**: Recursos compartilhados (criptografia)
+- **`src/types`**: Tipos TypeScript de bibliotecas sem tipagem
+- **`tests`**: Testes unitários, integração, e2e e scripts manuais
 
 ## 🚀 Quick Start
 
@@ -36,7 +37,15 @@ cp .env.example .env
 # Edite o arquivo .env com suas configurações
 ```
 
-Para habilitar login/cadastro com Google, configure também `FRONTEND_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `GOOGLE_CALLBACK_URL`.
+Para rodar localmente com o frontend, ajuste pelo menos:
+
+- `DATABASE_URL` e `POSTGRES_PASSWORD` (a senha é usada pelo Postgres do `docker-compose`)
+- `JWT_SECRET` e `REFRESH_TOKEN_SECRET` com valores próprios
+- `CORS_ORIGIN=http://localhost:3001` (porta do Vite configurada no `client/vite.config.js`; com o valor do `.env.example` o navegador bloqueia as chamadas do front)
+- `HIBP_API_KEY` (ou `HIBP_USE_MOCK=true` para usar o cliente falso)
+- `AI_API_KEY` e `AI_ENDPOINT` (opcional: sem eles o scan usa a recomendação padrão)
+
+Para habilitar login/cadastro com Google, configure também `FRONTEND_URL` (localmente `http://localhost:3001`), `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `GOOGLE_CALLBACK_URL`.
 
 ### 3. Subir infraestrutura (com Docker)
 
@@ -47,12 +56,14 @@ docker-compose up -d
 ### 4. Setup do banco de dados
 
 ```bash
-# Criar migration inicial
-npm run db:push
+# Aplicar as migrations versionadas em prisma/migrations
+npx prisma migrate deploy
 
 # (Opcional) Explorar o banco com Prisma Studio
 npm run db:studio
 ```
+
+Para criar uma migration nova depois de alterar o `schema.prisma`, use `npm run db:migrate`.
 
 ### 5. Iniciar servidor em desenvolvimento
 
@@ -98,70 +109,53 @@ A documentação Swagger em **http://localhost:3000/api/docs**
 ## 🗂️ Estrutura de módulos
 
 ### Autenticação (`auth`)
-- Login com sessão e refresh token
-- Estratégia de autenticação local
-- Proteção de rotas com guards
-- Login/cadastro com Google OAuth via `GET /api/v1/auth/google`
-- Callback OAuth em `GET /api/v1/auth/google/callback`
-- Exclusão da conta autenticada em `DELETE /api/v1/auth/me`
+- Cadastro e login com email e senha (senha com bcrypt)
+- Autenticação por JWT no header `Authorization: Bearer <token>`
+- Login/cadastro com Google OAuth
+- Perfil do usuário com o último resultado de scan
+- Exclusão da conta autenticada (o histórico de scans é apagado junto)
 
-### Usuários (`usuarios`)
-- CRUD de usuários
-- Gestão de perfis (ADMIN, OPERADOR)
-- Validações de CPF
+### Scan (`scan`)
+- Consulta o email do usuário na API do Have I Been Pwned por uma fila BullMQ
+- Calcula o score de risco (`RiskEngine`: dados expostos, recência e verificação)
+- Gera o plano de ação com IA (`AIEngine`), sem enviar o email para a IA
+- Guarda o resultado no histórico e em cache no Redis
 
-### Instituições (`instituicoes`)
-- Registro de instituições
-- Gestão de responsáveis
-- Validações de CNPJ
-
-### Beneficiários (`beneficiarios`)
-- Cadastro de beneficiários
-- Relacionamento com responsáveis
-- Dados de dependentes
-
-### Atendimentos (`atendimentos`)
-- Registro de atendimentos
-- Classificação de urgência
-- Histórico de consultas
-
-### Serviços (`servicos`)
-- Catálogo de serviços
-- Associação com instituições
-- Filtros e buscas
+### Health (`health`)
+- Verifica a conexão com o banco de dados
 
 ## 🔒 Segurança
 
 - **Helmet**: Proteção de headers HTTP
-- **Rate Limiting**: Limite de requisições por IP
-- **Autenticação**: Sessão com refresh token
-- **Validação**: Schema validation com class-validator
-- **CORS**: Configurado para origem específica
-- **HTTPS**: Suporta SSL/TLS em produção
+- **Autenticação**: JWT com expiração de 24h
+- **Senhas**: Hash com bcrypt
+- **Validação**: DTOs validados com class-validator (`whitelist` e `forbidNonWhitelisted`)
+- **CORS**: Liberado só para a origem configurada em `CORS_ORIGIN`
+- **Privacidade**: O email é guardado apenas como hash e nunca é enviado para a IA
 
 ## 📊 Observabilidade
 
-- Logs estruturados em JSON
-- Health checks para liveness e readiness
-- Suporte para métricas de aplicação
+- Health check em `GET /api/health` (usado pelo `HEALTHCHECK` do Docker)
+- Logs no console do worker do HIBP, da fila e do motor de IA
 
 ## 📚 Documentação
 
 ### Endpoints principais
 
-- `POST /api/auth/login` - Login
-- `POST /api/auth/logout` - Logout
-- `POST /api/auth/refresh` - Renovar sessão
+| Método | Rota | Autenticação | Descrição |
+|---|---|---|---|
+| `POST` | `/api/v1/auth/signup` | não | Cria a conta e roda o primeiro scan |
+| `POST` | `/api/v1/auth/login` | não | Login com email e senha |
+| `GET` | `/api/v1/auth/google` | não | Inicia o login com Google |
+| `GET` | `/api/v1/auth/google/callback` | não | Retorno do Google, redireciona para o front com o token |
+| `GET` | `/api/v1/auth/me` | JWT | Perfil e último resultado de scan |
+| `DELETE` | `/api/v1/auth/me` | JWT | Exclui a conta |
+| `POST` | `/api/v1/scan` | JWT | Roda um novo scan |
+| `GET` | `/api/v1/scan/history` | JWT | Histórico de scans do usuário |
+| `GET` | `/api/v1/scan/:jobId` | JWT | Detalhe de um scan |
+| `GET` | `/api/health` | não | Status de saúde |
 
-- `GET /api/usuarios` - Listar usuários
-- `POST /api/usuarios` - Criar usuário
-
-- `GET /api/instituicoes` - Listar instituições
-- `POST /api/instituicoes` - Criar instituição
-
-- `GET /api/health` - Status de saúde
-
-Toda a documentação completa está disponível via Swagger em `/api/docs`
+Toda a documentação completa está disponível via Swagger em `/api/docs` (com `SWAGGER_ENABLED=true`).
 
 ## 🐳 Docker
 
@@ -184,6 +178,8 @@ docker-compose logs -f app
 ```
 
 ## ☁️ AWS Deploy
+
+> Os scripts `.ps1` citados nesta seção não ficam no repositório: eles estão no `.gitignore` porque dependem da conta AWS do time. Peça os scripts para quem cuida do deploy.
 
 ### Fluxo recomendado
 
@@ -308,7 +304,7 @@ Remova quando quiser cortar custo:
 .\create-nat-gateway.ps1 -Action Delete
 ```
 
-Com a NAT em funcionamento, as chamadas HTTPS para HIBP e Gemini continuam saindo normalmente a partir da API na subnet privada.
+Com a NAT em funcionamento, as chamadas HTTPS para o HIBP e para a IA (Azure AI Foundry) continuam saindo normalmente a partir da API na subnet privada.
 
 ## 🔧 Configuração
 
@@ -348,13 +344,16 @@ A consulta HIBP roda via BullMQ com worker de concorrência 1 e intervalo mínim
 npm run start
 ```
 
-Em outro terminal, execute um scan de teste:
+Em outro terminal, faça login para pegar o token e execute um scan de teste:
 
 ```powershell
+curl -X POST "http://localhost:3000/api/v1/auth/login" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"email\":\"seu-email@dominio.com\",\"password\":\"sua-senha\"}"
+
 curl -X POST "http://localhost:3000/api/v1/scan" ^
   -H "accept: application/json" ^
-  -H "Content-Type: application/json" ^
-  -d "{\"email\":\"seu-email@dominio.com\"}"
+  -H "Authorization: Bearer <access_token do login>"
 ```
 
 Verifique no log da API mensagens do worker, como:
@@ -389,16 +388,13 @@ npm run test:cov      # Com cobertura
 - [ ] Arquivo `.env` configurado
 - [ ] Docker e Docker Compose instalados (optional)
 - [ ] Banco de dados rodando
-- [ ] Migrations aplicadas
+- [ ] Migrations aplicadas (`npx prisma migrate deploy`)
 - [ ] Servidor iniciado com sucesso
 - [ ] Swagger acessível em `/api/docs`
 
 ## 🤝 Contribuindo
 
-1. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-2. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-3. Push para a branch (`git push origin feature/AmazingFeature`)
-4. Abra um Pull Request
+Siga o [Manual de Git e GitHub](../docs/GITHUB_E_FLUXO_CONTRIBUICAO.md): branch a partir da `main`, Pull Request, revisão de outra pessoa do time e CI verde antes do merge.
 
 ## 📄 Licença
 

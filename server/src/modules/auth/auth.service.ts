@@ -13,6 +13,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../infra/database/prisma.service';
 import { ScanService } from '../scan/services/scan.service';
+import { openBreachData } from '../../shared/crypto/breach-data.cipher';
 import {
   SignupDto,
   LoginDto,
@@ -206,9 +207,12 @@ export class AuthService {
     });
 
     if (existingByEmail) {
+      // O Google comprovou que a pessoa é dona do email. Uma senha cadastrada antes
+      // pode ter sido criada por outra pessoa (o cadastro não verifica o email),
+      // então ela é removida e a conta passa a entrar pelo Google.
       return this.prisma.user.update({
         where: { id: existingByEmail.id },
-        data: { googleId: input.googleId },
+        data: { googleId: input.googleId, passwordHash: null },
       });
     }
 
@@ -243,26 +247,25 @@ export class AuthService {
       where: { email: dto.email.toLowerCase() },
     });
 
+    // Contas criadas pelo Google não recebem senha pelo cadastro,
+    // senão qualquer pessoa poderia definir uma senha para o email de outra
     if (existingUser?.passwordHash) {
       throw new ConflictException('Email já registrado');
+    }
+
+    if (existingUser) {
+      throw new ConflictException('Este email já está cadastrado com o Google. Entre usando o Google.');
     }
 
     // Hash password
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    const user = existingUser
-      ? await this.prisma.user.update({
-          where: { id: existingUser.id },
-          data: {
-            passwordHash,
-          },
-        })
-      : await this.prisma.user.create({
-          data: {
-            email: dto.email.toLowerCase(),
-            passwordHash,
-          },
-        });
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email.toLowerCase(),
+        passwordHash,
+      },
+    });
 
     let scanFailure: unknown = null;
     try {
@@ -362,6 +365,13 @@ export class AuthService {
       where: { id: userId },
     });
 
+    // O banco apaga o histórico em cascata; o cache do scan fica no Redis e é apagado aqui
+    try {
+      await this.scanService.clearCachedScan(user.email);
+    } catch (error) {
+      console.warn('[AuthService] Could not clear cached scan after account deletion:', error);
+    }
+
     return {
       message: 'Conta deletada com sucesso',
     };
@@ -382,10 +392,15 @@ export class AuthService {
       throw new UnauthorizedException('Usuário não encontrado');
     }
 
+    const snapshot = user.scanSnapshot as ScanSnapshotDto | null;
+
     return {
       id: user.id,
       email: user.email,
-      scanSnapshot: user.scanSnapshot as ScanSnapshotDto | null,
+      // Os vazamentos ficam criptografados no banco e são abertos só na resposta
+      scanSnapshot: snapshot
+        ? { ...snapshot, breachData: openBreachData(snapshot.breachData) }
+        : null,
       scanSnapshotUpdatedAt: user.scanSnapshotUpdatedAt,
     };
   }

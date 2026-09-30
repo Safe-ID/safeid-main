@@ -40,7 +40,8 @@ export default function RiskCircle({ val, size }) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <svg width={sz} height={sz * 0.86} viewBox={`0 0 ${sz} ${sz * 0.86}`} className="overflow-visible">
+      <svg width={sz} height={sz * 0.86} viewBox={`0 0 ${sz} ${sz * 0.86}`} className="overflow-visible"
+        role="img" aria-label={`Score de risco: ${val} de 100 (${lbl.toLowerCase()})`}>
         {ticks.map(i => {
           const deg = S + (i / 20) * TOTAL;
           const ir = r - 9, or = r - 2;

@@ -28,6 +28,7 @@ describe('Auth API E2E', () => {
     const scanMock = {
       submitScan: jest.fn(async () => undefined),
       persistFallbackSnapshot: jest.fn(async () => undefined),
+      clearCachedScan: jest.fn(async () => undefined),
     } as any;
 
     const moduleRef = await Test.createTestingModule({

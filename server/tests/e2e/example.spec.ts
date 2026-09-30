@@ -13,11 +13,17 @@ describe('Health API E2E', () => {
       $queryRaw: jest.fn(async () => [{ '?column?': 1 }]),
     } as any;
 
+    const redisMock = {
+      ping: jest.fn(async () => 'PONG'),
+    } as any;
+
     const moduleRef = await Test.createTestingModule({
       imports: [HealthModule],
     })
       .overrideProvider(PrismaService)
       .useValue(prismaMock)
+      .overrideProvider('REDIS_CLIENT')
+      .useValue(redisMock)
       .compile();
 
     app = moduleRef.createNestApplication();
@@ -34,7 +40,7 @@ describe('Health API E2E', () => {
     }
   });
 
-  it('responds to GET /api/health with database status ok', async () => {
+  it('responds to GET /api/health with database and Redis status ok', async () => {
     const response = await fetch(`${baseUrl}/api/health`);
 
     expect(response.status).toBe(200);
@@ -44,6 +50,9 @@ describe('Health API E2E', () => {
     expect(body).toMatchObject({
       status: 'ok',
       database: {
+        status: 'ok',
+      },
+      redis: {
         status: 'ok',
       },
     });
