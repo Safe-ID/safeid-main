@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { validateEnv } from './shared/config/env.validation';
 
 // Module imports
 import { HealthModule } from './modules/health/health.module';
@@ -14,9 +15,12 @@ import { QueueModule } from './infra/queue/queue.module';
 @Module({
   imports: [
     // Configuration
+    // Só o .env é carregado: o .env.example tem valores de exemplo e não pode
+    // completar variáveis que faltam
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env', '.env.example'],
+      envFilePath: ['.env'],
+      validate: validateEnv,
     }),
 
     // Infrastructure
