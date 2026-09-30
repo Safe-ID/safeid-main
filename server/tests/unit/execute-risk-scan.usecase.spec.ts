@@ -60,6 +60,28 @@ describe('ExecuteRiskScanUseCase', () => {
     expect(repository.create).not.toHaveBeenCalled();
   });
 
+  it('hashes the email with HMAC when EMAIL_HASH_SECRET is set', async () => {
+    const { createHash, createHmac } = require('crypto');
+    const useCase = new ExecuteRiskScanUseCase(repository, cacheService, hibpQueue, 'test-key');
+    const original = process.env.EMAIL_HASH_SECRET;
+
+    process.env.EMAIL_HASH_SECRET = 'hash-secret';
+    const withSecret = (useCase as any).hashEmail('User@Example.com');
+    expect(withSecret).toBe(createHmac('sha256', 'hash-secret').update('user@example.com').digest('hex'));
+    expect(withSecret).not.toBe(createHash('sha256').update('user@example.com').digest('hex'));
+
+    delete process.env.EMAIL_HASH_SECRET;
+    expect((useCase as any).hashEmail('User@Example.com')).toBe(
+      createHash('sha256').update('user@example.com').digest('hex'),
+    );
+
+    if (original === undefined) {
+      delete process.env.EMAIL_HASH_SECRET;
+    } else {
+      process.env.EMAIL_HASH_SECRET = original;
+    }
+  });
+
   it('runs the full scan flow for a cache miss and persists the result', async () => {
     const breaches = [
       {
