@@ -11,6 +11,8 @@ export interface ScanSnapshotDto {
   classification: 'LOW' | 'MODERATE' | 'CRITICAL';
   breachesFound: number;
   recommendation?: string | null;
+  mitigationSteps?: string[] | null;
+  urgencyLevel?: string | null;
   isVerified: boolean;
   processedAt?: string | Date | null;
   breachData?: unknown;
