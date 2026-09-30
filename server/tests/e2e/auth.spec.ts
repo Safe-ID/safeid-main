@@ -87,6 +87,7 @@ describe('Auth API E2E', () => {
       body: JSON.stringify({
         email: 'jane@example.com',
         password: 'StrongPass123',
+        acceptTerms: true,
       }),
     });
 
@@ -106,6 +107,7 @@ describe('Auth API E2E', () => {
       data: {
         email: 'jane@example.com',
         passwordHash: expect.any(String),
+        termsAcceptedAt: expect.any(Date),
       },
     });
   });

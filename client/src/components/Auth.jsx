@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { API_BASE_URL, clearToken, login, setAuthTokens, signup } from "../lib/api";
 
-export default function Auth({ mode, notice, onSuccess, onSwitch }) {
+export default function Auth({ mode, notice, onSuccess, onSwitch, onOpenPrivacy }) {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [conf, setConf] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const isReg = mode === "register";
@@ -14,11 +15,12 @@ export default function Auth({ mode, notice, onSuccess, onSwitch }) {
     if (!email.includes("@")) { setErr("Email inválido."); return; }
     if (pass.length < 8) { setErr("Senha deve ter pelo menos 8 caracteres."); return; }
     if (isReg && pass !== conf) { setErr("As senhas não coincidem."); return; }
+    if (isReg && !acceptTerms) { setErr("Para criar a conta, aceite a Política de Privacidade."); return; }
 
     try {
       setLoading(true);
       clearToken();
-      const payload = isReg ? await signup(email.trim(), pass) : await login(email.trim(), pass);
+      const payload = isReg ? await signup(email.trim(), pass, acceptTerms) : await login(email.trim(), pass);
       if (payload?.access_token) {
         setAuthTokens(payload);
       }
@@ -77,6 +79,24 @@ export default function Auth({ mode, notice, onSuccess, onSwitch }) {
               </div>
             )}
 
+            {isReg && (
+              <label className="flex items-start gap-2.5 text-safe-muted text-[13px] leading-relaxed cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={acceptTerms}
+                  onChange={e => setAcceptTerms(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 shrink-0 accent-safe-primary cursor-pointer"
+                />
+                <span>
+                  Li e aceito a{" "}
+                  <button type="button" onClick={onOpenPrivacy} className="bg-transparent border-none p-0 text-[13px] text-safe-secondary font-semibold cursor-pointer hover:underline">
+                    Política de Privacidade
+                  </button>
+                  , incluindo a consulta do meu email no Have I Been Pwned.
+                </span>
+              </label>
+            )}
+
             {notice && !err && (
               <div className="bg-safe-secondary/10 border border-safe-secondary/25 rounded-xl py-2.5 px-3.5 text-safe-secondary text-[13px]">
                 {notice}
@@ -104,6 +124,14 @@ export default function Auth({ mode, notice, onSuccess, onSwitch }) {
             >
               {isReg ? "Continuar com Google" : "Entrar com Google"}
             </button>
+
+            <p className="text-center text-safe-dim text-[11px] leading-relaxed -mt-1">
+              Ao continuar com o Google, você aceita a{" "}
+              <button type="button" onClick={onOpenPrivacy} className="bg-transparent border-none p-0 text-[11px] text-safe-secondary cursor-pointer hover:underline">
+                Política de Privacidade
+              </button>
+              .
+            </p>
 
             <div className="text-center text-safe-dim text-[13px] mt-2">
               {isReg ? "Já tem uma conta? " : "Não tem conta? "}

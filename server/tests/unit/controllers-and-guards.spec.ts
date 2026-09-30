@@ -23,7 +23,7 @@ describe('controller and guard unit coverage', () => {
     } as any;
 
     const controller = new AuthController(authService);
-    const signupDto = { email: 'a@b.com', password: 'Strong123!' };
+    const signupDto = { email: 'a@b.com', password: 'Strong123!', acceptTerms: true };
     const loginDto = { email: 'b@c.com', password: 'Strong123!' };
     const response = { redirect: jest.fn() } as any;
 

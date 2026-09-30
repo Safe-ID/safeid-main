@@ -84,7 +84,7 @@ export class AuthController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Email ou senha inválidos',
+    description: 'Email ou senha inválidos, ou Política de Privacidade não aceita',
   })
   @ApiResponse({
     status: 409,
