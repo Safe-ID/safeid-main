@@ -63,6 +63,16 @@ describe('ScanService', () => {
     });
   });
 
+  it('reports the scan as unavailable instead of empty when the breach lookup fails', async () => {
+    (service as any).executeRiskScanUseCase.execute.mockRejectedValue(new Error('Job failed: HIBP indisponível'));
+
+    await expect(service.submitScan(5, { email: 'user@example.com' })).rejects.toMatchObject({
+      status: 503,
+      message: 'Não foi possível consultar os vazamentos agora. Tente novamente em alguns minutos.',
+    });
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
   it('persists a fallback snapshot when the initial scan fails', async () => {
     prismaMock.user.update.mockResolvedValue({ id: 12 });
 

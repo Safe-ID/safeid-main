@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { PrismaService } from '../../../infra/database/prisma.service';
@@ -27,10 +27,19 @@ export class ScanService {
    * Inicia análise de vazamento para um email
    */
   async submitScan(userId: number, dto: CreateScanDto): Promise<ScanResultDto> {
-    const result = await this.executeRiskScanUseCase.execute({
-      email: dto.email,
-      userId,
-    });
+    let result: ScanResultDto;
+    try {
+      result = await this.executeRiskScanUseCase.execute({
+        email: dto.email,
+        userId,
+      });
+    } catch (error) {
+      // Falha ao consultar o HIBP não pode aparecer como "nenhum vazamento"
+      console.error('[ScanService] Scan could not be completed:', error);
+      throw new ServiceUnavailableException(
+        'Não foi possível consultar os vazamentos agora. Tente novamente em alguns minutos.',
+      );
+    }
 
     await this.persistUserScanSnapshot(userId, dto.email, result);
 
@@ -47,7 +56,7 @@ export class ScanService {
           classification: 'LOW',
           breachesFound: 0,
           recommendation:
-            'Initial scan could not be verified right now. We will retry in background.',
+            'Não conseguimos verificar seus vazamentos agora. Faça um novo scan em alguns minutos.',
           isVerified: false,
           processedAt: new Date(),
           breachData: null,

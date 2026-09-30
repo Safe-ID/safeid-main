@@ -8,6 +8,17 @@ export interface HibpClientOptions {
   userAgent?: string;
 }
 
+/**
+ * Erro lançado quando o HIBP não pôde ser consultado (chave inválida, sem chave,
+ * circuito aberto). Não pode virar "nenhum vazamento": seria um falso negativo.
+ */
+export class HibpUnavailableError extends Error {
+  constructor(reason: string) {
+    super(`HIBP indisponível: ${reason}`);
+    this.name = 'HibpUnavailableError';
+  }
+}
+
 export class HibpClient {
   private axios: AxiosInstance;
   private breaker: any;
@@ -113,9 +124,13 @@ export class HibpClient {
     } catch (err: any) {
       const status = err?.response?.status;
 
-      // Treat auth errors in degraded mode so signup can still complete with a safe snapshot.
-      if (status === 401 || status === 403 || status === 404) {
+      // 404 no range significa que nenhum hash com esse prefixo foi encontrado
+      if (status === 404) {
         return [];
+      }
+
+      if (status === 401 || status === 403) {
+        throw new HibpUnavailableError(`acesso negado pela API (status ${status})`);
       }
 
       throw err;
@@ -125,11 +140,11 @@ export class HibpClient {
   async checkAccount(email: string): Promise<any[]> {
     if (!this.hasApiKey) {
       if (!this.missingApiKeyWarned) {
-        console.warn('[HIBP Client] HIBP_API_KEY not configured. Returning empty result in degraded mode.');
+        console.warn('[HIBP Client] HIBP_API_KEY not configured. Scans cannot be verified.');
         this.missingApiKeyWarned = true;
       }
 
-      return [];
+      throw new HibpUnavailableError('HIBP_API_KEY não configurada');
     }
 
     try {
@@ -138,8 +153,16 @@ export class HibpClient {
       const status = err?.response?.status;
       const message = String(err?.message || '');
 
-      if (status === 401 || status === 403 || /breaker is open/i.test(message)) {
-        return [];
+      if (err instanceof HibpUnavailableError) {
+        throw err;
+      }
+
+      if (status === 401 || status === 403) {
+        throw new HibpUnavailableError(`acesso negado pela API (status ${status})`);
+      }
+
+      if (/breaker is open/i.test(message)) {
+        throw new HibpUnavailableError('muitas falhas seguidas, consulta pausada temporariamente');
       }
 
       throw err;
