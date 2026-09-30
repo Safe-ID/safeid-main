@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { C } from "./safeidData";
 
-export default function RiskCircle({ val, size }) {
+export default function RiskCircle({ val, size, label }) {
   const sz = size || 220;
   const [anim, setAnim] = useState(0);
   const raf = useRef();
@@ -34,7 +34,8 @@ export default function RiskCircle({ val, size }) {
 
   const filled = (anim / 100) * TOTAL;
   const col = anim < 35 ? C.accent : anim < 65 ? C.warn : C.danger;
-  const lbl = val === 0 ? "SEGURO" : val < 35 ? "BAIXO" : val < 65 ? "MÉDIO" : "ALTO";
+  // label permite trocar o texto quando ainda não há um resultado verificado
+  const lbl = label || (val === 0 ? "SEGURO" : val < 35 ? "BAIXO" : val < 65 ? "MÉDIO" : "ALTO");
   const sw = sz * 0.057;
   const ticks = Array.from({ length: 21 }, (_, i) => i);
 
