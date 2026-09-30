@@ -61,13 +61,47 @@ describe('AIEngine', () => {
     });
 
     expect(createMock).toHaveBeenCalledTimes(1);
-    const prompt = (createMock.mock.calls[0] as any)[0].messages[0].content as string;
+    const messages = (createMock.mock.calls[0] as any)[0].messages as Array<{ role: string; content: string }>;
+    expect(messages[0].role).toBe('system');
+    const prompt = messages.find((message) => message.role === 'user')!.content;
 
     expect(prompt).toContain('Sample breach');
     expect(prompt).toContain('Passwords');
     expect(prompt).not.toContain('secret@example.com');
     expect(prompt).not.toContain('123.456.789-00');
     expect(result.urgency_level).toBe('HIGH');
+  });
+
+  it('falls back when the model returns JSON outside the expected format', async () => {
+    createMock.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              executive_summary: 'Resumo sem passos.',
+              mitigation_steps: [],
+              urgency_level: 'EXTREME',
+            }),
+          },
+        },
+      ],
+    });
+
+    const engine = new AIEngine('test-key');
+    const result = await engine.generateRecommendation({
+      breaches: [{
+        Name: 'Wrong format',
+        Title: 'Wrong format',
+        BreachDate: '2024-02-15',
+        DataClasses: ['Emails'],
+        IsVerified: true,
+      }],
+      riskScore: 40,
+      classification: 'MODERATE',
+    });
+
+    expect(result.executive_summary).toContain('Wrong format');
+    expect(result.mitigation_steps.length).toBeGreaterThan(0);
   });
 
   it('returns a safe fallback recommendation when the model is unavailable', async () => {
