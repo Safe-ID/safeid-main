@@ -21,16 +21,18 @@ yarn-error.log*
 pnpm-debug.log*
 
 # IDE and OS
-.vscode/*
+.vscode/
 !.vscode/extensions.json
 .idea/
 .DS_Store
 *.swp
 *.swo
 *~
+.vscode
 
 # Local infrastructure state
 .elasticbeanstalk/
+.ebextensions/
 
 # Local/cloud deployment artifacts
 bucket-*.json
