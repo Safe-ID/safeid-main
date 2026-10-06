@@ -28,6 +28,16 @@ describe('ExecuteRiskScanUseCase', () => {
     };
   });
 
+  it('clears the cached scan of an email using the same hashed key', async () => {
+    cacheService.del = jest.fn(async () => 1);
+
+    const useCase = new ExecuteRiskScanUseCase(repository, cacheService, hibpQueue, 'test-key');
+    await useCase.clearCachedResult('User@Example.com');
+
+    const expectedHash = require('crypto').createHash('sha256').update('user@example.com').digest('hex');
+    expect(cacheService.del).toHaveBeenCalledWith(`scan:${expectedHash}`);
+  });
+
   it('returns the cached result without enqueuing a new HIBP job', async () => {
     const cached = {
       riskScore: 58,
@@ -58,6 +68,28 @@ describe('ExecuteRiskScanUseCase', () => {
 
     expect(hibpQueue.add).not.toHaveBeenCalled();
     expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it('hashes the email with HMAC when EMAIL_HASH_SECRET is set', async () => {
+    const { createHash, createHmac } = require('crypto');
+    const useCase = new ExecuteRiskScanUseCase(repository, cacheService, hibpQueue, 'test-key');
+    const original = process.env.EMAIL_HASH_SECRET;
+
+    process.env.EMAIL_HASH_SECRET = 'hash-secret';
+    const withSecret = (useCase as any).hashEmail('User@Example.com');
+    expect(withSecret).toBe(createHmac('sha256', 'hash-secret').update('user@example.com').digest('hex'));
+    expect(withSecret).not.toBe(createHash('sha256').update('user@example.com').digest('hex'));
+
+    delete process.env.EMAIL_HASH_SECRET;
+    expect((useCase as any).hashEmail('User@Example.com')).toBe(
+      createHash('sha256').update('user@example.com').digest('hex'),
+    );
+
+    if (original === undefined) {
+      delete process.env.EMAIL_HASH_SECRET;
+    } else {
+      process.env.EMAIL_HASH_SECRET = original;
+    }
   });
 
   it('runs the full scan flow for a cache miss and persists the result', async () => {
@@ -384,5 +416,122 @@ describe('ExecuteRiskScanUseCase', () => {
     await expect(
       (useCase as any).waitForJobCompletion(job, 0),
     ).rejects.toThrow('Job timeout after 0ms');
+  });
+
+  describe('AI recommendation cache', () => {
+    const breaches = [
+      {
+        Name: 'Recent leak',
+        Title: 'Recent leak',
+        BreachDate: '2026-03-10T00:00:00.000Z',
+        DataClasses: ['Passwords'],
+        IsVerified: true,
+      },
+    ];
+
+    const buildJob = () => ({
+      id: 'job-cache',
+      data: { result: breaches },
+      getState: jest.fn(async () => 'completed'),
+      queue: {
+        getJob: jest.fn(async () => ({
+          data: { result: breaches },
+          returnvalue: breaches,
+        })),
+      },
+    });
+
+    beforeEach(() => {
+      hibpQueue.add.mockResolvedValue(buildJob());
+      jest.spyOn(RiskEngine.prototype, 'calculate').mockReturnValue({
+        totalScore: 42,
+        classification: 'MODERATE',
+        breachesFound: 1,
+        subscores: [],
+      } as any);
+    });
+
+    it('reuses a cached recommendation without calling the model', async () => {
+      const cachedRecommendation = {
+        executive_summary: 'Resumo em cache.',
+        mitigation_steps: ['Passo em cache'],
+        urgency_level: 'MEDIUM',
+        source: 'ai',
+      };
+      cacheService.get.mockImplementation(async (key: string) =>
+        key.startsWith('ai-recommendation:') ? JSON.stringify(cachedRecommendation) : null,
+      );
+      const aiSpy = jest.spyOn(AIEngine.prototype, 'generateRecommendation');
+
+      const useCase = new ExecuteRiskScanUseCase(repository, cacheService, hibpQueue, 'test-key');
+      const result = await useCase.execute({ email: 'user@example.com', userId: 12 });
+
+      expect(aiSpy).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        recommendation: 'Resumo em cache.',
+        mitigationSteps: ['Passo em cache'],
+        urgencyLevel: 'MEDIUM',
+      });
+      expect(repository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mitigationSteps: ['Passo em cache'],
+          urgencyLevel: 'MEDIUM',
+        }),
+      );
+    });
+
+    it('caches model answers but not fallback answers', async () => {
+      const aiSpy = jest.spyOn(AIEngine.prototype, 'generateRecommendation').mockResolvedValue({
+        executive_summary: 'Resumo do modelo.',
+        mitigation_steps: ['Passo 1'],
+        urgency_level: 'MEDIUM',
+        source: 'ai',
+      });
+
+      const useCase = new ExecuteRiskScanUseCase(repository, cacheService, hibpQueue, 'test-key');
+      await useCase.execute({ email: 'user@example.com', userId: 12 });
+
+      expect(cacheService.setex).toHaveBeenCalledWith(
+        expect.stringMatching(/^ai-recommendation:[a-f0-9]{64}$/),
+        7 * 24 * 60 * 60,
+        expect.stringContaining('Resumo do modelo.'),
+      );
+
+      cacheService.setex.mockClear();
+      hibpQueue.add.mockResolvedValue(buildJob());
+      aiSpy.mockResolvedValue({
+        executive_summary: 'Resumo padrão.',
+        mitigation_steps: ['Passo padrão'],
+        urgency_level: 'MEDIUM',
+        source: 'fallback',
+      });
+
+      await useCase.execute({ email: 'user@example.com', userId: 12 });
+
+      const cachedKeys = cacheService.setex.mock.calls.map((call: any) => call[0]);
+      expect(cachedKeys.some((key: string) => key.startsWith('ai-recommendation:'))).toBe(false);
+    });
+
+    it('still calls the model when the cache read fails', async () => {
+      cacheService.get.mockImplementation(async (key: string) => {
+        if (key.startsWith('ai-recommendation:')) throw new Error('Redis down');
+        return null;
+      });
+      const aiSpy = jest.spyOn(AIEngine.prototype, 'generateRecommendation').mockResolvedValue({
+        executive_summary: 'Resumo do modelo.',
+        mitigation_steps: ['Passo 1'],
+        urgency_level: 'MEDIUM',
+        source: 'ai',
+      });
+      cacheService.setex.mockImplementation(async (key: string) => {
+        if (key.startsWith('ai-recommendation:')) throw new Error('Redis down');
+      });
+
+      const useCase = new ExecuteRiskScanUseCase(repository, cacheService, hibpQueue, 'test-key');
+      const result = await useCase.execute({ email: 'user@example.com', userId: 12 });
+
+      expect(aiSpy).toHaveBeenCalledTimes(1);
+      expect(result.recommendation).toBe('Resumo do modelo.');
+    });
   });
 });

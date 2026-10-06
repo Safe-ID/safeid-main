@@ -28,6 +28,7 @@ describe('Auth API E2E', () => {
     const scanMock = {
       submitScan: jest.fn(async () => undefined),
       persistFallbackSnapshot: jest.fn(async () => undefined),
+      clearCachedScan: jest.fn(async () => undefined),
     } as any;
 
     const moduleRef = await Test.createTestingModule({
@@ -87,6 +88,7 @@ describe('Auth API E2E', () => {
       body: JSON.stringify({
         email: 'jane@example.com',
         password: 'StrongPass123',
+        acceptTerms: true,
       }),
     });
 
@@ -106,6 +108,7 @@ describe('Auth API E2E', () => {
       data: {
         email: 'jane@example.com',
         passwordHash: expect.any(String),
+        termsAcceptedAt: expect.any(Date),
       },
     });
   });

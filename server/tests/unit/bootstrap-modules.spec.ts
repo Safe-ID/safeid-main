@@ -31,6 +31,7 @@ describe('bootstrap and module wiring coverage', () => {
     process.env.REDIS_HOST = 'localhost';
     process.env.REDIS_PORT = '6379';
     process.env.JWT_SECRET = 'unit-test-secret';
+    process.env.REFRESH_TOKEN_SECRET = 'unit-test-refresh-secret';
     process.env.APP_PORT = '3001';
     process.env.NODE_ENV = 'test';
     process.env.SWAGGER_ENABLED = 'false';
@@ -73,6 +74,12 @@ describe('bootstrap and module wiring coverage', () => {
     const queue = moduleRef.get('HIBP_QUEUE');
     expect(queue).toBeDefined();
     expect((require('bullmq').Queue as jest.Mock).mock.calls.length).toBeGreaterThan(0);
+    expect((require('bullmq').Queue as jest.Mock).mock.calls.at(-1)?.[1]).toMatchObject({
+      defaultJobOptions: {
+        removeOnComplete: { age: 60 },
+        removeOnFail: { age: 600 },
+      },
+    });
   });
 
   it('throws when a real HIBP queue is requested without an API key', async () => {

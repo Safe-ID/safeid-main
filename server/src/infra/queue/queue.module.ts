@@ -23,7 +23,16 @@ import { createHibpWorker } from './hibp.worker';
         const useMock = process.env.HIBP_USE_MOCK === 'true';
 
         // Queue producer
-        const queue = new Queue('hibp-check', { connection: queueConnection });
+        // Os jobs guardam o email em texto e o resultado do HIBP. Eles são apagados
+        // do Redis pouco depois de terminar (o scan lê o resultado em até 10s),
+        // em vez de ficarem lá para sempre.
+        const queue = new Queue('hibp-check', {
+          connection: queueConnection,
+          defaultJobOptions: {
+            removeOnComplete: { age: 60 },
+            removeOnFail: { age: 10 * 60 },
+          },
+        });
 
         if (!useMock && !apiKey) {
           throw new Error(

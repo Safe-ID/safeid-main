@@ -2,6 +2,9 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:30
 const TOKEN_KEY = "safeid.access_token";
 const REFRESH_TOKEN_KEY = "safeid.refresh_token";
 
+// Disparado quando o token venceu ou foi recusado, para o app voltar ao login
+export const SESSION_EXPIRED_EVENT = "safeid:session-expired";
+
 function normalizeBaseUrl(url) {
   return url.replace(/\/$/, "");
 }
@@ -35,7 +38,8 @@ export async function request(path, options = {}) {
     headers.set("Content-Type", "application/json");
   }
 
-  const token = options.token || getToken();
+  // token: null indica uma rota pública (login/cadastro), que não usa o token salvo
+  const token = options.token === null ? null : options.token || getToken();
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
   }
@@ -51,6 +55,12 @@ export async function request(path, options = {}) {
     : await response.text();
 
   if (!response.ok) {
+    if (response.status === 401 && token) {
+      clearToken();
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+      throw new Error("Sua sessão expirou. Entre novamente.");
+    }
+
     const message = typeof payload === "string"
       ? payload
       : payload?.message || payload?.error || "Erro ao consumir a API";
@@ -68,10 +78,10 @@ export async function login(email, password) {
   });
 }
 
-export async function signup(email, password) {
+export async function signup(email, password, acceptTerms) {
   return request("/api/v1/auth/signup", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, acceptTerms }),
     token: null,
   });
 }

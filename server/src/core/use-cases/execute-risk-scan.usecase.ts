@@ -8,14 +8,14 @@
  * 3. Se miss, enfileira em BullMQ (HIBP com rate limit)
  * 4. Aguarda resultado (timeout 10s)
  * 5. Calcula risk com RiskEngine
- * 6. Gera recomendação com AIEngine
+ * 6. Gera recomendação com AIEngine (com cache por conjunto de vazamentos)
  * 7. Persiste resultado
  */
 
-import { createHash } from 'crypto';
+import { createHash, createHmac } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { RiskEngine } from '../engines/risk.engine';
-import { AIEngine } from '../engines/ai.engine';
+import { AIEngine, AIRecommendation } from '../engines/ai.engine';
 import { ScanResult } from '../entities/scan-result.entity';
 import { IScanHistoryRepository } from '../repositories/scan-history.repository';
 
@@ -28,6 +28,9 @@ interface HIBPBreach {
   [key: string]: any;
 }
 
+// Recomendações do modelo ficam em cache por 7 dias para o mesmo conjunto de vazamentos
+const AI_RECOMMENDATION_TTL = 7 * 24 * 60 * 60;
+
 interface ExecuteScanInput {
   email: string;
   userId: number;
@@ -39,10 +42,13 @@ interface ExecuteScanOutput {
   classification: 'LOW' | 'MODERATE' | 'CRITICAL';
   breachesFound: number;
   recommendation?: string;
+  mitigationSteps?: string[];
+  urgencyLevel?: string;
   isVerified: boolean;
 }
 
 export class ExecuteRiskScanUseCase {
+  private static missingSecretWarned = false;
   private riskEngine: RiskEngine;
   private aiEngine: AIEngine;
 
@@ -91,19 +97,18 @@ export class ExecuteRiskScanUseCase {
       const riskCalc = this.riskEngine.calculate(breaches || []);
 
       // 5. Gera recomendação com IA (passa TODAS as breaches)
-      let recommendation: string | undefined;
+      let aiResult: AIRecommendation | undefined;
       if (breaches && breaches.length > 0) {
         try {
-          const aiResult = await this.aiEngine.generateRecommendation({
-            breaches: breaches,
-            riskScore: riskCalc.totalScore,
-          });
-          recommendation = aiResult.executive_summary;
+          aiResult = await this.getRecommendation(breaches, riskCalc);
         } catch (error) {
           console.warn('[ExecuteRiskScan] AI recommendation unavailable, continuing without it:', error);
-          recommendation = undefined;
+          aiResult = undefined;
         }
       }
+      const recommendation = aiResult?.executive_summary;
+      const mitigationSteps = aiResult?.mitigation_steps;
+      const urgencyLevel = aiResult?.urgency_level;
 
       // 6. Cria e persiste resultado
       const scanResult: ScanResult = {
@@ -115,6 +120,8 @@ export class ExecuteRiskScanUseCase {
         breachesFound: riskCalc.breachesFound,
         breachData: breaches,
         recommendation,
+        mitigationSteps,
+        urgencyLevel,
         isVerified: true,
         processedAt: new Date(),
         createdAt: new Date(),
@@ -141,6 +148,8 @@ export class ExecuteRiskScanUseCase {
           classification: riskCalc.classification,
           breachesFound: riskCalc.breachesFound,
           recommendation,
+          mitigationSteps,
+          urgencyLevel,
         })
       );
 
@@ -150,12 +159,76 @@ export class ExecuteRiskScanUseCase {
         classification: riskCalc.classification,
         breachesFound: riskCalc.breachesFound,
         recommendation,
+        mitigationSteps,
+        urgencyLevel,
         isVerified: true,
       };
     } catch (error) {
       console.error(`[ExecuteRiskScan Error] ${error}`);
       throw error;
     }
+  }
+
+  /**
+   * Busca a recomendação no cache antes de chamar a IA.
+   * Só guarda respostas do modelo, para a resposta padrão não ficar presa no cache.
+   */
+  private async getRecommendation(
+    breaches: HIBPBreach[],
+    riskCalc: { totalScore: number; classification: 'LOW' | 'MODERATE' | 'CRITICAL' },
+  ): Promise<AIRecommendation> {
+    const cacheKey = `ai-recommendation:${this.hashBreaches(breaches, riskCalc)}`;
+
+    try {
+      const cached = await this.cacheService.get(cacheKey);
+      if (cached) {
+        console.log('[AI Cache HIT] Reutilizando recomendação');
+        return JSON.parse(cached) as AIRecommendation;
+      }
+    } catch (error) {
+      console.warn('[ExecuteRiskScan] AI cache read failed, calling the model:', error);
+    }
+
+    const aiResult = await this.aiEngine.generateRecommendation({
+      breaches: breaches,
+      riskScore: riskCalc.totalScore,
+      classification: riskCalc.classification,
+    });
+
+    if (aiResult.source === 'ai') {
+      try {
+        await this.cacheService.setex(cacheKey, AI_RECOMMENDATION_TTL, JSON.stringify(aiResult));
+      } catch (error) {
+        console.warn('[ExecuteRiskScan] AI cache write failed:', error);
+      }
+    }
+
+    return aiResult;
+  }
+
+  /**
+   * Gera a chave do cache a partir dos campos públicos dos vazamentos (sem dados do usuário)
+   */
+  private hashBreaches(
+    breaches: HIBPBreach[],
+    riskCalc: { totalScore: number; classification: string },
+  ): string {
+    const signature = breaches
+      .map(breach => ({
+        name: breach.Name,
+        date: breach.BreachDate,
+        dataClasses: [...(breach.DataClasses || [])].sort(),
+        verified: breach.IsVerified,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return createHash('sha256')
+      .update(JSON.stringify({
+        breaches: signature,
+        riskScore: riskCalc.totalScore,
+        classification: riskCalc.classification,
+      }))
+      .digest('hex');
   }
 
   /**
@@ -197,8 +270,31 @@ export class ExecuteRiskScanUseCase {
     throw new Error(`Job timeout after ${timeoutMs}ms`);
   }
 
+  /**
+   * Remove do cache o resultado do scan desse email (usado na exclusão de conta)
+   */
+  async clearCachedResult(email: string): Promise<void> {
+    await this.cacheService.del(`scan:${this.hashEmail(email)}`);
+  }
+
+  /**
+   * Hash do email usado no banco e nas chaves do cache.
+   * Com EMAIL_HASH_SECRET é um HMAC: sem a chave, não dá para descobrir o email
+   * testando uma lista de emails conhecidos. Sem a variável, mantém o SHA-256 antigo.
+   */
   private hashEmail(email: string): string {
-    return createHash('sha256').update(email.toLowerCase()).digest('hex');
+    const normalizedEmail = email.toLowerCase();
+    const secret = (process.env.EMAIL_HASH_SECRET || '').trim();
+
+    if (!secret) {
+      if (!ExecuteRiskScanUseCase.missingSecretWarned) {
+        console.warn('[ExecuteRiskScan] EMAIL_HASH_SECRET não configurada, usando SHA-256 sem chave.');
+        ExecuteRiskScanUseCase.missingSecretWarned = true;
+      }
+      return createHash('sha256').update(normalizedEmail).digest('hex');
+    }
+
+    return createHmac('sha256', secret).update(normalizedEmail).digest('hex');
   }
 
   private calculateDaysAgo(breachDateStr: string): number {

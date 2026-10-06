@@ -39,6 +39,7 @@ describe('AuthService', () => {
     scanServiceMock = {
       submitScan: jest.fn(),
       persistFallbackSnapshot: jest.fn(),
+      clearCachedScan: jest.fn(),
     };
 
     service = new AuthService(prismaMock as any, jwtServiceMock as any, scanServiceMock as any);
@@ -67,6 +68,7 @@ describe('AuthService', () => {
     const result = await service.signup({
       email: 'new@example.com',
       password: 'StrongPass123',
+      acceptTerms: true,
     });
 
     expect(result.access_token).toBe('token-11-access');
@@ -130,6 +132,15 @@ describe('AuthService', () => {
 
     expect(result).toEqual({ message: 'Conta deletada com sucesso' });
     expect(prismaMock.user.delete).toHaveBeenCalledWith({ where: { id: 33 } });
+    expect(scanServiceMock.clearCachedScan).toHaveBeenCalledWith('delete@example.com');
+  });
+
+  it('still deletes the account when the cached scan cannot be cleared', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ id: 34, email: 'redis-down@example.com' });
+    prismaMock.user.delete.mockResolvedValue({ id: 34 });
+    scanServiceMock.clearCachedScan.mockRejectedValue(new Error('Redis down'));
+
+    await expect(service.deleteAccount(34)).resolves.toEqual({ message: 'Conta deletada com sucesso' });
   });
 
   it('returns a valid Google auth URL with state', async () => {
@@ -181,19 +192,54 @@ describe('AuthService', () => {
     );
   });
 
+  it('requires the privacy policy to be accepted and records when it was accepted', async () => {
+    await expect(service.signup({
+      email: 'no-consent@example.com',
+      password: 'StrongPass123',
+      acceptTerms: false,
+    })).rejects.toThrow('É preciso aceitar a Política de Privacidade para criar a conta');
+    expect(prismaMock.user.create).not.toHaveBeenCalled();
+
+    prismaMock.user.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 12, email: 'consent@example.com', passwordHash: 'hash' });
+    prismaMock.user.create.mockResolvedValue({ id: 12, email: 'consent@example.com', passwordHash: 'hash' });
+    scanServiceMock.submitScan.mockResolvedValue(undefined);
+
+    await service.signup({ email: 'consent@example.com', password: 'StrongPass123', acceptTerms: true });
+
+    expect(prismaMock.user.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ email: 'consent@example.com', termsAcceptedAt: expect.any(Date) }),
+    });
+  });
+
+  it('does not let signup set a password on an account created with Google', async () => {
+    prismaMock.user.findUnique.mockResolvedValueOnce({
+      id: 18,
+      email: 'google-only@example.com',
+      googleId: 'google-18',
+      passwordHash: null,
+    });
+
+    await expect(service.signup({
+      email: 'google-only@example.com',
+      password: 'AttackerPass123',
+      acceptTerms: true,
+    })).rejects.toBeInstanceOf(ConflictException);
+
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+    expect(prismaMock.user.create).not.toHaveBeenCalled();
+  });
+
   it('covers fallback signup and profile failure branches', async () => {
     prismaMock.user.findUnique
+      .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({
         id: 19,
         email: 'fallback@example.com',
-        passwordHash: null,
-      })
-      .mockResolvedValueOnce({
-        id: 19,
-        email: 'fallback@example.com',
-        passwordHash: null,
+        passwordHash: 'hash',
       });
-    prismaMock.user.update.mockResolvedValue({
+    prismaMock.user.create.mockResolvedValue({
       id: 19,
       email: 'fallback@example.com',
       passwordHash: 'hash',
@@ -204,6 +250,7 @@ describe('AuthService', () => {
     const result = await service.signup({
       email: 'fallback@example.com',
       password: 'StrongPass123',
+      acceptTerms: true,
     });
 
     expect(result.user.email).toBe('fallback@example.com');
@@ -231,6 +278,10 @@ describe('AuthService', () => {
       googleId: 'g-2',
     });
     await expect((service as any).upsertGoogleUser({ googleId: 'g-2', email: 'linked@example.com' })).resolves.toMatchObject({ id: 22, googleId: 'g-2' });
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: 22 },
+      data: { googleId: 'g-2', passwordHash: null },
+    });
 
     const validState = (service as any).createGoogleOAuthState();
     expect(() => (service as any).verifyGoogleOAuthState(`${validState}x`)).toThrow('State inválido');
