@@ -108,6 +108,22 @@ describe('ScanService', () => {
     ]);
   });
 
+  it('maps missing breach counts to zero in scan history', async () => {
+    prismaMock.scanHistory.findMany.mockResolvedValue([
+      {
+        jobId: 'job-empty-breaches',
+        riskScore: 0,
+        classification: 'LOW',
+        breachesFound: null,
+        createdAt: new Date('2026-09-10T00:00:00.000Z'),
+      },
+    ]);
+
+    await expect(service.getUserHistory(8)).resolves.toEqual([
+      expect.objectContaining({ id: 'job-empty-breaches', breachesFound: 0 }),
+    ]);
+  });
+
   it('returns null when a scan detail is not found for the user', async () => {
     prismaMock.scanHistory.findFirst.mockResolvedValue(null);
 
@@ -223,5 +239,52 @@ describe('ScanService', () => {
         }),
       }),
     );
+  });
+
+  it('persists a snapshot without history and handles empty breach data', async () => {
+    prismaMock.scanHistory.findFirst.mockResolvedValue(null);
+    prismaMock.user.update.mockResolvedValue({ id: 13 });
+
+    await (service as any).persistUserScanSnapshot(13, 'empty@example.com', {
+      jobId: 'job-empty-history',
+      riskScore: 0,
+      classification: 'LOW',
+      breachesFound: 0,
+      recommendation: undefined,
+      isVerified: false,
+    });
+
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: 13 },
+      data: expect.objectContaining({
+        scanSnapshot: expect.objectContaining({
+          jobId: 'job-empty-history',
+          recommendation: null,
+          breachData: null,
+        }),
+      }),
+    });
+  });
+
+  it('creates repository records with null breach data', async () => {
+    const repo = (service as any).createRepository();
+    prismaMock.scanHistory.create.mockResolvedValue({ jobId: 'job-no-breach-data' });
+
+    await expect(repo.create({
+      jobId: 'job-no-breach-data',
+      userId: 13,
+      emailHash: 'hash',
+      riskScore: 0,
+      classification: 'LOW',
+      breachesFound: 0,
+      breachData: null,
+      recommendation: undefined,
+      isVerified: false,
+      processedAt: new Date('2026-09-10T00:00:00.000Z'),
+    })).resolves.toMatchObject({ jobId: 'job-no-breach-data' });
+
+    expect(prismaMock.scanHistory.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ breachData: null, recommendation: undefined }),
+    });
   });
 });
