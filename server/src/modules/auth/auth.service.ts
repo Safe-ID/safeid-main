@@ -75,6 +75,7 @@ export class AuthService {
     const timestamp = Date.now().toString();
     const nonce = randomBytes(16).toString('hex');
     const payload = `${timestamp}:${nonce}`;
+    // codeql[js/insufficient-password-hash]: HMAC signs OAuth state; it is not password storage.
     const signature = createHmac('sha256', secret).update(payload).digest('hex');
 
     return `${payload}:${signature}`;
@@ -89,6 +90,7 @@ export class AuthService {
     }
 
     const payload = `${timestamp}:${nonce}`;
+  // codeql[js/insufficient-password-hash]: HMAC verifies OAuth state; it is not password storage.
     const expectedSignature = createHmac('sha256', secret).update(payload).digest('hex');
 
     if (expectedSignature !== signature) {

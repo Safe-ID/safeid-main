@@ -313,10 +313,10 @@ describe('AuthService', () => {
   });
 
   it('rejects invalid signup and login inputs before querying the database', async () => {
-    await expect(service.signup({ email: 'invalid-email', password: 'StrongPass123' })).rejects.toBeInstanceOf(
+    await expect(service.signup({ email: 'invalid-email', password: 'StrongPass123', acceptTerms: true })).rejects.toBeInstanceOf(
       BadRequestException,
     );
-    await expect(service.signup({ email: 'user@example.com', password: 'short' })).rejects.toBeInstanceOf(
+    await expect(service.signup({ email: 'user@example.com', password: 'short', acceptTerms: true })).rejects.toBeInstanceOf(
       BadRequestException,
     );
     await expect(service.login({ email: '', password: '' })).rejects.toBeInstanceOf(
@@ -332,7 +332,7 @@ describe('AuthService', () => {
       passwordHash: 'already-hashed',
     });
     await expect(
-      service.signup({ email: 'duplicate@example.com', password: 'StrongPass123' }),
+      service.signup({ email: 'duplicate@example.com', password: 'StrongPass123', acceptTerms: true }),
     ).rejects.toBeInstanceOf(ConflictException);
 
     prismaMock.user.findUnique.mockResolvedValueOnce(null);
