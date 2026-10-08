@@ -311,4 +311,107 @@ describe('AuthService', () => {
       BadRequestException,
     );
   });
+
+  it('rejects invalid signup and login inputs before querying the database', async () => {
+    await expect(service.signup({ email: 'invalid-email', password: 'StrongPass123', acceptTerms: true })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.signup({ email: 'user@example.com', password: 'short', acceptTerms: true })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.login({ email: '', password: '' })).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('rejects duplicate password accounts and unknown login users', async () => {
+    prismaMock.user.findUnique.mockResolvedValueOnce({
+      id: 55,
+      email: 'duplicate@example.com',
+      passwordHash: 'already-hashed',
+    });
+    await expect(
+      service.signup({ email: 'duplicate@example.com', password: 'StrongPass123', acceptTerms: true }),
+    ).rejects.toBeInstanceOf(ConflictException);
+
+    prismaMock.user.findUnique.mockResolvedValueOnce(null);
+    await expect(
+      service.login({ email: 'unknown@example.com', password: 'StrongPass123' }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('validates a JWT when the referenced user exists', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ id: 88, email: 'valid@example.com' });
+
+    await expect(service.validateJwt({ sub: 88, email: 'valid@example.com' })).resolves.toEqual({
+      id: 88,
+      email: 'valid@example.com',
+    });
+  });
+
+  it('updates a Google user when the Google email changes', async () => {
+    prismaMock.user.findUnique.mockResolvedValueOnce({
+      id: 90,
+      email: 'old@example.com',
+      googleId: 'google-90',
+    });
+    prismaMock.user.update.mockResolvedValue({
+      id: 90,
+      email: 'new@example.com',
+      googleId: 'google-90',
+    });
+
+    await expect(
+      (service as any).upsertGoogleUser({ googleId: 'google-90', email: 'new@example.com' }),
+    ).resolves.toMatchObject({ id: 90, email: 'new@example.com' });
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: 90 },
+      data: { email: 'new@example.com' },
+    });
+  });
+
+  it('rejects incomplete and unverified Google profiles', async () => {
+    const state = (service as any).createGoogleOAuthState();
+    (axios.post as any).mockResolvedValue({ data: { access_token: 'google-token' } });
+
+    (axios.get as any).mockResolvedValueOnce({ data: { sub: 'missing-email' } });
+    await expect(service.handleGoogleCallback('code', state)).rejects.toThrow(
+      'Perfil do Google incompleto',
+    );
+
+    const verifiedState = (service as any).createGoogleOAuthState();
+    (axios.get as any).mockResolvedValueOnce({
+      data: { sub: 'unverified', email: 'unverified@example.com', email_verified: false },
+    });
+    await expect(service.handleGoogleCallback('code', verifiedState)).rejects.toThrow(
+      'Email do Google não verificado',
+    );
+  });
+
+  it('rejects a Google callback when the token response has no access token', async () => {
+    const state = (service as any).createGoogleOAuthState();
+    (axios.post as any).mockResolvedValue({ data: {} });
+
+    await expect(service.handleGoogleCallback('code', state)).rejects.toThrow(
+      'Falha ao autenticar com Google',
+    );
+  });
+
+  it('rejects malformed and expired OAuth states', async () => {
+    expect(() => (service as any).verifyGoogleOAuthState('malformed')).toThrow('State inválido');
+
+    const expiredTimestamp = Date.now() - 11 * 60 * 1000;
+    const nonce = 'expired-nonce';
+    const expiredPayload = `${expiredTimestamp}:${nonce}`;
+    const crypto = require('crypto');
+    const secret = process.env.SESSION_SECRET || process.env.JWT_SECRET || 'safeid-google-state';
+    const expiredSignature = crypto
+      .createHmac('sha256', secret)
+      .update(expiredPayload)
+      .digest('hex');
+    expect(() =>
+      (service as any).verifyGoogleOAuthState(`${expiredTimestamp}:${nonce}:${expiredSignature}`),
+    ).toThrow('State expirado');
+  });
 });

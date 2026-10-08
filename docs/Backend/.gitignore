@@ -1,0 +1,5 @@
+# Development plans and agent prompts stay outside future versioned changes.
+PLANO_IMPLEMENTACAO_TESTES_CI.md
+PLANO_INTEGRACAO_FRONTEND_API.md
+PLANO_MONITORAMENTO_VAZAMENTOS.md
+plan.prompt.md

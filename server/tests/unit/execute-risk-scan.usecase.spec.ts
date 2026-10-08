@@ -285,6 +285,117 @@ describe('ExecuteRiskScanUseCase', () => {
     ).rejects.toThrow('Job failed: Connection refused');
   });
 
+  it('uses the available completed job result fallbacks', async () => {
+    const useCase = new ExecuteRiskScanUseCase(
+      repository,
+      cacheService,
+      hibpQueue,
+      'test-key',
+    );
+    const breach = { Name: 'Fallback breach' };
+
+    const returnValueJob = {
+      id: 'job-returnvalue',
+      data: { result: null },
+      getState: jest.fn(async () => 'completed'),
+      queue: {
+        getJob: jest.fn(async () => ({ returnvalue: [breach] })),
+      },
+    };
+    await expect((useCase as any).waitForJobCompletion(returnValueJob, 1000)).resolves.toEqual([
+      breach,
+    ]);
+
+    const jobDataJob = {
+      id: 'job-data',
+      data: { result: [breach] },
+      getState: jest.fn(async () => 'completed'),
+      queue: {
+        getJob: jest.fn(async () => ({ data: { result: null }, returnvalue: null })),
+      },
+    };
+    await expect((useCase as any).waitForJobCompletion(jobDataJob, 1000)).resolves.toEqual([
+      breach,
+    ]);
+
+    const emptyJob = {
+      id: 'job-empty-result',
+      data: { result: null },
+      getState: jest.fn(async () => 'completed'),
+      queue: {
+        getJob: jest.fn(async () => ({ data: {}, returnvalue: null })),
+      },
+    };
+    await expect((useCase as any).waitForJobCompletion(emptyJob, 1000)).resolves.toBeNull();
+  });
+
+  it('resolves after an active job becomes completed', async () => {
+    jest.useFakeTimers();
+    const job = {
+      id: 'job-eventually-completed',
+      data: { result: [] },
+      getState: jest
+        .fn(async (): Promise<string> => 'active')
+        .mockResolvedValueOnce('active')
+        .mockResolvedValueOnce('completed'),
+      queue: {
+        getJob: jest.fn(async () => ({ returnvalue: [] })),
+      },
+    };
+    const useCase = new ExecuteRiskScanUseCase(
+      repository,
+      cacheService,
+      hibpQueue,
+      'test-key',
+    );
+
+    const completion = (useCase as any).waitForJobCompletion(job, 1000);
+    await jest.advanceTimersByTimeAsync(100);
+
+    await expect(completion).resolves.toEqual([]);
+  });
+
+  it('uses each available failure reason fallback', async () => {
+    const useCase = new ExecuteRiskScanUseCase(
+      repository,
+      cacheService,
+      hibpQueue,
+      'test-key',
+    );
+    const createFailedJob = (id: string, refreshed: any, job: any) => ({
+      id,
+      data: job.data,
+      failedReason: job.failedReason,
+      getState: jest.fn(async () => 'failed'),
+      queue: { getJob: jest.fn(async () => refreshed) },
+    });
+
+    await expect(
+      (useCase as any).waitForJobCompletion(
+        createFailedJob('refreshed-data-error', { failedReason: '', data: { error: { message: 'refreshed error' } } }, { data: {} }),
+        1000,
+      ),
+    ).rejects.toThrow('Job failed: refreshed error');
+    await expect(
+      (useCase as any).waitForJobCompletion(
+        createFailedJob('job-failed-reason', null, { failedReason: 'job error', data: {} }),
+        1000,
+      ),
+    ).rejects.toThrow('Job failed: job error');
+    await expect(
+      (useCase as any).waitForJobCompletion(
+        createFailedJob('job-data-error', null, { data: { error: { message: 'data error' } } }),
+        1000,
+      ),
+    ).rejects.toThrow('Job failed: data error');
+    await expect(
+      (useCase as any).waitForJobCompletion(
+        createFailedJob('unknown-error', null, { data: {} }),
+        1000,
+      ),
+    ).rejects.toThrow('Job failed: Unknown error');
+  });
+
   it('times out when the HIBP job never reaches a terminal state', async () => {
     const job = {
       id: 'job-timeout',

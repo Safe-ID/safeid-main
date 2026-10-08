@@ -138,6 +138,19 @@ Conteúdo:
 **Público-alvo:** Todos os desenvolvedores do projeto, especialmente quem está começando com Git e GitHub
 **Tempo de leitura:** 15-20 minutos
 
+### 9. 📈 [COBERTURA_TESTES_ATUAL.md](./COBERTURA_TESTES_ATUAL.md)
+**Medição atual da cobertura automatizada**
+
+Conteúdo:
+- percentuais atuais de statements, branches, functions e lines;
+- thresholds configurados no Jest;
+- quantidade de suítes e testes aprovados;
+- áreas com maior concentração de branches não cobertos;
+- comandos para reproduzir a medição localmente e no CI.
+
+**Público-alvo:** Desenvolvedores, QA, Tech Leads e revisores de Pull Request
+**Tempo de leitura:** 5-10 minutos
+
 ---
 
 ## 🗺️ MAPA DE NAVEGAÇÃO
