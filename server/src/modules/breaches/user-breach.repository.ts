@@ -75,6 +75,20 @@ export class UserBreachRepository {
     return { inserted, baselineDefined: baseline.count > 0 };
   }
 
+  /**
+   * Vazamentos achados pelo monitoramento que ainda não viraram notificação.
+   * Inclui os de uma execução anterior que falhou entre o registro e o aviso.
+   */
+  async getPendingNotification(userId: number): Promise<string[]> {
+    const rows = await this.prisma.userBreach.findMany({
+      where: { userId, source: 'MONITORING', notifiedAt: null },
+      orderBy: { firstSeenAt: 'asc' },
+      select: { breachName: true },
+    });
+
+    return rows.map(row => row.breachName);
+  }
+
   async markNotified(userId: number, names: string[], now = new Date()): Promise<void> {
     if (names.length === 0) {
       return;

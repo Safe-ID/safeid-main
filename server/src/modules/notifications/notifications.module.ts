@@ -1,13 +1,16 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../infra/database/database.module';
 import { EmailProcessor } from './processors/email.processor';
+import { NotificationsService } from './notifications.service';
+import { BreachesModule } from '../breaches/breaches.module';
 
 /**
- * Notificações (e-mail e in-app). Na F1 só envia o e-mail de verificação;
- * notificações de vazamento novo e o opt-out entram nas fases seguintes.
+ * Notificações (e-mail e in-app): e-mail de verificação (F1) e criação das notificações
+ * de vazamento novo (F4). Rotas, envio do alerta e opt-out entram na F5.
  */
 @Module({
-  imports: [DatabaseModule],
-  providers: [EmailProcessor],
+  imports: [DatabaseModule, BreachesModule],
+  providers: [EmailProcessor, NotificationsService],
+  exports: [NotificationsService],
 })
 export class NotificationsModule {}

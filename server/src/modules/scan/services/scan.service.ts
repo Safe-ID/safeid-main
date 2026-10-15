@@ -50,6 +50,27 @@ export class ScanService {
     return scanResult;
   }
 
+  /**
+   * Recalcula o scan a partir de vazamentos já conhecidos (sem consultar a HIBP) e
+   * atualiza o snapshot do painel. Usado pelo monitoramento quando aparece vazamento novo.
+   */
+  async scoreBreaches(
+    userId: number,
+    email: string,
+    breaches: Array<Record<string, any>>,
+    source: ScanSource,
+  ): Promise<ScanResultDto & { breachNames: string[] }> {
+    const result = await this.executeRiskScanUseCase.scoreAndPersist({
+      userId,
+      email,
+      breaches: breaches as any,
+      source,
+    });
+
+    await this.persistUserScanSnapshot(userId, email, result);
+    return result;
+  }
+
   private async recordSeenBreaches(userId: number, breachNames: string[], source: ScanSource): Promise<void> {
     try {
       const { inserted, baselineDefined } = await this.userBreaches.recordSeenByUser(
