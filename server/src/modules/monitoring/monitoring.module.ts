@@ -1,12 +1,17 @@
 import { Module } from '@nestjs/common';
+import { DatabaseModule } from '../../infra/database/database.module';
 import { HibpProcessor } from './processors/hibp.processor';
+import { MonitoringProcessor } from './processors/monitoring.processor';
+import { BreachCatalogService } from './services/breach-catalog.service';
+import { CatalogMonitorService } from './services/catalog-monitor.service';
 
 /**
- * Monitoramento contínuo de vazamentos. Na F0 só tem o worker da fila hibp-check;
- * catálogo, varreduras e agendamentos entram nas fases seguintes.
+ * Monitoramento contínuo de vazamentos: worker da HIBP (F0) e catálogo (F3).
+ * Varreduras, reprocessamento e agendamentos entram na F4.
  */
 @Module({
-  providers: [HibpProcessor],
-  exports: [HibpProcessor],
+  imports: [DatabaseModule],
+  providers: [HibpProcessor, MonitoringProcessor, BreachCatalogService, CatalogMonitorService],
+  exports: [HibpProcessor, BreachCatalogService],
 })
 export class MonitoringModule {}
