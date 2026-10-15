@@ -42,7 +42,7 @@ function AwaitingVerification({ email, onBack }) {
       <div>
         <h2 className="text-safe-text text-xl font-bold tracking-tight mb-2">Confirme seu email</h2>
         <p className="text-safe-muted text-sm leading-relaxed">
-          Enviamos um link de confirmação para <span className="text-safe-secondary font-semibold break-all">{email}</span>.
+          Enviamos um link de confirmação para <span className="text-safe-secondary font-semibold [overflow-wrap:anywhere]">{email}</span>.
           Abra o email e clique no link para ativar sua conta. O link vale por 24 horas.
         </p>
       </div>

@@ -66,10 +66,17 @@ export async function request(path, options = {}) {
     headers,
   });
 
+  // 204 e corpo vazio (ex.: PATCH de notificação) não têm JSON para ler
   const contentType = response.headers.get("content-type") || "";
-  const payload = contentType.includes("application/json")
-    ? await response.json()
-    : await response.text();
+  const raw = response.status === 204 ? "" : await response.text();
+  let payload = raw;
+  if (raw && contentType.includes("application/json")) {
+    try {
+      payload = JSON.parse(raw);
+    } catch {
+      payload = raw;
+    }
+  }
 
   if (!response.ok) {
     if (response.status === 401 && token) {
