@@ -73,6 +73,8 @@ describe('controller and guard unit coverage', () => {
   });
 
   it('jwt strategy validates payloads and rejects invalid token data', () => {
+    // Não depende de outra suíte ter definido o segredo antes no mesmo processo
+    process.env.JWT_SECRET = process.env.JWT_SECRET || 'unit-test-secret';
     const strategy = new JwtStrategy();
 
     expect(strategy.validate({ sub: 15, email: 'x@y.com' } as any)).toEqual({ sub: 15, email: 'x@y.com' });

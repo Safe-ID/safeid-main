@@ -1,44 +1,52 @@
 import { Module, Global, Inject, OnApplicationShutdown } from '@nestjs/common';
-import { Queue, Worker } from 'bullmq';
+import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { HibpClient } from '../http/hibp.client';
 import { MockHibpClient } from '../http/hibp.mock';
-import { createHibpWorker } from './hibp.worker';
+import { HibpCatalogClient } from '../http/hibp-catalog.client';
+import { MockHibpCatalogClient } from '../http/hibp-catalog.mock';
+import { HibpPlanService } from '../http/hibp-plan.service';
+import { HibpClientLike } from '../http/hibp.types';
 import { closeQuietly } from '../../shared/utils/shutdown';
+import { createBullConnection } from './redis-connection';
+import {
+  EMAIL_QUEUE,
+  HIBP_CATALOG_CLIENT,
+  HIBP_CLIENT,
+  HIBP_QUEUE,
+  MONITORING_QUEUE,
+  QUEUE_EMAIL,
+  QUEUE_HIBP,
+  QUEUE_MONITORING,
+  REDIS_QUEUE_CONNECTION,
+} from './queue.constants';
 
-const REDIS_QUEUE_CONNECTION = 'REDIS_QUEUE_CONNECTION';
-const REDIS_WORKER_CONNECTION = 'REDIS_WORKER_CONNECTION';
-const HIBP_CLIENT = 'HIBP_CLIENT';
-const HIBP_WORKER = 'HIBP_WORKER';
+const SEVEN_DAYS_S = 7 * 24 * 3600;
 
-type HibpClientWithShutdown = (HibpClient | MockHibpClient) & { shutdown?: () => Promise<void> };
-
-function createQueueRedisConnection(): Redis {
-  return new Redis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    maxRetriesPerRequest: null as null,
-  });
+function isMockEnabled(): boolean {
+  return process.env.HIBP_USE_MOCK === 'true';
 }
 
+/**
+ * Filas e clientes HIBP. Só produz jobs: os workers são providers dos módulos
+ * de domínio (ex.: HibpProcessor) e respeitam o APP_ROLE.
+ */
 @Global()
 @Module({
   providers: [
-    { provide: REDIS_QUEUE_CONNECTION, useFactory: createQueueRedisConnection },
-    { provide: REDIS_WORKER_CONNECTION, useFactory: createQueueRedisConnection },
+    { provide: REDIS_QUEUE_CONNECTION, useFactory: createBullConnection },
     {
       provide: HIBP_CLIENT,
-      useFactory: () => {
+      useFactory: (): HibpClientLike => {
         const apiKey = (process.env.HIBP_API_KEY || '').trim();
-        const useMock = process.env.HIBP_USE_MOCK === 'true';
 
-        if (!useMock && !apiKey) {
+        if (!isMockEnabled() && !apiKey) {
           throw new Error(
             '[QueueModule] HIBP_API_KEY is required. Use the zeroed test key for the HIBP integration tests or set HIBP_USE_MOCK=true explicitly.'
           );
         }
 
-        if (useMock) {
+        if (isMockEnabled()) {
           console.log(
             '[QueueModule] ⚠️  Using MOCK HIBP client because HIBP_USE_MOCK=true.'
           );
@@ -53,51 +61,84 @@ function createQueueRedisConnection(): Redis {
       },
     },
     {
-      provide: 'HIBP_QUEUE',
+      provide: HIBP_CATALOG_CLIENT,
+      useFactory: () =>
+        isMockEnabled()
+          ? new MockHibpCatalogClient()
+          : new HibpCatalogClient({ baseUrl: process.env.HIBP_BASE_URL, userAgent: 'safeid-backend' }),
+    },
+    {
+      provide: HIBP_QUEUE,
       inject: [REDIS_QUEUE_CONNECTION],
-      useFactory: (connection: Redis) => {
-        // Queue producer
-        // Os jobs guardam o email em texto e o resultado do HIBP. Eles são apagados
-        // do Redis pouco depois de terminar (o scan lê o resultado em até 10s),
-        // em vez de ficarem lá para sempre.
-        return new Queue('hibp-check', {
+      useFactory: (connection: Redis) =>
+        // Os jobs check-hibp guardam o e-mail em texto e o resultado do HIBP.
+        // São apagados pouco depois de terminar (o scan lê o resultado em até 20 s).
+        new Queue(QUEUE_HIBP, {
           connection,
           defaultJobOptions: {
             removeOnComplete: { age: 60 },
             removeOnFail: { age: 10 * 60 },
           },
-        });
-      },
+        }),
     },
     {
-      provide: HIBP_WORKER,
-      inject: [REDIS_WORKER_CONNECTION, HIBP_CLIENT],
-      useFactory: (connection: Redis, hibpClient: HibpClientWithShutdown) =>
-        createHibpWorker(connection, hibpClient),
+      provide: MONITORING_QUEUE,
+      inject: [REDIS_QUEUE_CONNECTION],
+      // Jobs do monitoramento carregam só userId e nomes de vazamentos
+      useFactory: (connection: Redis) =>
+        new Queue(QUEUE_MONITORING, {
+          connection,
+          defaultJobOptions: {
+            removeOnComplete: { age: 3600, count: 1000 },
+            removeOnFail: { age: SEVEN_DAYS_S },
+          },
+        }),
     },
+    {
+      provide: EMAIL_QUEUE,
+      inject: [REDIS_QUEUE_CONNECTION],
+      // O e-mail de verificação carrega o token: o job some assim que termina
+      useFactory: (connection: Redis) =>
+        new Queue(QUEUE_EMAIL, {
+          connection,
+          defaultJobOptions: {
+            removeOnComplete: true,
+            removeOnFail: { age: SEVEN_DAYS_S },
+          },
+        }),
+    },
+    HibpPlanService,
   ],
-  exports: ['HIBP_QUEUE'],
+  exports: [
+    REDIS_QUEUE_CONNECTION,
+    HIBP_QUEUE,
+    MONITORING_QUEUE,
+    EMAIL_QUEUE,
+    HIBP_CLIENT,
+    HIBP_CATALOG_CLIENT,
+    HibpPlanService,
+  ],
 })
 export class QueueModule implements OnApplicationShutdown {
   constructor(
-    @Inject(HIBP_WORKER) private readonly worker: Worker,
-    @Inject('HIBP_QUEUE') private readonly queue: Queue,
-    @Inject(HIBP_CLIENT) private readonly hibpClient: HibpClientWithShutdown,
+    @Inject(HIBP_QUEUE) private readonly hibpQueue: Queue,
+    @Inject(MONITORING_QUEUE) private readonly monitoringQueue: Queue,
+    @Inject(EMAIL_QUEUE) private readonly emailQueue: Queue,
+    @Inject(HIBP_CLIENT) private readonly hibpClient: HibpClientLike,
     @Inject(REDIS_QUEUE_CONNECTION) private readonly queueConnection: Redis,
-    @Inject(REDIS_WORKER_CONNECTION) private readonly workerConnection: Redis,
   ) {}
 
   /**
-   * O worker fecha primeiro: espera o job em andamento terminar e não pega jobs novos.
-   * Depois fecham a fila, o circuit breaker do cliente HIBP e as conexões Redis.
+   * Os workers já fecharam no onModuleDestroy dos próprios módulos.
+   * Aqui fecham as filas, o circuit breaker do cliente HIBP e a conexão Redis.
    */
   async onApplicationShutdown(): Promise<void> {
-    await closeQuietly('hibp-worker', () => this.worker.close());
-    await closeQuietly('hibp-queue', () => this.queue.close());
+    await closeQuietly('hibp-queue', () => this.hibpQueue.close());
+    await closeQuietly('monitoring-queue', () => this.monitoringQueue.close());
+    await closeQuietly('email-queue', () => this.emailQueue.close());
     if (typeof this.hibpClient.shutdown === 'function') {
       await closeQuietly('hibp-client', () => this.hibpClient.shutdown!());
     }
     await closeQuietly('redis-queue', () => this.queueConnection.quit());
-    await closeQuietly('redis-worker', () => this.workerConnection.quit());
   }
 }

@@ -34,7 +34,6 @@ $AlbHttpsCertificateArn = if ($env:ALB_HTTPS_CERTIFICATE_ARN) { $env:ALB_HTTPS_C
 $AlbSslPolicy = if ($env:ALB_SSL_POLICY) { $env:ALB_SSL_POLICY } else { "ELBSecurityPolicy-2016-08" }
 $AssignPublicIp = if ($env:ASSIGN_PUBLIC_IP) { $env:ASSIGN_PUBLIC_IP } else { "ENABLED" }
 $HIBPBaseUrl = if ($env:HIBP_BASE_URL) { $env:HIBP_BASE_URL } else { "https://haveibeenpwned.com/api/v3" }
-$HIBPMinIntervalMs = if ($env:HIBP_MIN_INTERVAL_MS) { $env:HIBP_MIN_INTERVAL_MS } else { "1500" }
 $CorsOrigin = if ($env:CORS_ORIGIN) { $env:CORS_ORIGIN } else { "" }
 $SwaggerEnabled = if ($env:SWAGGER_ENABLED) { $env:SWAGGER_ENABLED } else { "false" }
 $SwaggerPath = if ($env:SWAGGER_PATH) { $env:SWAGGER_PATH } else { "api/docs" }
@@ -734,7 +733,6 @@ function New-TaskDefinitionJson {
         @{ name = "REDIS_HOST"; value = $RedisHostValue },
         @{ name = "REDIS_PORT"; value = "$RedisPort" },
         @{ name = "HIBP_BASE_URL"; value = $HIBPBaseUrl },
-        @{ name = "HIBP_MIN_INTERVAL_MS"; value = "$HIBPMinIntervalMs" },
         @{ name = "CORS_ORIGIN"; value = $CorsOrigin },
         @{ name = "SWAGGER_ENABLED"; value = $SwaggerEnabled },
         @{ name = "SWAGGER_PATH"; value = $SwaggerPath },

@@ -6,7 +6,7 @@
  * 1. Valida email (Zod)
  * 2. Checa cache Redis
  * 3. Se miss, enfileira em BullMQ (HIBP com rate limit)
- * 4. Aguarda resultado (timeout 10s)
+ * 4. Aguarda resultado (timeout 20s)
  * 5. Calcula risk com RiskEngine
  * 6. Gera recomendação com AIEngine (com cache por conjunto de vazamentos)
  * 7. Persiste resultado
@@ -15,6 +15,7 @@
 import { createHash, createHmac } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { RiskEngine } from '../engines/risk.engine';
+import { JOB_CHECK_HIBP } from '../../infra/queue/queue.constants';
 import { AIEngine, AIRecommendation } from '../engines/ai.engine';
 import { ScanResult } from '../entities/scan-result.entity';
 import { IScanHistoryRepository } from '../repositories/scan-history.repository';
@@ -30,6 +31,9 @@ interface HIBPBreach {
 
 // Recomendações do modelo ficam em cache por 7 dias para o mesmo conjunto de vazamentos
 const AI_RECOMMENDATION_TTL = 7 * 24 * 60 * 60;
+
+// Tempo máximo esperando o worker hibp-check responder ao scan interativo
+const SCAN_JOB_TIMEOUT_MS = 20000;
 
 interface ExecuteScanInput {
   email: string;
@@ -84,14 +88,16 @@ export class ExecuteRiskScanUseCase {
 
       console.log(`[Cache MISS] Enfileirando no BullMQ: ${emailHash}`);
 
-      // 2. Enfileira job HIBP com rate limit (1 req/1500ms)
-      const job = await this.hibpQueue.add('check-hibp', {
+      // 2. Enfileira job HIBP. Sem priority = prioridade máxima no BullMQ: o scan interativo
+      // passa na frente dos monitor-check (priority 10) da varredura
+      const job = await this.hibpQueue.add(JOB_CHECK_HIBP, {
         email: input.email,
         emailHash,
       });
 
-      // 3. Aguarda resultado com timeout de 10s
-      const breaches = await this.waitForJobCompletion(job, 10000);
+      // 3. Aguarda resultado com timeout de 20s: com o limite do plano Core 1 (~1 chamada
+      // a cada 6,7 s), o próximo slot pode levar isso mais a consulta em andamento
+      const breaches = await this.waitForJobCompletion(job, SCAN_JOB_TIMEOUT_MS);
 
       // 4. Calcula Risk Score
       const riskCalc = this.riskEngine.calculate(breaches || []);

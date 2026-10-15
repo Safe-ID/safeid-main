@@ -5,8 +5,18 @@ import helmet from 'helmet';
 import compression from 'compression';
 import session from 'express-session';
 import { AppModule } from './app.module';
+import { getAppRole, servesHttp } from './shared/config/app-role';
+import { log } from './shared/utils/logger';
 
 async function bootstrap() {
+  // APP_ROLE=worker: só workers e agendamentos, sem abrir porta HTTP
+  if (!servesHttp()) {
+    const context = await NestFactory.createApplicationContext(AppModule);
+    context.enableShutdownHooks();
+    log('info', 'Bootstrap', 'app.started', { role: getAppRole() });
+    return;
+  }
+
   const app = await NestFactory.create(AppModule);
 
   // Repassa SIGTERM/SIGINT para os hooks de shutdown: fecha workers, filas e conexões
