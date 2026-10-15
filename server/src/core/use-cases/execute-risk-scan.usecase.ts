@@ -12,10 +12,12 @@
  * 7. Persiste resultado
  */
 
-import { createHash, createHmac } from 'crypto';
+import { createHash } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { RiskEngine } from '../engines/risk.engine';
 import { JOB_CHECK_HIBP } from '../../infra/queue/queue.constants';
+import { hashEmail } from '../../shared/crypto/email-hash';
+import { extractBreachNames } from '../../shared/utils/breach-names';
 import { AIEngine, AIRecommendation } from '../engines/ai.engine';
 import { ScanResult, ScanSource } from '../entities/scan-result.entity';
 import { IScanHistoryRepository } from '../repositories/scan-history.repository';
@@ -50,10 +52,11 @@ interface ExecuteScanOutput {
   mitigationSteps?: string[];
   urgencyLevel?: string;
   isVerified: boolean;
+  /** Nomes dos vazamentos encontrados; null em cache HIT (nada novo para registrar) */
+  breachNames: string[] | null;
 }
 
 export class ExecuteRiskScanUseCase {
-  private static missingSecretWarned = false;
   private riskEngine: RiskEngine;
   private aiEngine: AIEngine;
 
@@ -84,6 +87,7 @@ export class ExecuteRiskScanUseCase {
           jobId,
           ...JSON.parse(cachedResult),
           isVerified: false, // Resultado em cache não é re-verificado
+          breachNames: null,
         };
       }
 
@@ -170,6 +174,7 @@ export class ExecuteRiskScanUseCase {
         mitigationSteps,
         urgencyLevel,
         isVerified: true,
+        breachNames: extractBreachNames(breaches || []),
       };
     } catch (error) {
       console.error(`[ExecuteRiskScan Error] ${error}`);
@@ -286,23 +291,10 @@ export class ExecuteRiskScanUseCase {
   }
 
   /**
-   * Hash do email usado no banco e nas chaves do cache.
-   * Com EMAIL_HASH_SECRET é um HMAC: sem a chave, não dá para descobrir o email
-   * testando uma lista de emails conhecidos. Sem a variável, mantém o SHA-256 antigo.
+   * Hash do email usado no banco e nas chaves do cache (ver shared/crypto/email-hash)
    */
   private hashEmail(email: string): string {
-    const normalizedEmail = email.toLowerCase();
-    const secret = (process.env.EMAIL_HASH_SECRET || '').trim();
-
-    if (!secret) {
-      if (!ExecuteRiskScanUseCase.missingSecretWarned) {
-        console.warn('[ExecuteRiskScan] EMAIL_HASH_SECRET não configurada, usando SHA-256 sem chave.');
-        ExecuteRiskScanUseCase.missingSecretWarned = true;
-      }
-      return createHash('sha256').update(normalizedEmail).digest('hex');
-    }
-
-    return createHmac('sha256', secret).update(normalizedEmail).digest('hex');
+    return hashEmail(email);
   }
 
   private calculateDaysAgo(breachDateStr: string): number {

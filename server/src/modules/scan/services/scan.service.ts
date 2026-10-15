@@ -4,6 +4,8 @@ import Redis from 'ioredis';
 import { PrismaService } from '../../../infra/database/prisma.service';
 import { ExecuteRiskScanUseCase } from '../../../core/use-cases/execute-risk-scan.usecase';
 import { ScanSource } from '../../../core/entities/scan-result.entity';
+import { UserBreachRepository } from '../../breaches/user-breach.repository';
+import { log } from '../../../shared/utils/logger';
 import { CreateScanDto, ScanResultDto, ScanHistoryDto } from '../dto/scan.dto';
 import { openBreachData, sealBreachData } from '../../../shared/crypto/breach-data.cipher';
 
@@ -15,6 +17,7 @@ export class ScanService {
     private prisma: PrismaService,
     @Inject('REDIS_CLIENT') private cacheService: Redis,
     @Inject('HIBP_QUEUE') private hibpQueue: Queue,
+    private userBreaches: UserBreachRepository,
   ) {
     // Inicializa o use case
     this.executeRiskScanUseCase = new ExecuteRiskScanUseCase(
@@ -37,7 +40,28 @@ export class ScanService {
 
     await this.persistUserScanSnapshot(userId, dto.email, result);
 
-    return result;
+    const { breachNames, ...scanResult } = result;
+    // Vazamentos que o usuário acabou de ver na tela entram na base e nunca geram alerta.
+    // Em cache HIT (breachNames null) não há nada novo para registrar.
+    if (breachNames) {
+      await this.recordSeenBreaches(userId, breachNames, source);
+    }
+
+    return scanResult;
+  }
+
+  private async recordSeenBreaches(userId: number, breachNames: string[], source: ScanSource): Promise<void> {
+    try {
+      const { inserted, baselineDefined } = await this.userBreaches.recordSeenByUser(
+        userId,
+        breachNames,
+        source === 'SIGNUP' ? 'SIGNUP' : 'MANUAL',
+      );
+      log('info', 'ScanService', 'breaches.recorded', { userId, source, inserted: inserted.length, baselineDefined });
+    } catch (error) {
+      // O scan já foi entregue; sem base, a primeira checagem do monitoramento define a base em silêncio
+      log('error', 'ScanService', 'breaches.record_failed', { userId, source, err: error });
+    }
   }
 
   /**

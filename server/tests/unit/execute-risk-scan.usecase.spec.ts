@@ -64,6 +64,8 @@ describe('ExecuteRiskScanUseCase', () => {
       breachesFound: 3,
       recommendation: 'Review your exposed breaches.',
       isVerified: false,
+      // Em cache HIT não há vazamentos novos para registrar na base
+      breachNames: null,
     });
 
     expect(hibpQueue.add).not.toHaveBeenCalled();
@@ -152,6 +154,7 @@ describe('ExecuteRiskScanUseCase', () => {
         breachesFound: 1,
         recommendation: 'Rotate your password and enable MFA.',
         isVerified: true,
+        source: 'MANUAL',
       }),
     );
     expect(cacheService.setex).toHaveBeenCalledWith(
@@ -159,6 +162,9 @@ describe('ExecuteRiskScanUseCase', () => {
       12 * 60 * 60,
       expect.stringContaining('"riskScore":42'),
     );
+    expect(result.breachNames).toEqual(['Recent leak']);
+    // A lista de nomes não vai para o cache (o HIT devolve null)
+    expect((cacheService.setex.mock.calls[0] as any[])[2]).not.toContain('breachNames');
   });
 
   it('falls back gracefully when AI recommendation generation fails', async () => {

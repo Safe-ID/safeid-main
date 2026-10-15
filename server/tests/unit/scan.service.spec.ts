@@ -3,6 +3,7 @@ import { ScanService } from '../../src/modules/scan/services/scan.service';
 
 describe('ScanService', () => {
   let prismaMock: any;
+  let userBreachesMock: any;
   let service: ScanService;
 
   beforeEach(() => {
@@ -21,10 +22,15 @@ describe('ScanService', () => {
       },
     };
 
+    userBreachesMock = {
+      recordSeenByUser: jest.fn(async () => ({ inserted: ['Adobe'], baselineDefined: true })),
+    };
+
     service = new ScanService(
       prismaMock as any,
       {} as any,
       {} as any,
+      userBreachesMock,
     );
 
     (service as any).executeRiskScanUseCase = {
@@ -310,6 +316,65 @@ describe('ScanService', () => {
 
     expect(prismaMock.scanHistory.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ breachData: null, recommendation: undefined }),
+    });
+  });
+
+  describe('base de vazamentos conhecidos', () => {
+    const scanResult = {
+      jobId: 'job-9',
+      riskScore: 30,
+      classification: 'MODERATE',
+      breachesFound: 2,
+      isVerified: true,
+    };
+
+    beforeEach(() => {
+      jest.spyOn(console, 'log').mockImplementation(() => undefined);
+      prismaMock.scanHistory.findFirst.mockResolvedValue(null);
+      prismaMock.user.update.mockResolvedValue({ id: 5 });
+    });
+
+    it('records the breaches the user just saw as MANUAL and hides the names from the response', async () => {
+      (service as any).executeRiskScanUseCase.execute.mockResolvedValue({ ...scanResult, breachNames: ['Adobe', 'LinkedIn'] });
+
+      const result = await service.submitScan(5, { email: 'user@example.com' });
+
+      expect(userBreachesMock.recordSeenByUser).toHaveBeenCalledWith(5, ['Adobe', 'LinkedIn'], 'MANUAL');
+      expect(result).toEqual(scanResult);
+    });
+
+    it('records the signup scan as SIGNUP', async () => {
+      (service as any).executeRiskScanUseCase.execute.mockResolvedValue({ ...scanResult, breachNames: [] });
+
+      await service.submitScan(5, { email: 'user@example.com' }, 'SIGNUP');
+
+      expect((service as any).executeRiskScanUseCase.execute).toHaveBeenCalledWith({
+        email: 'user@example.com',
+        userId: 5,
+        source: 'SIGNUP',
+      });
+      // Sem vazamentos também define a base: a partir daqui qualquer vazamento é novo
+      expect(userBreachesMock.recordSeenByUser).toHaveBeenCalledWith(5, [], 'SIGNUP');
+    });
+
+    it('does not touch the base on a cache hit', async () => {
+      (service as any).executeRiskScanUseCase.execute.mockResolvedValue({ ...scanResult, isVerified: false, breachNames: null });
+
+      await service.submitScan(5, { email: 'user@example.com' });
+
+      expect(userBreachesMock.recordSeenByUser).not.toHaveBeenCalled();
+    });
+
+    it('still returns the scan when recording the base fails', async () => {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+      (service as any).executeRiskScanUseCase.execute.mockResolvedValue({ ...scanResult, breachNames: ['Adobe'] });
+      userBreachesMock.recordSeenByUser.mockRejectedValue(new Error('db down'));
+
+      await expect(service.submitScan(5, { email: 'user@example.com' })).resolves.toEqual(scanResult);
+      expect(JSON.parse(errorSpy.mock.calls.at(-1)?.[0] as string)).toMatchObject({
+        event: 'breaches.record_failed',
+        userId: 5,
+      });
     });
   });
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it, jest, beforeEach } from '@jest/globals';
 import { ScanService } from '../../src/modules/scan/services/scan.service';
+import { UserBreachRepository } from '../../src/modules/breaches/user-breach.repository';
 
 describe('ScanService integration slice', () => {
   const mockPrisma: any = {
@@ -13,6 +14,12 @@ describe('ScanService integration slice', () => {
     },
     user: {
       update: jest.fn(),
+      updateMany: jest.fn(),
+    },
+    userBreach: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+      updateMany: jest.fn(),
     },
   };
 
@@ -28,6 +35,9 @@ describe('ScanService integration slice', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.AI_API_KEY = '';
+    mockPrisma.userBreach.findMany.mockResolvedValue([]);
+    mockPrisma.userBreach.create.mockResolvedValue({});
+    mockPrisma.user.updateMany.mockResolvedValue({ count: 1 });
   });
 
   it('submits a scan and persists the resulting snapshot', async () => {
@@ -77,7 +87,7 @@ describe('ScanService integration slice', () => {
     });
     mockPrisma.user.update.mockResolvedValue({});
 
-    const scanService = new ScanService(mockPrisma, mockCache, mockQueue);
+    const scanService = new ScanService(mockPrisma, mockCache, mockQueue, new UserBreachRepository(mockPrisma));
     const result = await scanService.submitScan(7, { email: 'user@example.com' });
 
     expect(result).toMatchObject({
@@ -94,6 +104,16 @@ describe('ScanService integration slice', () => {
     expect(mockPrisma.scanHistory.create).toHaveBeenCalledTimes(1);
     expect(mockPrisma.user.update).toHaveBeenCalledTimes(1);
     expect(mockCache.setex).toHaveBeenCalledTimes(1);
+
+    // O vazamento que o usuário acabou de ver entra na base (sem notificação)
+    expect(result).not.toHaveProperty('breachNames');
+    expect(mockPrisma.userBreach.create).toHaveBeenCalledWith({
+      data: { userId: 7, breachName: 'Example breach', source: 'MANUAL' },
+    });
+    expect(mockPrisma.user.updateMany).toHaveBeenCalledWith({
+      where: { id: 7, breachBaselineAt: null },
+      data: { breachBaselineAt: expect.any(Date) },
+    });
   });
 
   it('returns history and details using the persistence layer', async () => {
@@ -117,7 +137,7 @@ describe('ScanService integration slice', () => {
       createdAt: new Date('2026-09-10T00:00:00.000Z'),
     });
 
-    const scanService = new ScanService(mockPrisma, mockCache, mockQueue);
+    const scanService = new ScanService(mockPrisma, mockCache, mockQueue, new UserBreachRepository(mockPrisma));
 
     await expect(scanService.getUserHistory(7)).resolves.toEqual([
       {
