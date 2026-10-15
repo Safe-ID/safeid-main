@@ -3,6 +3,8 @@
  * Representa o resultado de uma análise de vazamento
  */
 
+export type ScanSource = 'SIGNUP' | 'MANUAL' | 'MONITORING';
+
 export interface ScanResult {
   jobId: string; // UUID do job (identificador público único)
   userId: number;
@@ -16,6 +18,7 @@ export interface ScanResult {
   urgencyLevel?: string | null; // HIGH, MEDIUM ou LOW
   isVerified?: boolean;
   processedAt?: Date | null;
+  source?: ScanSource | string; // SIGNUP | MANUAL | MONITORING (padrão MANUAL)
   createdAt: Date;
   updatedAt: Date;
 }

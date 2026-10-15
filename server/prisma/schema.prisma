@@ -23,14 +23,40 @@ model User {
   scanSnapshotUpdatedAt  DateTime?
   termsAcceptedAt       DateTime? // Quando o usuário aceitou a Política de Privacidade (LGPD)
 
+  // Verificação de e-mail: sem ela não há login, scan nem monitoramento
+  emailVerifiedAt       DateTime?
+
+  // Monitoramento contínuo de vazamentos (opt-in no cadastro, opt-out a qualquer momento)
+  monitoringEnabled     Boolean   @default(true)
+  monitoringConsentAt   DateTime?
+  lastMonitoredAt       DateTime?
+  breachBaselineAt      DateTime? // Quando a base de UserBreach foi definida
+
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
 
   // Relacionamentos
-  scans           ScanHistory[]
+  scans                   ScanHistory[]
+  emailVerificationTokens EmailVerificationToken[]
+  breaches                UserBreach[]
+  notifications           Notification[]
 
   @@index([email])
+  @@index([monitoringEnabled, emailVerifiedAt])
   @@map("user")
+}
+
+model EmailVerificationToken {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique // SHA-256 (hex) do token; o token em claro só existe no e-mail
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@map("email_verification_token")
 }
 
 // ============================================================================
@@ -42,22 +68,24 @@ model ScanHistory {
   jobId           String    @unique
   userId          Int
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   emailHash       String    // SHA-256 hash do email (não armazenar email em texto)
-  
+
   riskScore       Int       // 0-100
   classification  String    // LOW, MODERATE, CRITICAL
-  
+
   breachesFound   Int?      // Número de breaches encontrados
   breachData      String?   // JSON dos breaches, criptografado com AES-256-GCM quando ENCRYPTION_KEY existe
-  
+
   recommendation  String?   // Texto da recomendação da IA (português)
   mitigationSteps Json?     // Lista de passos de mitigação sugeridos pela IA
   urgencyLevel    String?   // HIGH, MEDIUM, LOW
-  
+
   isVerified      Boolean   @default(false)
   processedAt     DateTime?
-  
+
+  source          String    @default("MANUAL") // SIGNUP | MANUAL | MONITORING
+
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -68,23 +96,64 @@ model ScanHistory {
 }
 
 // ============================================================================
-// BREACH CACHE (Local cache de breaches conhecidos)
+// MONITORAMENTO DE VAZAMENTOS
 // ============================================================================
 
-model BreachCache {
-  id              Int       @id @default(autoincrement())
-  breachId        String    @unique // ID do HIBP
-  breachName      String    // Ex: "Canva"
-  breachTitle     String?
-  description     String?
-  breachDate      DateTime?
-  exposedDataTypes String? // JSON array de data classes
-  isVerified      Boolean   @default(true)
-  
-  cachedAt        DateTime  @default(now())
-  expiresAt       DateTime  // TTL para limpeza
+// Vazamentos já conhecidos de cada usuário: base para detectar os novos
+model UserBreach {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  breachName   String    // Breach.Name da HIBP (identificador estável)
+  source       String    // BASELINE | SIGNUP | MANUAL | MONITORING
+  firstSeenAt  DateTime  @default(now())
+  notifiedAt   DateTime?
 
-  @@index([breachId])
-  @@index([expiresAt])
-  @@map("breach_cache")
+  @@unique([userId, breachName])
+  @@index([breachName])
+  @@map("user_breach")
+}
+
+// Cópia local do catálogo público da HIBP (GET /breaches)
+model BreachCatalog {
+  name          String    @id          // Breach.Name
+  title         String
+  domain        String?
+  breachDate    DateTime?
+  addedDate     DateTime
+  modifiedDate  DateTime
+  pwnCount      BigInt
+  dataClasses   Json                   // string[]
+  isVerified    Boolean
+  isFabricated  Boolean
+  isSensitive   Boolean
+  isRetired     Boolean
+  isSpamList    Boolean
+  isMalware     Boolean
+  isStealerLog  Boolean
+  raw           Json                   // Payload original (mesmo formato que RiskEngine/AIEngine consomem)
+  syncedAt      DateTime  @updatedAt
+
+  @@index([addedDate])
+  @@index([modifiedDate])
+  @@map("breach_catalog")
+}
+
+model Notification {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         String    // NEW_BREACH
+  title        String
+  body         String
+  payload      Json      // { breachNames, scanJobId, riskScoreBefore, riskScoreAfter, classification }
+  dedupeKey    String    // sha256(type + nomes ordenados)
+  readAt       DateTime?
+  emailStatus  String    @default("PENDING") // PENDING | SENT | SKIPPED | FAILED
+  emailSentAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt])
+  @@map("notification")
 }

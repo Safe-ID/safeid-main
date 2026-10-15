@@ -3,7 +3,7 @@
  * Using interfaces instead of classes to avoid strict initialization requirements
  */
 
-import { IsBoolean, IsEmail, IsString, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsOptional, IsString, Length, MinLength } from 'class-validator';
 
 export interface ScanSnapshotDto {
   jobId: string;
@@ -21,6 +21,9 @@ export interface ScanSnapshotDto {
 export interface AuthUserDto {
   id: number;
   email: string;
+  emailVerified: boolean;
+  monitoringEnabled: boolean;
+  lastMonitoredAt?: string | Date | null;
   scanSnapshot?: ScanSnapshotDto | null;
   scanSnapshotUpdatedAt?: string | Date | null;
 }
@@ -30,12 +33,34 @@ export class SignupDto {
   email!: string;
 
   @IsString()
-  @MinLength(6)
+  @MinLength(8)
   password!: string;
 
   // Aceite da Política de Privacidade (consentimento exigido pela LGPD)
   @IsBoolean()
   acceptTerms!: boolean;
+
+  // Alertas por e-mail quando o e-mail aparecer em vazamentos novos (padrão: sim)
+  @IsOptional()
+  @IsBoolean()
+  acceptMonitoring?: boolean;
+}
+
+export class VerifyEmailDto {
+  // base64url de 32 bytes
+  @IsString()
+  @Length(43, 43)
+  token!: string;
+}
+
+export class ResendVerificationDto {
+  @IsEmail()
+  email!: string;
+}
+
+export interface SignupResponseDto {
+  requiresEmailVerification: true;
+  email: string;
 }
 
 export class LoginDto {

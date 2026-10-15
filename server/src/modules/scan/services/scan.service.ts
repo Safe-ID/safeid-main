@@ -3,6 +3,7 @@ import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { PrismaService } from '../../../infra/database/prisma.service';
 import { ExecuteRiskScanUseCase } from '../../../core/use-cases/execute-risk-scan.usecase';
+import { ScanSource } from '../../../core/entities/scan-result.entity';
 import { CreateScanDto, ScanResultDto, ScanHistoryDto } from '../dto/scan.dto';
 import { openBreachData, sealBreachData } from '../../../shared/crypto/breach-data.cipher';
 
@@ -27,10 +28,11 @@ export class ScanService {
   /**
    * Inicia análise de vazamento para um email
    */
-  async submitScan(userId: number, dto: CreateScanDto): Promise<ScanResultDto> {
+  async submitScan(userId: number, dto: CreateScanDto, source: ScanSource = 'MANUAL'): Promise<ScanResultDto> {
     const result = await this.executeRiskScanUseCase.execute({
       email: dto.email,
       userId,
+      source,
     });
 
     await this.persistUserScanSnapshot(userId, dto.email, result);
@@ -161,6 +163,7 @@ export class ScanService {
             urgencyLevel: scan.urgencyLevel ?? null,
             isVerified: scan.isVerified,
             processedAt: scan.processedAt,
+            source: scan.source ?? 'MANUAL',
           },
         });
         console.log('[ScanRepository] Scan created successfully:', created.jobId);

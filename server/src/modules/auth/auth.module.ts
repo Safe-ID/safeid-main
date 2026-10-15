@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Authentication Module
  * Configura JWT, estratégia, e provedores de autenticação
  */
@@ -9,6 +9,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { EmailVerificationService } from './email-verification.service';
 import { DatabaseModule } from '../../infra/database/database.module';
 import { ScanModule } from '../scan/scan.module';
 
@@ -29,7 +30,7 @@ import { ScanModule } from '../scan/scan.module';
     ScanModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService, JwtStrategy, PassportModule],
+  providers: [AuthService, JwtStrategy, EmailVerificationService],
+  exports: [AuthService, JwtStrategy, PassportModule, EmailVerificationService],
 })
 export class AuthModule {}

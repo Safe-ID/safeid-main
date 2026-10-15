@@ -17,7 +17,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { RiskEngine } from '../engines/risk.engine';
 import { JOB_CHECK_HIBP } from '../../infra/queue/queue.constants';
 import { AIEngine, AIRecommendation } from '../engines/ai.engine';
-import { ScanResult } from '../entities/scan-result.entity';
+import { ScanResult, ScanSource } from '../entities/scan-result.entity';
 import { IScanHistoryRepository } from '../repositories/scan-history.repository';
 
 interface HIBPBreach {
@@ -38,6 +38,7 @@ const SCAN_JOB_TIMEOUT_MS = 20000;
 interface ExecuteScanInput {
   email: string;
   userId: number;
+  source?: ScanSource;
 }
 
 interface ExecuteScanOutput {
@@ -130,6 +131,7 @@ export class ExecuteRiskScanUseCase {
         urgencyLevel,
         isVerified: true,
         processedAt: new Date(),
+        source: input.source ?? 'MANUAL',
         createdAt: new Date(),
         updatedAt: new Date(),
       };

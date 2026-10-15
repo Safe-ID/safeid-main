@@ -66,6 +66,7 @@ describe('ScanService', () => {
     expect((service as any).executeRiskScanUseCase.execute).toHaveBeenCalledWith({
       email: 'user@example.com',
       userId: 5,
+      source: 'MANUAL',
     });
     expect(prismaMock.user.update).toHaveBeenCalledWith({
       where: { id: 5 },
