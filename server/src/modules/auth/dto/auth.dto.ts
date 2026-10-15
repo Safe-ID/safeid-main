@@ -3,7 +3,8 @@
  * Using interfaces instead of classes to avoid strict initialization requirements
  */
 
-import { IsBoolean, IsEmail, IsOptional, IsString, Length, MinLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, Length, MinLength } from 'class-validator';
+import { StrictBoolean } from '../../../shared/validation/strict-boolean';
 
 export interface ScanSnapshotDto {
   jobId: string;
@@ -37,12 +38,12 @@ export class SignupDto {
   password!: string;
 
   // Aceite da Política de Privacidade (consentimento exigido pela LGPD)
-  @IsBoolean()
+  @StrictBoolean()
   acceptTerms!: boolean;
 
   // Alertas por e-mail quando o e-mail aparecer em vazamentos novos (padrão: sim)
   @IsOptional()
-  @IsBoolean()
+  @StrictBoolean()
   acceptMonitoring?: boolean;
 }
 

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../infra/database/database.module';
 import { EmailProcessor } from './processors/email.processor';
 import { NotificationsService } from './notifications.service';
+import { NotificationsController } from './notifications.controller';
 import { BreachesModule } from '../breaches/breaches.module';
 
 /**
@@ -10,6 +11,7 @@ import { BreachesModule } from '../breaches/breaches.module';
  */
 @Module({
   imports: [DatabaseModule, BreachesModule],
+  controllers: [NotificationsController],
   providers: [EmailProcessor, NotificationsService],
   exports: [NotificationsService],
 })
