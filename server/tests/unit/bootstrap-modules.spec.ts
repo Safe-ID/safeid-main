@@ -20,7 +20,7 @@ jest.mock('bullmq', () => ({
 }));
 
 jest.mock('../../src/infra/queue/hibp.worker', () => ({
-  createHibpWorker: jest.fn(() => ({ on: jest.fn() })),
+  createHibpWorker: jest.fn(() => ({ on: jest.fn(), close: jest.fn() })),
 }));
 
 describe('bootstrap and module wiring coverage', () => {
@@ -82,6 +82,63 @@ describe('bootstrap and module wiring coverage', () => {
     });
   });
 
+  it('closes the cache Redis connection on application shutdown', async () => {
+    jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    const { CacheModule } = await import('../../src/infra/cache/cache.module');
+    const moduleRef: TestingModule = await Test.createTestingModule({
+      imports: [CacheModule],
+    }).compile();
+
+    const client = moduleRef.get('REDIS_CLIENT') as { quit: jest.Mock };
+    await moduleRef.close();
+
+    expect(client.quit).toHaveBeenCalledTimes(1);
+  });
+
+  it('closes the worker before the queue and the Redis connections on application shutdown', async () => {
+    jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    const { QueueModule } = await import('../../src/infra/queue/queue.module');
+    const moduleRef: TestingModule = await Test.createTestingModule({
+      imports: [QueueModule],
+    }).compile();
+
+    const calls: string[] = [];
+    const worker = moduleRef.get('HIBP_WORKER') as { close: jest.Mock };
+    const queue = moduleRef.get('HIBP_QUEUE') as { close: jest.Mock };
+    const queueConnection = moduleRef.get('REDIS_QUEUE_CONNECTION') as { quit: jest.Mock };
+    const workerConnection = moduleRef.get('REDIS_WORKER_CONNECTION') as { quit: jest.Mock };
+    worker.close.mockImplementation(async () => { calls.push('worker'); });
+    queue.close.mockImplementation(async () => { calls.push('queue'); });
+    queueConnection.quit.mockImplementation(async () => { calls.push('redis-queue'); });
+    workerConnection.quit.mockImplementation(async () => { calls.push('redis-worker'); });
+
+    await moduleRef.close();
+
+    expect(calls).toEqual(['worker', 'queue', 'redis-queue', 'redis-worker']);
+  });
+
+  it('keeps closing the other resources when one of them fails', async () => {
+    jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const { QueueModule } = await import('../../src/infra/queue/queue.module');
+    const moduleRef: TestingModule = await Test.createTestingModule({
+      imports: [QueueModule],
+    }).compile();
+
+    const worker = moduleRef.get('HIBP_WORKER') as { close: jest.Mock };
+    const queue = moduleRef.get('HIBP_QUEUE') as { close: jest.Mock };
+    worker.close.mockImplementation(async () => { throw new Error('worker stuck'); });
+
+    await moduleRef.close();
+
+    expect(queue.close).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(warnSpy.mock.calls[0][0] as string)).toMatchObject({
+      event: 'shutdown.close_failed',
+      resource: 'hibp-worker',
+      err: { message: 'worker stuck' },
+    });
+  });
+
   it('throws when a real HIBP queue is requested without an API key', async () => {
     jest.resetModules();
     process.env.HIBP_USE_MOCK = 'false';
@@ -133,6 +190,7 @@ describe('bootstrap and module wiring coverage', () => {
     jest.resetModules();
 
     const app = {
+      enableShutdownHooks: jest.fn(),
       use: jest.fn(),
       enableCors: jest.fn(),
       useGlobalPipes: jest.fn(),
@@ -184,6 +242,7 @@ describe('bootstrap and module wiring coverage', () => {
     await import('../../src/main');
 
     expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(app.enableShutdownHooks).toHaveBeenCalledTimes(1);
     expect(app.listen).toHaveBeenCalled();
     expect(app.use).toHaveBeenCalled();
   });
@@ -193,6 +252,7 @@ describe('bootstrap and module wiring coverage', () => {
     process.env.SWAGGER_ENABLED = 'true';
 
     const app = {
+      enableShutdownHooks: jest.fn(),
       use: jest.fn(),
       enableCors: jest.fn(),
       useGlobalPipes: jest.fn(),

@@ -1,5 +1,6 @@
-import { Module, Global } from '@nestjs/common';
+import { Module, Global, Inject, OnApplicationShutdown } from '@nestjs/common';
 import Redis from 'ioredis';
+import { closeQuietly } from '../../shared/utils/shutdown';
 
 @Global()
 @Module({
@@ -16,4 +17,10 @@ import Redis from 'ioredis';
   ],
   exports: ['REDIS_CLIENT'],
 })
-export class CacheModule {}
+export class CacheModule implements OnApplicationShutdown {
+  constructor(@Inject('REDIS_CLIENT') private readonly redis: Redis) {}
+
+  async onApplicationShutdown(): Promise<void> {
+    await closeQuietly('redis-cache', () => this.redis.quit());
+  }
+}

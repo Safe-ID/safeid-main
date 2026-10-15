@@ -9,6 +9,10 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Repassa SIGTERM/SIGINT para os hooks de shutdown: fecha workers, filas e conexões
+  // antes do ECS derrubar a task (stopTimeout de 120 s no deploy)
+  app.enableShutdownHooks();
+
   // Environment variables
   const port = process.env.APP_PORT || 3000;
   const nodeEnv = process.env.NODE_ENV || 'development';
