@@ -23,7 +23,7 @@ export interface AIRecommendation {
   source?: 'ai' | 'fallback'; // Indica se veio do modelo ou da resposta padrão
 }
 
-type RiskClassification = 'LOW' | 'MODERATE' | 'CRITICAL';
+type RiskClassification = 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
 
 const URGENCY_LEVELS = ['HIGH', 'MEDIUM', 'LOW'];
 
@@ -94,7 +94,7 @@ Responda somente com um objeto JSON válido, sem markdown e sem texto fora do JS
 }
 
 CRITÉRIO DE URGÊNCIA
-- HIGH: classificação CRITICAL, ou senha, dado bancário, cartão ou documento exposto em vazamento com menos de 1 ano.
+- HIGH: classificação CRITICAL ou HIGH, ou senha, dado bancário, cartão ou documento exposto em vazamento com menos de 1 ano.
 - MEDIUM: classificação MODERATE, ou dados sensíveis expostos apenas em vazamentos antigos.
 - LOW: classificação LOW e apenas dados de baixa sensibilidade expostos.`;
 
@@ -259,16 +259,18 @@ export class AIEngine {
   }
 
   /**
-   * Urgência da resposta padrão, alinhada às faixas do RiskEngine (71+ CRITICAL, 31+ MODERATE)
+   * Urgência da resposta padrão, alinhada às faixas do RiskEngine (76+ CRITICAL, 51+ HIGH, 26+ MODERATE)
    */
   private resolveFallbackUrgency(context: {
     riskScore: number;
     classification?: RiskClassification;
   }): string {
     const classification = context.classification
-      ?? (context.riskScore >= 71 ? 'CRITICAL' : context.riskScore >= 31 ? 'MODERATE' : 'LOW');
+      ?? (context.riskScore >= 76
+        ? 'CRITICAL'
+        : context.riskScore >= 51 ? 'HIGH' : context.riskScore >= 26 ? 'MODERATE' : 'LOW');
 
-    if (classification === 'CRITICAL') return 'HIGH';
+    if (classification === 'CRITICAL' || classification === 'HIGH') return 'HIGH';
     if (classification === 'MODERATE') return 'MEDIUM';
     return 'LOW';
   }
