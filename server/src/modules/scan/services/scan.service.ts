@@ -88,7 +88,7 @@ export class ScanService {
     return scans.map((scan: any) => ({
       id: scan.jobId,
       riskScore: scan.riskScore,
-      classification: scan.classification as 'LOW' | 'MODERATE' | 'CRITICAL',
+      classification: scan.classification as 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL',
       breachesFound: scan.breachesFound || 0,
       createdAt: scan.createdAt,
     }));
