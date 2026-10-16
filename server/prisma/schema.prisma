@@ -46,7 +46,7 @@ model ScanHistory {
   emailHash       String    // SHA-256 hash do email (não armazenar email em texto)
   
   riskScore       Int       // 0-100
-  classification  String    // LOW, MODERATE, CRITICAL
+  classification  String    // LOW, MODERATE, HIGH, CRITICAL
   
   breachesFound   Int?      // Número de breaches encontrados
   breachData      String?   // JSON dos breaches, criptografado com AES-256-GCM quando ENCRYPTION_KEY existe

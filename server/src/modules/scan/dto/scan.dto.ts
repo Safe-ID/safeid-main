@@ -19,7 +19,7 @@ export class ScanResultDto {
   riskScore!: number;
 
   @ApiProperty()
-  classification!: 'LOW' | 'MODERATE' | 'CRITICAL';
+  classification!: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
 
   @ApiProperty()
   breachesFound!: number;
@@ -45,7 +45,7 @@ export class ScanHistoryDto {
   riskScore!: number;
 
   @ApiProperty()
-  classification!: 'LOW' | 'MODERATE' | 'CRITICAL';
+  classification!: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
 
   @ApiProperty()
   breachesFound!: number;

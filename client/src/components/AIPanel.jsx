@@ -1,3 +1,5 @@
+import { ENETSEC } from "./safeidData";
+
 const URGENCY_BADGES = {
   HIGH: { label: "URGÊNCIA ALTA", className: "bg-safe-danger/10 border-safe-danger/30 text-safe-danger" },
   MEDIUM: { label: "URGÊNCIA MÉDIA", className: "bg-safe-warn/10 border-safe-warn/30 text-safe-warn" },
@@ -8,6 +10,7 @@ export default function AIPanel({ recommendation, mitigationSteps = [], urgencyL
   const text = recommendation || "Ainda não há uma recomendação de IA disponível para esta conta.";
   const formattedUpdatedAt = updatedAt ? new Date(updatedAt).toLocaleString("pt-BR") : null;
   const urgency = URGENCY_BADGES[urgencyLevel] || null;
+  const hasBreaches = typeof riskScore === "number" && riskScore > 0;
 
   return (
     <div className="bg-gradient-to-br from-safe-card to-[#0A1A30] border border-safe-borderL rounded-2xl p-5 sm:p-6">
@@ -56,6 +59,33 @@ export default function AIPanel({ recommendation, mitigationSteps = [], urgencyL
           </ol>
         </div>
       )}
+
+      <div className="mt-5 pt-5 border-t border-safe-border">
+        <div className="text-[10px] text-safe-dim mb-2 tracking-[1px] font-semibold uppercase">
+          Parceira recomendada · ENETSEC
+        </div>
+        <p className="text-safe-muted text-sm leading-relaxed mb-3.5">
+          {hasBreaches ? ENETSEC.messageWithBreaches : ENETSEC.messageWithoutBreaches}
+        </p>
+        <div className="flex flex-wrap gap-2.5">
+          <a
+            href={ENETSEC.websiteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-safe-primary/10 border border-safe-primary/30 text-safe-secondary rounded-lg py-2 px-3.5 text-xs font-semibold hover:bg-safe-primary/20 transition-colors"
+          >
+            Conhecer a ENETSEC
+          </a>
+          <a
+            href={ENETSEC.whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-safe-accent/10 border border-safe-accent/30 text-safe-accent rounded-lg py-2 px-3.5 text-xs font-semibold hover:bg-safe-accent/20 transition-colors"
+          >
+            Falar no WhatsApp
+          </a>
+        </div>
+      </div>
 
       {formattedUpdatedAt && (
         <div className="mt-4 text-safe-dim text-xs">

@@ -8,7 +8,7 @@ export interface ScanResult {
   userId: number;
   emailHash: string; // HMAC-SHA256 do email com EMAIL_HASH_SECRET (não armazenar email em texto)
   riskScore: number; // 0-100
-  classification: 'LOW' | 'MODERATE' | 'CRITICAL' | string;
+  classification: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL' | string;
   breachesFound: number | null;
   breachData?: any; // JSON dos breaches (pode ser serializado ou array)
   recommendation?: string | null; // Texto da recomendação IA
