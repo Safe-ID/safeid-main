@@ -33,9 +33,10 @@ export default function RiskCircle({ val, size, label }) {
   };
 
   const filled = (anim / 100) * TOTAL;
-  const col = anim < 35 ? C.accent : anim < 65 ? C.warn : C.danger;
+  // Mesmas faixas do RiskEngine do backend: LOW < 26 ≤ MODERATE < 51 ≤ HIGH < 76 ≤ CRITICAL
+  const col = anim < 26 ? C.accent : anim < 51 ? C.warn : C.danger;
   // label permite trocar o texto quando ainda não há um resultado verificado
-  const lbl = label || (val === 0 ? "SEGURO" : val < 35 ? "BAIXO" : val < 65 ? "MÉDIO" : "ALTO");
+  const lbl = label || (val === 0 ? "SEGURO" : val < 26 ? "BAIXO" : val < 51 ? "MÉDIO" : val < 76 ? "ALTO" : "CRÍTICO");
   const sw = sz * 0.057;
   const ticks = Array.from({ length: 21 }, (_, i) => i);
 
