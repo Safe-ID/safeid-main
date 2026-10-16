@@ -43,7 +43,7 @@ interface ExecuteScanInput {
 interface ExecuteScanOutput {
   jobId: string;
   riskScore: number;
-  classification: 'LOW' | 'MODERATE' | 'CRITICAL';
+  classification: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
   breachesFound: number;
   recommendation?: string;
   mitigationSteps?: string[];
@@ -181,7 +181,7 @@ export class ExecuteRiskScanUseCase {
    */
   private async getRecommendation(
     breaches: HIBPBreach[],
-    riskCalc: { totalScore: number; classification: 'LOW' | 'MODERATE' | 'CRITICAL' },
+    riskCalc: { totalScore: number; classification: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL' },
   ): Promise<AIRecommendation> {
     const cacheKey = `ai-recommendation:${this.hashBreaches(breaches, riskCalc)}`;
 

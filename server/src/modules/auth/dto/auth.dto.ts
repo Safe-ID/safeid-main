@@ -8,7 +8,7 @@ import { IsBoolean, IsEmail, IsString, MinLength } from 'class-validator';
 export interface ScanSnapshotDto {
   jobId: string;
   riskScore: number;
-  classification: 'LOW' | 'MODERATE' | 'CRITICAL';
+  classification: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
   breachesFound: number;
   recommendation?: string | null;
   mitigationSteps?: string[] | null;
