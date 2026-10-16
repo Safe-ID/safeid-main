@@ -222,4 +222,35 @@ describe('Notifications and monitoring API E2E', () => {
       await expect(invalid.json()).resolves.toMatchObject({ code: 'TOKEN_INVALID' });
     });
   });
+
+  describe('GET /api/health/jobs', () => {
+    afterEach(() => {
+      delete process.env.ADMIN_TOKEN;
+    });
+
+    it('is disabled without ADMIN_TOKEN and requires the admin header', async () => {
+      expect((await request('/api/health/jobs', {}, false)).status).toBe(403);
+
+      process.env.ADMIN_TOKEN = 'admin-secret';
+      expect((await request('/api/health/jobs', {}, false)).status).toBe(401);
+      expect((await request('/api/health/jobs', { headers: { 'X-Admin-Token': 'wrong' } }, false)).status).toBe(401);
+      // O JWT de usuário não serve para a rota administrativa
+      expect((await request('/api/health/jobs')).status).toBe(401);
+    });
+
+    it('returns the jobs report with the admin token', async () => {
+      process.env.ADMIN_TOKEN = 'admin-secret';
+
+      const response = await request('/api/health/jobs', { headers: { 'X-Admin-Token': 'admin-secret' } }, false);
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        checkedAt: expect.any(String),
+        lastCatalogSyncAt: null,
+        queues: { hibp: expect.any(Object), monitoring: expect.any(Object), email: expect.any(Object) },
+        schedulers: [],
+        heartbeats: [],
+      });
+    });
+  });
 });
