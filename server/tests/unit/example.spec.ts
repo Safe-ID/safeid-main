@@ -5,6 +5,14 @@ describe('RiskEngine', () => {
   const fixedNow = new Date('2026-09-10T00:00:00.000Z');
   let riskEngine: RiskEngine;
 
+  const breachWith = (dataClasses: string[], breachDate = '2026-03-10T00:00:00.000Z', name = 'Breach') => ({
+    Name: name,
+    Title: name,
+    BreachDate: breachDate,
+    DataClasses: dataClasses,
+    IsVerified: true,
+  });
+
   beforeEach(() => {
     jest.useFakeTimers();
     jest.setSystemTime(fixedNow);
@@ -26,95 +34,87 @@ describe('RiskEngine', () => {
     });
   });
 
-  it('applies recency, confidence and weight for a recent verified breach', () => {
+  it('sums the weights of the HIBP data classes and normalizes by S_MAX', () => {
     const result = riskEngine.calculate([
-      {
-        Name: 'Fresh breach',
-        Title: 'Fresh breach',
-        BreachDate: '2026-03-10T00:00:00.000Z',
-        DataClasses: ['Passwords'],
-        IsVerified: true,
-      },
+      breachWith(['Passwords', 'IP addresses', 'Names'], '2026-03-10T00:00:00.000Z', 'Fresh breach'),
     ]);
 
-    expect(result.totalScore).toBe(15);
-    expect(result.classification).toBe('LOW');
+    // (10 + 2 + 3) * 1.0 = 15 -> 15 / 50 * 100 = 30
+    expect(result.totalScore).toBe(30);
+    expect(result.classification).toBe('MODERATE');
     expect(result.breachesFound).toBe(1);
-    expect(result.subscores[0]).toMatchObject({
+    expect(result.subscores[0]).toEqual({
       breach: 'Fresh breach',
-      maxPClass: 10,
-      recencyFactor: 1.5,
-      confidenceFactor: 1,
+      ageInMonths: 6,
+      temporalFactor: 1,
+      rawScore: 15,
       score: 15,
     });
   });
 
-  it('downgrades older and unverified breaches with lower recency and confidence factors', () => {
-    const result = riskEngine.calculate([
-      {
-        Name: 'Old breach',
-        Title: 'Old breach',
-        BreachDate: '2021-01-10T00:00:00.000Z',
-        DataClasses: ['Credit Cards'],
-        IsVerified: false,
-      },
-    ]);
+  it.each([
+    ['2024-09-10T00:00:00.000Z', 24, 1.0],
+    ['2024-08-10T00:00:00.000Z', 25, 0.7],
+    ['2021-09-10T00:00:00.000Z', 60, 0.7],
+    ['2021-08-10T00:00:00.000Z', 61, 0.4],
+  ])('applies the temporal factor for a breach from %s', (breachDate, ageInMonths, temporalFactor) => {
+    const result = riskEngine.calculate([breachWith(['Passwords'], breachDate)]);
 
-    expect(result.totalScore).toBe(3);
-    expect(result.classification).toBe('LOW');
-    expect(result.subscores[0]).toMatchObject({
-      maxPClass: 10,
-      recencyFactor: 0.6,
-      confidenceFactor: 0.5,
-      score: 3,
-    });
+    expect(result.subscores[0]).toMatchObject({ ageInMonths, temporalFactor, score: 10 * temporalFactor });
   });
 
-  it('classifies aggregated breaches as moderate when the total score passes the threshold', () => {
+  it('weights data classes with the exact names returned by HIBP, ignoring case', () => {
     const result = riskEngine.calculate([
-      {
-        Name: 'Breach one',
-        Title: 'Breach one',
-        BreachDate: '2026-03-10T00:00:00.000Z',
-        DataClasses: ['Passwords'],
-        IsVerified: true,
-      },
-      {
-        Name: 'Breach two',
-        Title: 'Breach two',
-        BreachDate: '2026-03-10T00:00:00.000Z',
-        DataClasses: ['Phone Numbers'],
-        IsVerified: true,
-      },
-      {
-        Name: 'Breach three',
-        Title: 'Breach three',
-        BreachDate: '2026-03-10T00:00:00.000Z',
-        DataClasses: ['Passport Numbers'],
-        IsVerified: true,
-      },
-      {
-        Name: 'Breach four',
-        Title: 'Breach four',
-        BreachDate: '2026-03-10T00:00:00.000Z',
-        DataClasses: ['Names'],
-        IsVerified: true,
-      },
+      breachWith(['Phone numbers', 'physical addresses', 'Dates of birth', 'Government issued IDs']),
     ]);
 
-    expect(result.totalScore).toBe(42);
-    expect(result.classification).toBe('MODERATE');
-    expect(result.breachesFound).toBe(4);
+    // 5 + 5 + 4 + 8 = 22
+    expect(result.subscores[0].rawScore).toBe(22);
+  });
+
+  it('uses the default weight for unknown data classes', () => {
+    const result = riskEngine.calculate([breachWith(['Some new data class'])]);
+
+    expect(result.subscores[0].rawScore).toBe(3);
+  });
+
+  it('treats an invalid breach date as recent instead of lowering the risk', () => {
+    const result = riskEngine.calculate([breachWith(['Passwords'], 'not-a-date')]);
+
+    expect(result.subscores[0]).toMatchObject({ ageInMonths: 0, temporalFactor: 1, score: 10 });
+  });
+
+  it('aggregates breaches of different ages into the high band', () => {
+    const result = riskEngine.calculate([
+      breachWith(['Passwords', 'IP addresses', 'Names'], '2026-03-15', 'LojaX'),
+      breachWith(['Password hints', 'Usernames'], '2023-09-10', 'ServicoY'),
+      breachWith(['Credit cards', 'Phone numbers'], '2025-09-20', 'PlataformaZ'),
+    ]);
+
+    // 15 * 1.0 + 10 * 0.7 + 15 * 1.0 = 37 -> 74
+    expect(result.subscores.map(sub => sub.score)).toEqual([15, 7, 15]);
+    expect(result.totalScore).toBe(74);
+    expect(result.classification).toBe('HIGH');
+    expect(result.breachesFound).toBe(3);
+  });
+
+  it.each([
+    [['Passwords', 'Email addresses'], 24, 'LOW'],
+    [['Passwords', 'Names'], 26, 'MODERATE'],
+    [['Passwords', 'Credit cards', 'Phone numbers'], 50, 'MODERATE'],
+    [['Passwords', 'Credit cards', 'Phone numbers', 'Device information'], 52, 'HIGH'],
+    [['Passwords', 'Credit cards', 'Credit card CVV', 'Passport numbers'], 76, 'CRITICAL'],
+  ])('classifies %j as %i (%s)', (dataClasses, totalScore, classification) => {
+    const result = riskEngine.calculate([breachWith(dataClasses as string[])]);
+
+    expect(result.totalScore).toBe(totalScore);
+    expect(result.classification).toBe(classification);
   });
 
   it('caps the total score at 100 and classifies the result as critical', () => {
-    const breaches = Array.from({ length: 8 }, (_, index) => ({
-      Name: `Critical breach ${index + 1}`,
-      Title: `Critical breach ${index + 1}`,
-      BreachDate: '2026-03-10T00:00:00.000Z',
-      DataClasses: ['Passwords', 'Credit Cards', 'Banking Information'],
-      IsVerified: true,
-    }));
+    const breaches = Array.from({ length: 8 }, (_, index) =>
+      breachWith(['Passwords', 'Credit cards', 'Bank account numbers'], '2026-03-10T00:00:00.000Z', `Critical breach ${index + 1}`),
+    );
 
     const result = riskEngine.calculate(breaches);
 
