@@ -17,10 +17,15 @@ export const C = {
 
 
 
+// Mesmos pesos do RiskEngine do backend, com os nomes exatos das Data Classes do HIBP
 export const W = {
-  "Passwords": 10, "Credit card data": 10, "Bank account numbers": 10,
-  "Email addresses": 3, "Usernames": 2, "Phone numbers": 4,
-  "Names": 2, "Geographic locations": 2, "Job titles": 1, "IP addresses": 3,
+  "Passwords": 10, "Credit cards": 10, "Credit card CVV": 10, "Bank account numbers": 10,
+  "Financial transactions": 10, "Partial credit card data": 8, "Government issued IDs": 8,
+  "Social security numbers": 8, "Passport numbers": 8, "Driver's licenses": 8, "Auth tokens": 8,
+  "Biometric data": 8, "Security questions and answers": 8, "Password hints": 7,
+  "Phone numbers": 5, "Physical addresses": 5, "Dates of birth": 4,
+  "Usernames": 3, "Names": 3, "Email addresses": 2, "IP addresses": 2, "Geographic locations": 2,
+  "User agent details": 1, "Browser user agent details": 1, "Device information": 1,
 };
 
 // Classes completas por gravidade. O Tailwind só gera classes que aparecem
@@ -227,3 +232,14 @@ export function score(bs) {
   const bonus = bs.some(b => new Date(b.date).getFullYear() >= 2022) ? 10 : 0;
   return Math.min(Math.round(raw + bonus), 100);
 }
+
+// Parceira indicada no plano de ação para suporte especializado de segurança
+export const ENETSEC = {
+  websiteUrl: "https://enetsec.com/",
+  whatsappUrl:
+    "https://wa.me/19546187140?text=Ol%C3%A1%2C%20acessei%20o%20app%20SafeID%20e%20gostaria%20de%20saber%20mais%20sobre%20seus%20servi%C3%A7os.",
+  messageWithBreaches:
+    "Para suporte especializado de segurança, auditoria completa e proteção avançada contra ameaças digitais, entre em contato com nossa parceira ENETSEC.",
+  messageWithoutBreaches:
+    "A prevenção é o melhor caminho para a segurança digital. Conheça as soluções de proteção da ENETSEC.",
+};
