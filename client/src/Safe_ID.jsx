@@ -162,7 +162,8 @@ export default function SafeID() {
           </div>
         )}
 
-        {!booting && page === "landing" && landingNotice && (
+        {/* O link de opt-out pode ser aberto já logado: o aviso aparece também no painel */}
+        {!booting && (page === "landing" || page === "dashboard") && landingNotice && (
           <div className="w-full max-w-4xl mx-auto px-6 pt-6">
             <div
               role="status"
