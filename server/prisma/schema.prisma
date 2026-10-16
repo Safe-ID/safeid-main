@@ -139,6 +139,16 @@ model BreachCatalog {
   @@map("breach_catalog")
 }
 
+/// Marca da última sincronização completa do catálogo (uma linha, id = 1). Só o catalog-sync
+/// grava aqui: as linhas que o getByNames acrescenta ao breach_catalog não contam como sync.
+model CatalogSyncState {
+  id          Int       @id @default(1)
+  lastSyncAt  DateTime
+  total       Int                    // Vazamentos no catálogo da HIBP nessa sincronização
+
+  @@map("catalog_sync_state")
+}
+
 model Notification {
   id           Int       @id @default(autoincrement())
   userId       Int

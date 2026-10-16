@@ -42,6 +42,14 @@ function createPrisma() {
         return { _max: { syncedAt: dates.length ? new Date(Math.max(...dates)) : null } };
       }),
     },
+    syncState: null as Row | null,
+    catalogSyncState: {
+      findUnique: jest.fn(async () => (prisma.syncState ? { ...prisma.syncState } : null)),
+      upsert: jest.fn(async ({ create, update }: any) => {
+        prisma.syncState = prisma.syncState ? { ...prisma.syncState, ...update } : { ...create };
+        return prisma.syncState;
+      }),
+    },
     $transaction: jest.fn(async (operations: Promise<unknown>[]) => Promise.all(operations)),
   };
   return prisma;
@@ -207,7 +215,31 @@ describe('BreachCatalogService', () => {
     await expect(service.getLastSyncAt()).resolves.toEqual(now);
 
     redis.store.delete(CATALOG_LAST_SYNC_KEY);
-    await expect(service.getLastSyncAt()).resolves.toEqual(expect.any(Date));
+    await expect(service.getLastSyncAt()).resolves.toEqual(now);
+  });
+
+  it('does not count rows stored by getByNames as a completed sync', async () => {
+    await service.getByNames(['ShopBR', 'LinkedIn'], now);
+    expect(prisma.rows.size).toBe(2);
+
+    // Sem catalog-sync concluído não há data de sincronização, nem pelo fallback do banco
+    await expect(service.getLastSyncAt()).resolves.toBeNull();
+
+    const result = await service.sync(now);
+
+    expect(result.firstSync).toBe(true);
+    expect(result.changed.map(breach => breach.Name).sort()).toEqual(['Equifax', 'PrivateForum', 'TestBreach']);
+    expect(prisma.syncState).toEqual({ id: 1, lastSyncAt: now, total: 5 });
+  });
+
+  it('is not a first sync once a sync has completed, even with the catalog emptied', async () => {
+    await service.sync(now);
+    prisma.rows.clear();
+
+    const result = await service.sync(now);
+
+    expect(result).toMatchObject({ firstSync: false, total: 5 });
+    expect(result.changed).toHaveLength(5);
   });
 
   it('treats only non-sensitive, non-retired breaches as relevant', () => {
@@ -249,6 +281,16 @@ describe('CatalogMonitorService', () => {
         firstSync: true,
         sweepEnqueued: false,
       });
+      expect(queue.add).not.toHaveBeenCalled();
+    });
+
+    it('does not sweep on the first real sync after getByNames stored some rows', async () => {
+      // Ex.: alerta montado antes do primeiro catalog-sync grava os vazamentos que usou
+      await new BreachCatalogService(prisma, catalogClient, redis as any).getByNames(['ShopBR'], now);
+
+      const result = await monitor.handleCatalogSync('cron', now);
+
+      expect(result).toMatchObject({ firstSync: true, changed: 4, sweepEnqueued: false });
       expect(queue.add).not.toHaveBeenCalled();
     });
 

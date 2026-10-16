@@ -237,6 +237,7 @@ export function createInMemoryPrisma() {
       defaults: () => ({ firstSeenAt: new Date(), notifiedAt: null }),
     }),
     breachCatalog: new InMemoryModel({ idField: 'name', autoIncrement: false, updatedAt: ['syncedAt'] }),
+    catalogSyncState: new InMemoryModel({ autoIncrement: false }),
     notification: new InMemoryModel({
       unique: [['userId', 'dedupeKey']],
       defaults: () => ({ readAt: null, emailStatus: 'PENDING', emailSentAt: null, createdAt: new Date() }),
@@ -255,6 +256,7 @@ export function createInMemoryPrisma() {
     scanHistory: InMemoryModel;
     userBreach: InMemoryModel;
     breachCatalog: InMemoryModel;
+    catalogSyncState: InMemoryModel;
     notification: InMemoryModel;
     emailVerificationToken: InMemoryModel;
   };
