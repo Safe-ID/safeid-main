@@ -3,6 +3,9 @@ import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { PrismaService } from '../../../infra/database/prisma.service';
 import { ExecuteRiskScanUseCase } from '../../../core/use-cases/execute-risk-scan.usecase';
+import { ScanSource } from '../../../core/entities/scan-result.entity';
+import { UserBreachRepository } from '../../breaches/user-breach.repository';
+import { log } from '../../../shared/utils/logger';
 import { CreateScanDto, ScanResultDto, ScanHistoryDto } from '../dto/scan.dto';
 import { openBreachData, sealBreachData } from '../../../shared/crypto/breach-data.cipher';
 
@@ -14,6 +17,7 @@ export class ScanService {
     private prisma: PrismaService,
     @Inject('REDIS_CLIENT') private cacheService: Redis,
     @Inject('HIBP_QUEUE') private hibpQueue: Queue,
+    private userBreaches: UserBreachRepository,
   ) {
     // Inicializa o use case
     this.executeRiskScanUseCase = new ExecuteRiskScanUseCase(
@@ -27,15 +31,58 @@ export class ScanService {
   /**
    * Inicia análise de vazamento para um email
    */
-  async submitScan(userId: number, dto: CreateScanDto): Promise<ScanResultDto> {
+  async submitScan(userId: number, dto: CreateScanDto, source: ScanSource = 'MANUAL'): Promise<ScanResultDto> {
     const result = await this.executeRiskScanUseCase.execute({
       email: dto.email,
       userId,
+      source,
     });
 
     await this.persistUserScanSnapshot(userId, dto.email, result);
 
+    const { breachNames, ...scanResult } = result;
+    // Vazamentos que o usuário acabou de ver na tela entram na base e nunca geram alerta.
+    // Em cache HIT (breachNames null) não há nada novo para registrar.
+    if (breachNames) {
+      await this.recordSeenBreaches(userId, breachNames, source);
+    }
+
+    return scanResult;
+  }
+
+  /**
+   * Recalcula o scan a partir de vazamentos já conhecidos (sem consultar a HIBP) e
+   * atualiza o snapshot do painel. Usado pelo monitoramento quando aparece vazamento novo.
+   */
+  async scoreBreaches(
+    userId: number,
+    email: string,
+    breaches: Array<Record<string, any>>,
+    source: ScanSource,
+  ): Promise<ScanResultDto & { breachNames: string[] }> {
+    const result = await this.executeRiskScanUseCase.scoreAndPersist({
+      userId,
+      email,
+      breaches: breaches as any,
+      source,
+    });
+
+    await this.persistUserScanSnapshot(userId, email, result);
     return result;
+  }
+
+  private async recordSeenBreaches(userId: number, breachNames: string[], source: ScanSource): Promise<void> {
+    try {
+      const { inserted, baselineDefined } = await this.userBreaches.recordSeenByUser(
+        userId,
+        breachNames,
+        source === 'SIGNUP' ? 'SIGNUP' : 'MANUAL',
+      );
+      log('info', 'ScanService', 'breaches.recorded', { userId, source, inserted: inserted.length, baselineDefined });
+    } catch (error) {
+      // O scan já foi entregue; sem base, a primeira checagem do monitoramento define a base em silêncio
+      log('error', 'ScanService', 'breaches.record_failed', { userId, source, err: error });
+    }
   }
 
   /**
@@ -161,6 +208,7 @@ export class ScanService {
             urgencyLevel: scan.urgencyLevel ?? null,
             isVerified: scan.isVerified,
             processedAt: scan.processedAt,
+            source: scan.source ?? 'MANUAL',
           },
         });
         console.log('[ScanRepository] Scan created successfully:', created.jobId);

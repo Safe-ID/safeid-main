@@ -13,7 +13,9 @@ describe('controller and guard unit coverage', () => {
 
   it('auth controller delegates signup, login, me and delete flows', async () => {
     const authService = {
-      signup: jest.fn(async () => ({ access_token: 'token', user: { id: 1, email: 'a@b.com' } })),
+      signup: jest.fn(async () => ({ requiresEmailVerification: true, email: 'a@b.com' })),
+      verifyEmail: jest.fn(async () => ({ access_token: 'verified-token', user: { id: 1, email: 'a@b.com' } })),
+      resendVerification: jest.fn(async () => ({ message: 'ok' })),
       login: jest.fn(async () => ({ access_token: 'login-token', user: { id: 2, email: 'b@c.com' } })),
       getUserProfile: jest.fn(async () => ({ id: 3, email: 'c@d.com' })),
       deleteAccount: jest.fn(async () => ({ deleted: true })),
@@ -26,7 +28,9 @@ describe('controller and guard unit coverage', () => {
     const loginDto = { email: 'b@c.com', password: 'Strong123!' };
     const response = { redirect: jest.fn() } as any;
 
-    await expect(controller.signup(signupDto)).resolves.toMatchObject({ access_token: 'token' });
+    await expect(controller.signup(signupDto)).resolves.toEqual({ requiresEmailVerification: true, email: 'a@b.com' });
+    await expect(controller.verifyEmail({ token: 't'.repeat(43) })).resolves.toMatchObject({ access_token: 'verified-token' });
+    await expect(controller.resendVerification({ email: 'a@b.com' })).resolves.toEqual({ message: 'ok' });
     await expect(controller.login(loginDto)).resolves.toMatchObject({ access_token: 'login-token' });
     await expect(controller.getMe({ sub: 3 } as any)).resolves.toMatchObject({ id: 3, email: 'c@d.com' });
     await expect(controller.deleteMe({ sub: 9 } as any)).resolves.toEqual({ deleted: true });
@@ -34,6 +38,8 @@ describe('controller and guard unit coverage', () => {
     await controller.googleCallback('code-123', 'state-456', response);
 
     expect(authService.signup).toHaveBeenCalledWith(signupDto);
+    expect(authService.verifyEmail).toHaveBeenCalledWith('t'.repeat(43));
+    expect(authService.resendVerification).toHaveBeenCalledWith('a@b.com');
     expect(authService.login).toHaveBeenCalledWith(loginDto);
     expect(authService.getUserProfile).toHaveBeenCalledWith(3);
     expect(authService.deleteAccount).toHaveBeenCalledWith(9);
@@ -72,12 +78,26 @@ describe('controller and guard unit coverage', () => {
     await expect(controller.check()).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 
-  it('jwt strategy validates payloads and rejects invalid token data', () => {
-    const strategy = new JwtStrategy();
+  it('jwt strategy validates payloads and only accepts existing verified accounts', async () => {
+    // Não depende de outra suíte ter definido o segredo antes no mesmo processo
+    process.env.JWT_SECRET = process.env.JWT_SECRET || 'unit-test-secret';
+    const findUnique = jest.fn<(args: any) => Promise<any>>();
+    const strategy = new JwtStrategy({ user: { findUnique } } as any);
 
-    expect(strategy.validate({ sub: 15, email: 'x@y.com' } as any)).toEqual({ sub: 15, email: 'x@y.com' });
-    expect(() => strategy.validate({ sub: 0, email: '' } as any)).toThrow(UnauthorizedException);
-    expect(() => strategy.validate({ sub: null } as any)).toThrow('Invalid token');
+    findUnique.mockResolvedValueOnce({ emailVerifiedAt: new Date() });
+    await expect(strategy.validate({ sub: 15, email: 'x@y.com' } as any)).resolves.toEqual({ sub: 15, email: 'x@y.com' });
+    expect(findUnique).toHaveBeenCalledWith({ where: { id: 15 }, select: { emailVerifiedAt: true } });
+
+    await expect(strategy.validate({ sub: 0, email: '' } as any)).rejects.toBeInstanceOf(UnauthorizedException);
+    await expect(strategy.validate({ sub: null } as any)).rejects.toThrow('Invalid token');
+
+    findUnique.mockResolvedValueOnce(null);
+    await expect(strategy.validate({ sub: 16, email: 'gone@y.com' } as any)).rejects.toThrow('Usuário não encontrado');
+
+    findUnique.mockResolvedValueOnce({ emailVerifiedAt: null });
+    const error = await strategy.validate({ sub: 17, email: 'pending@y.com' } as any).catch(err => err);
+    expect(error).toBeInstanceOf(UnauthorizedException);
+    expect(error.getResponse()).toMatchObject({ code: 'EMAIL_NOT_VERIFIED' });
   });
 
   it('current user decorator is exposed as a Nest parameter decorator factory', () => {

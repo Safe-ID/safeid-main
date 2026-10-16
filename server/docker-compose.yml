@@ -21,6 +21,8 @@ services:
   redis:
     image: redis:7-alpine
     container_name: safeid-redis
+    # Igual à produção (parameter group safeid-redis-queues): o BullMQ exige noeviction
+    command: ["redis-server", "--maxmemory-policy", "noeviction"]
     ports:
       - "6379:6379"
     volumes:
@@ -48,7 +50,15 @@ services:
       APP_PORT: 3000
       HIBP_API_KEY: ${HIBP_API_KEY:-}
       HIBP_BASE_URL: ${HIBP_BASE_URL:-https://haveibeenpwned.com/api/v3}
-      HIBP_MIN_INTERVAL_MS: ${HIBP_MIN_INTERVAL_MS:-1500}
+      HIBP_USE_MOCK: ${HIBP_USE_MOCK:-false}
+      # Limite da HIBP vem do plano (/subscription/status); HIBP_RPM_LIMIT só reduz
+      HIBP_RPM_LIMIT: ${HIBP_RPM_LIMIT:-}
+      HIBP_RPM_SAFETY_FACTOR: ${HIBP_RPM_SAFETY_FACTOR:-0.9}
+      HIBP_RPM_FALLBACK: ${HIBP_RPM_FALLBACK:-10}
+      HIBP_EXPECTED_LATENCY_S: ${HIBP_EXPECTED_LATENCY_S:-1.5}
+      APP_ROLE: ${APP_ROLE:-all}
+      # Em dev os e-mails só aparecem no log (assunto + link)
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-console}
     ports:
       - "3000:3000"
     depends_on:

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 import { AuthModule } from '../../src/modules/auth/auth.module';
 import { RateLimitModule } from '../../src/infra/rate-limit/rate-limit.module';
 import { PrismaService } from '../../src/infra/database/prisma.service';
+import { EmailVerificationService } from '../../src/modules/auth/email-verification.service';
 import { ScanService } from '../../src/modules/scan/services/scan.service';
 
 describe('Rate limit E2E', () => {
@@ -25,6 +26,8 @@ describe('Rate limit E2E', () => {
     })
       .overrideProvider(PrismaService)
       .useValue(prismaMock)
+      .overrideProvider(EmailVerificationService)
+      .useValue({ canResend: jest.fn(async () => false), sendVerificationEmail: jest.fn() })
       .overrideProvider(ScanService)
       .useValue({})
       .compile();

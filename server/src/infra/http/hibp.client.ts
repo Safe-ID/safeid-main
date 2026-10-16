@@ -1,6 +1,8 @@
 import axios, { AxiosInstance } from 'axios';
 import CircuitBreaker from 'opossum';
-import { createHash } from 'crypto';
+import { HibpAuthError, HibpRateLimitError, HibpUnavailableError, toHibpError } from './hibp.errors';
+import { BreachedAccountOptions, HibpClientLike, HibpSubscriptionStatus } from './hibp.types';
+import { log } from '../../shared/utils/logger';
 
 export interface HibpClientOptions {
   apiKey: string;
@@ -8,9 +10,13 @@ export interface HibpClientOptions {
   userAgent?: string;
 }
 
-export class HibpClient {
+/**
+ * Cliente autenticado da HIBP. Só o worker da fila hibp-check faz consultas de conta,
+ * para que o limite de requisições do plano valha para todas as tasks juntas.
+ */
+export class HibpClient implements HibpClientLike {
   private axios: AxiosInstance;
-  private breaker: any;
+  private breaker: CircuitBreaker;
   private hasApiKey: boolean;
   private missingApiKeyWarned = false;
 
@@ -29,99 +35,60 @@ export class HibpClient {
       },
     });
 
-    // Wrap the HTTP call in a circuit breaker
-    const httpCall = async (email: string) => {
-      try {
-        return await this.checkAccountDirect(email);
-      } catch (err: any) {
-        const status = err?.response?.status;
+    this.breaker = new CircuitBreaker(
+      (email: string, truncate: boolean) => this.fetchBreachedAccount(email, truncate),
+      {
+        errorThresholdPercentage: 50,
+        resetTimeout: 30000,
+        rollingCountTimeout: 10000,
+        rollingCountBuckets: 10,
+        // 429 é limite de uso, não falha da HIBP: não deve abrir o circuito
+        errorFilter: (err: unknown) => err instanceof HibpRateLimitError,
+      },
+    );
 
-        if (status === 401 || status === 403) {
-          return this.checkAccountByRange(email);
-        }
-
-        throw err;
-      }
-    };
-
-    this.breaker = new CircuitBreaker(httpCall, {
-      errorThresholdPercentage: 50,
-      resetTimeout: 30000,
-      rollingCountTimeout: 10000,
-      rollingCountBuckets: 10,
-    });
-
-    // Optional: forward breaker events to console for now
-    this.breaker.on('open', () => console.warn('[HIBP Circuit] OPEN'));
-    this.breaker.on('halfOpen', () => console.info('[HIBP Circuit] HALF_OPEN'));
-    this.breaker.on('close', () => console.info('[HIBP Circuit] CLOSED'));
+    this.breaker.on('open', () => log('warn', 'HibpClient', 'hibp.circuit_open'));
+    this.breaker.on('halfOpen', () => log('info', 'HibpClient', 'hibp.circuit_half_open'));
+    this.breaker.on('close', () => log('info', 'HibpClient', 'hibp.circuit_closed'));
   }
 
-  private async checkAccountDirect(email: string): Promise<any[]> {
-    const url = `/breachedaccount/${encodeURIComponent(email)}`;
-
+  private async fetchBreachedAccount(email: string, truncate: boolean): Promise<any[]> {
     try {
-      const res = await this.axios.get(url, {
-        params: { truncateResponse: false },
+      const res = await this.axios.get(`/breachedaccount/${encodeURIComponent(email)}`, {
+        params: { truncateResponse: truncate },
       });
 
-      return res.data || [];
+      return Array.isArray(res.data) ? res.data : [];
     } catch (err: any) {
-      // HIBP returns 404 when no breaches found — treat as empty array
+      // 404 = e-mail sem vazamentos
       if (err?.response?.status === 404) {
         return [];
       }
 
-      // propagate other errors
-      throw err;
+      throw toHibpError(err);
     }
   }
 
-  private async checkAccountByRange(email: string): Promise<any[]> {
+  /**
+   * Consulta estrita: 404 → []; 429 → HibpRateLimitError; 401/403 → HibpAuthError;
+   * 5xx, timeout ou circuito aberto → HibpUnavailableError. Nunca devolve [] por erro.
+   */
+  async getBreachedAccountStrict(email: string, options: BreachedAccountOptions = {}): Promise<any[]> {
+    if (!this.hasApiKey) {
+      throw new HibpAuthError('HIBP_API_KEY not configured');
+    }
+
     try {
-      const normalizedEmail = email.trim().toLowerCase();
-      const sha1 = createHash('sha1').update(normalizedEmail).digest('hex').toUpperCase();
-      const prefix = sha1.slice(0, 6);
-      const suffix = sha1.slice(6);
-
-      const response = await this.axios.get(`/breachedaccount/range/${prefix}`);
-      const entries = Array.isArray(response.data) ? response.data : [];
-      const matchedAccount = entries.find((entry: any) => {
-        const entrySuffix = entry?.hashSuffix || entry?.HashSuffix || entry?.suffix;
-        return entrySuffix === suffix;
-      });
-
-      if (!matchedAccount) {
-        return [];
-      }
-
-      const websites =
-        (matchedAccount.websites as string[]) ||
-        (matchedAccount.Websites as string[]) ||
-        (matchedAccount.breaches as string[]) ||
-        [];
-
-      const uniqueBreachNames = Array.from(new Set(websites));
-      const breaches = await Promise.all(
-        uniqueBreachNames.map(async (breachName: string) => {
-          const breachResponse = await this.axios.get(`/breach/${encodeURIComponent(breachName)}`);
-          return breachResponse.data;
-        })
-      );
-
-      return breaches.filter(Boolean);
-    } catch (err: any) {
-      const status = err?.response?.status;
-
-      // Treat auth errors in degraded mode so signup can still complete with a safe snapshot.
-      if (status === 401 || status === 403 || status === 404) {
-        return [];
-      }
-
-      throw err;
+      return await this.breaker.fire(email, options.truncate ?? true);
+    } catch (err) {
+      throw toHibpError(err);
     }
   }
 
+  /**
+   * Fluxo manual (scan): modo degradado só para chave ausente/inválida e HIBP fora do ar.
+   * Rate limit sempre se propaga, para o worker esperar e tentar de novo.
+   */
   async checkAccount(email: string): Promise<any[]> {
     if (!this.hasApiKey) {
       if (!this.missingApiKeyWarned) {
@@ -133,16 +100,35 @@ export class HibpClient {
     }
 
     try {
-      return await this.breaker.fire(email);
-    } catch (err: any) {
-      const status = err?.response?.status;
-      const message = String(err?.message || '');
-
-      if (status === 401 || status === 403 || /breaker is open/i.test(message)) {
+      return await this.getBreachedAccountStrict(email, { truncate: false });
+    } catch (err) {
+      if (err instanceof HibpAuthError || err instanceof HibpUnavailableError) {
+        log('warn', 'HibpClient', err instanceof HibpAuthError ? 'hibp.auth_failed' : 'hibp.unavailable', {
+          status: err.status,
+          degraded: true,
+        });
         return [];
       }
 
       throw err;
     }
+  }
+
+  /** Plano contratado (nome, RPM, validade). Usado para derivar o limite do worker. */
+  async getSubscriptionStatus(): Promise<HibpSubscriptionStatus> {
+    if (!this.hasApiKey) {
+      throw new HibpAuthError('HIBP_API_KEY not configured');
+    }
+
+    try {
+      const res = await this.axios.get('/subscription/status');
+      return res.data as HibpSubscriptionStatus;
+    } catch (err) {
+      throw toHibpError(err);
+    }
+  }
+
+  async shutdown(): Promise<void> {
+    await this.breaker.shutdown();
   }
 }

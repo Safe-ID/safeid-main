@@ -10,11 +10,22 @@ type EnvConfig = Record<string, unknown>;
 const REQUIRED_SECRETS = ['JWT_SECRET', 'REFRESH_TOKEN_SECRET'];
 
 // Segredos que só são obrigatórios em produção
-const REQUIRED_IN_PRODUCTION = ['SESSION_SECRET'];
+// MONITORING_UNSUBSCRIBE_SECRET assina o link de opt-out dos alertas
+const REQUIRED_IN_PRODUCTION = ['SESSION_SECRET', 'MONITORING_UNSUBSCRIBE_SECRET'];
 
 // Valores de exemplo do .env.example e fallbacks antigos que não podem ir para produção
 const PLACEHOLDER_PATTERN = /^your_.*_here$/i;
-const KNOWN_WEAK_VALUES = ['local-session-secret', 'safeid-google-state', 'changeme', 'secret'];
+const KNOWN_WEAK_VALUES = [
+  'local-session-secret',
+  'safeid-google-state',
+  'changeme',
+  'change_me',
+  'change_me_32_bytes_min',
+  'secret',
+];
+
+// Segredos de HMAC com tamanho mínimo
+const MIN_LENGTH: Record<string, number> = { MONITORING_UNSUBSCRIBE_SECRET: 32 };
 
 function isWeakSecret(value: string): boolean {
   return PLACEHOLDER_PATTERN.test(value) || KNOWN_WEAK_VALUES.includes(value.toLowerCase());
@@ -35,6 +46,8 @@ export function findEnvProblems(config: EnvConfig): string[] {
       problems.push(`${name} não está definida`);
     } else if (isWeakSecret(value)) {
       problems.push(`${name} ainda está com o valor de exemplo`);
+    } else if (MIN_LENGTH[name] && value.length < MIN_LENGTH[name]) {
+      problems.push(`${name} precisa ter pelo menos ${MIN_LENGTH[name]} caracteres`);
     }
   }
 

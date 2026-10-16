@@ -34,7 +34,6 @@ $AlbHttpsCertificateArn = if ($env:ALB_HTTPS_CERTIFICATE_ARN) { $env:ALB_HTTPS_C
 $AlbSslPolicy = if ($env:ALB_SSL_POLICY) { $env:ALB_SSL_POLICY } else { "ELBSecurityPolicy-2016-08" }
 $AssignPublicIp = if ($env:ASSIGN_PUBLIC_IP) { $env:ASSIGN_PUBLIC_IP } else { "ENABLED" }
 $HIBPBaseUrl = if ($env:HIBP_BASE_URL) { $env:HIBP_BASE_URL } else { "https://haveibeenpwned.com/api/v3" }
-$HIBPMinIntervalMs = if ($env:HIBP_MIN_INTERVAL_MS) { $env:HIBP_MIN_INTERVAL_MS } else { "1500" }
 $CorsOrigin = if ($env:CORS_ORIGIN) { $env:CORS_ORIGIN } else { "" }
 $SwaggerEnabled = if ($env:SWAGGER_ENABLED) { $env:SWAGGER_ENABLED } else { "false" }
 $SwaggerPath = if ($env:SWAGGER_PATH) { $env:SWAGGER_PATH } else { "api/docs" }
@@ -52,6 +51,11 @@ $ExecutionSsmPolicyName = "safeid-ssm-secrets"
 # Task role: permissões que o código da aplicação usa (ex.: SES). A execution role
 # fica só com o que o ECS precisa para subir o container (ECR, logs, SSM).
 $TaskRoleName = if ($env:ECS_TASK_ROLE_NAME) { $env:ECS_TASK_ROLE_NAME } else { "safeid-task-role" }
+# SES: domínio verificado e configuration set (create-ses.ps1)
+$SesDomain = Get-EnvOrDefault -Name 'SES_DOMAIN' -Default 'safeid.app.br'
+$SesRegion = Get-EnvOrDefault -Name 'AWS_SES_REGION' -Default $AwsRegion
+$SesConfigurationSet = Get-EnvOrDefault -Name 'SES_CONFIGURATION_SET' -Default 'safeid-default'
+$TaskSesPolicyName = "safeid-ses-send"
 $LogRetentionDays = if ($env:LOG_RETENTION_DAYS) { [int]$env:LOG_RETENTION_DAYS } else { 30 }
 # Tempo entre o SIGTERM e o SIGKILL, para o shutdown gracioso fechar workers e conexões
 $ContainerStopTimeout = 120
@@ -393,7 +397,6 @@ function Ensure-IamTaskRole {
         $trustPath = Join-Path $env:TEMP "$TaskRoleName-trust.json"
         [System.IO.File]::WriteAllText($trustPath, (ConvertTo-SafeJson $trustPolicy), [System.Text.UTF8Encoding]::new($false))
 
-        # Sem políticas por enquanto: a permissão do SES entra com o monitoramento (T7.3)
         aws iam create-role `
             --role-name $TaskRoleName `
             --assume-role-policy-document ("file://" + ($trustPath -replace '\\', '/')) > $null 2>&1
@@ -412,7 +415,81 @@ function Ensure-IamTaskRole {
         throw "Falha ao obter o ARN da task role."
     }
 
+    # Envio de e-mail (verificação e alertas): só pelo domínio do SafeID, com o configuration set
+    $sesPolicy = @{
+        Version   = "2012-10-17"
+        Statement = @(
+            @{
+                Effect    = "Allow"
+                Action    = @("ses:SendEmail")
+                Resource  = @(
+                    "arn:aws:ses:${SesRegion}:${AwsAccountId}:identity/$SesDomain",
+                    "arn:aws:ses:${SesRegion}:${AwsAccountId}:configuration-set/$SesConfigurationSet"
+                )
+                Condition = @{
+                    StringLike = @{ "ses:FromAddress" = "*@$SesDomain" }
+                }
+            }
+        )
+    }
+
+    $sesPolicyPath = Join-Path $env:TEMP "$TaskRoleName-ses.json"
+    [System.IO.File]::WriteAllText($sesPolicyPath, (ConvertTo-SafeJson $sesPolicy), [System.Text.UTF8Encoding]::new($false))
+
+    aws iam put-role-policy `
+        --role-name $TaskRoleName `
+        --policy-name $TaskSesPolicyName `
+        --policy-document ("file://" + ($sesPolicyPath -replace '\\', '/'))
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Falha ao anexar a política de envio do SES à task role."
+    }
+
     return $roleArn.Trim()
+}
+
+# Configuração não sensível do monitoramento e do e-mail. Só entram as variáveis definidas
+# no .env (as ausentes usam o padrão do código); URLs públicas são obrigatórias.
+function Get-MonitoringEnvironment {
+    $appUrl = Get-RequiredEnv -Name 'APP_URL'
+    $frontendUrl = Get-RequiredEnv -Name 'FRONTEND_URL'
+    foreach ($pair in @(@('APP_URL', $appUrl), @('FRONTEND_URL', $frontendUrl))) {
+        # Entram nos links dos e-mails: localhost quebraria a verificação e o descadastro
+        if (Test-LocalOnlyValue -Value $pair[1]) {
+            throw "$($pair[0]) aponta para um endereço local ($($pair[1])). Use a URL pública de produção."
+        }
+    }
+
+    $emailProvider = Get-EnvOrDefault -Name 'EMAIL_PROVIDER' -Default 'ses'
+    if ($emailProvider -eq 'ses') {
+        $null = Get-RequiredEnv -Name 'EMAIL_FROM'
+    }
+
+    $environment = @(
+        @{ name = "APP_URL"; value = $appUrl },
+        @{ name = "FRONTEND_URL"; value = $frontendUrl },
+        @{ name = "EMAIL_PROVIDER"; value = $emailProvider },
+        @{ name = "AWS_SES_REGION"; value = $SesRegion },
+        @{ name = "SES_CONFIGURATION_SET"; value = $SesConfigurationSet }
+    )
+
+    $optional = @(
+        'EMAIL_FROM', 'EMAIL_REPLY_TO', 'SES_MAX_PER_SECOND', 'EMAIL_VERIFICATION_TTL_HOURS',
+        'APP_ROLE', 'SCHEDULER_TZ', 'MONITORING_ENABLED', 'MONITORING_MAX_SWEEP_HOURS',
+        'HIBP_CATALOG_SYNC_CRON', 'HIBP_CATALOG_PROBE_CRON', 'HIBP_PLAN_CHECK_CRON',
+        'MONITORING_RECONCILE_CRON', 'MONITORING_WEEKLY_SWEEP_CRON', 'UNVERIFIED_CLEANUP_CRON',
+        'UNVERIFIED_ACCOUNT_TTL_DAYS', 'HIBP_RPM_LIMIT', 'HIBP_RPM_SAFETY_FACTOR', 'HIBP_RPM_FALLBACK',
+        'HIBP_EXPECTED_LATENCY_S', 'AI_MODEL', 'AI_TIMEOUT_MS'
+    )
+
+    foreach ($name in $optional) {
+        $value = [Environment]::GetEnvironmentVariable($name, 'Process')
+        if (-not [string]::IsNullOrWhiteSpace($value)) {
+            $environment += @{ name = $name; value = $value.Trim() }
+        }
+    }
+
+    return $environment
 }
 
 # Referências do bloco "secrets" da task definition, a partir do que existe no SSM
@@ -734,13 +811,12 @@ function New-TaskDefinitionJson {
         @{ name = "REDIS_HOST"; value = $RedisHostValue },
         @{ name = "REDIS_PORT"; value = "$RedisPort" },
         @{ name = "HIBP_BASE_URL"; value = $HIBPBaseUrl },
-        @{ name = "HIBP_MIN_INTERVAL_MS"; value = "$HIBPMinIntervalMs" },
         @{ name = "CORS_ORIGIN"; value = $CorsOrigin },
         @{ name = "SWAGGER_ENABLED"; value = $SwaggerEnabled },
         @{ name = "SWAGGER_PATH"; value = $SwaggerPath },
         @{ name = "LOG_LEVEL"; value = $LogLevel },
         @{ name = "AI_ENDPOINT"; value = $AiEndpoint }
-    )
+    ) + $MonitoringEnvironment
 
     $taskDefinition = @{
         family                  = $TaskFamily
@@ -1119,6 +1195,7 @@ function Deploy-EcsFargate {
     $vpcCidr = Get-VpcCidrBlock -VpcId $vpcId
     $redisHostValue = Get-RedisHostValue
     $containerSecrets = Get-ContainerSecrets
+    $script:MonitoringEnvironment = Get-MonitoringEnvironment
 
     Ensure-Cluster
     Ensure-LogGroup
