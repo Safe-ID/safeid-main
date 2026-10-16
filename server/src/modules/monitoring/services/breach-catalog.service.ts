@@ -10,11 +10,17 @@ export const CATALOG_LAST_SYNC_KEY = 'monitoring:catalog:lastSyncAt';
 
 const UPSERT_BATCH_SIZE = 100;
 
+/** catalog_sync_state tem uma linha só */
+const SYNC_STATE_ID = 1;
+
 export interface CatalogSyncResult {
   total: number;
   /** Vazamentos novos ou com ModifiedDate mais recente que o do banco */
   changed: HibpBreach[];
-  /** true quando o banco estava vazio: só popula, sem disparar varredura */
+  /**
+   * true quando nenhum catalog-sync terminou antes: só popula, sem disparar varredura.
+   * Não olha o breach_catalog, onde o getByNames também grava linhas fora do sync.
+   */
   firstSync: boolean;
 }
 
@@ -76,7 +82,8 @@ export class BreachCatalogService {
       select: { name: true, modifiedDate: true },
     });
     const existing = new Map(existingRows.map(row => [row.name, row.modifiedDate.getTime()]));
-    const firstSync = existing.size === 0;
+    const previousSync = await this.prisma.catalogSyncState.findUnique({ where: { id: SYNC_STATE_ID } });
+    const firstSync = previousSync === null;
 
     const changed = breaches.filter(breach => {
       const known = existing.get(breach.Name);
@@ -92,6 +99,12 @@ export class BreachCatalogService {
       await this.prisma.$transaction(batch.map(breach => this.upsertOperation(breach, now)));
     }
 
+    const state = { lastSyncAt: now, total: breaches.length };
+    await this.prisma.catalogSyncState.upsert({
+      where: { id: SYNC_STATE_ID },
+      create: { id: SYNC_STATE_ID, ...state },
+      update: state,
+    });
     await this.redis.set(CATALOG_LAST_SYNC_KEY, now.toISOString());
 
     log('info', 'BreachCatalog', 'catalog.sync.done', {
@@ -138,9 +151,10 @@ export class BreachCatalogService {
       return toDate(cached);
     }
 
-    // Redis sem o valor (ex.: reinício do nó): o banco é a fonte da verdade
-    const latest = await this.prisma.breachCatalog.aggregate({ _max: { syncedAt: true } });
-    return latest._max.syncedAt ?? null;
+    // Redis sem o valor (ex.: reinício do nó): o banco é a fonte da verdade.
+    // Não usa o syncedAt do breach_catalog, que o getByNames também atualiza.
+    const state = await this.prisma.catalogSyncState.findUnique({ where: { id: SYNC_STATE_ID } });
+    return state?.lastSyncAt ?? null;
   }
 
   private upsertOperation(breach: HibpBreach, now: Date) {
