@@ -26,6 +26,7 @@ describe('ScanService integration slice', () => {
   const mockCache: any = {
     get: jest.fn(),
     setex: jest.fn(),
+    del: jest.fn(),
   };
 
   const mockQueue: any = {

@@ -25,7 +25,7 @@ O frontend atual ainda usa muitos dados locais e estados simulados. Para funcion
 | Área / Tela | O que hoje é local | Endpoint necessário | Método | Payload / Headers | Estado que precisa vir da API |
 |---|---|---|---|---|---|
 | Login | `Auth.jsx` simula sucesso sem chamar backend | `/api/v1/auth/login` | `POST` | Body: `email`, `password` | `access_token`, `refresh_token`, `user` |
-| Cadastro | `Auth.jsx` cria usuário fake no estado | `/api/v1/auth/signup` | `POST` | Body: `email`, `password` | `access_token`, `refresh_token`, `user` |
+| Cadastro | `Auth.jsx` cria usuário fake no estado | `/api/v1/auth/signup` e `/api/v1/auth/verify-email` | `POST` | Body: `email`, `password`, `acceptTerms`, `acceptMonitoring` (seção 8) | `requiresEmailVerification`; os tokens só vêm no `verify-email` |
 | Sessão inicial | `Safe_ID.jsx` mantém `user` só em memória | `/api/v1/auth/me` | `GET` | Header: `Authorization: Bearer <token>` | Usuário autenticado e snapshot do scan |
 | Dashboard | `Dashboard.jsx` usa `BREACHES` e `score()` locais | `/api/v1/scan/history` e `/api/v1/scan/:jobId` | `GET` | Header: `Authorization: Bearer <token>` | Histórico real, status dos scans e detalhes |
 | Nova análise | Não existe fluxo real de submit hoje | `/api/v1/scan` | `POST` | Body: `email`; Header: Bearer token | `jobId`, `riskScore`, `classification`, `breachesFound`, `recommendation`, `isVerified` |
@@ -109,7 +109,52 @@ A API atual cobre o núcleo de autenticação e scan, e já pode alimentar o pai
 
 ---
 
-## 8) Conclusão prática
+## 8) Monitoramento de vazamentos (contrato atual)
+
+O cadastro por senha mudou: a conta só é ativada depois da confirmação do e-mail, e o usuário pode receber alertas quando o e-mail aparecer num vazamento novo. O cliente HTTP fica em `client/src/lib/api.js`.
+
+### Cadastro com verificação de e-mail
+
+| Endpoint | Método | Payload | Resposta |
+|---|---|---|---|
+| `/api/v1/auth/signup` | `POST` | `email`, `password` (mín. 8), `acceptTerms` (obrigatório `true`), `acceptMonitoring` (opcional, padrão `true`) | `{ requiresEmailVerification: true, email }`. **Não** devolve tokens nem roda o scan |
+| `/api/v1/auth/verify-email` | `POST` | `token` (vem do link do e-mail, `?verify_token=` no frontend) | `access_token`, `refresh_token`, `user`; roda o scan inicial |
+| `/api/v1/auth/resend-verification` | `POST` | `email` | `{ message }` genérica (não revela se o e-mail existe); limite de reenvio por cooldown e por dia |
+| `/api/v1/auth/login` | `POST` | `email`, `password` | Conta não verificada responde 403 com `code: EMAIL_NOT_VERIFIED` e um link novo é enviado (respeitando o limite); o frontend oferece o reenvio |
+
+Booleanos do corpo são estritos: `"false"` em texto é rejeitado em vez de virar `true`. Contas não verificadas são apagadas depois de `UNVERIFIED_ACCOUNT_TTL_DAYS` (padrão 7).
+
+### Notificações (sino do Navbar)
+
+Todas exigem `Authorization: Bearer <token>`.
+
+| Endpoint | Método | Uso | Resposta |
+|---|---|---|---|
+| `/api/v1/notifications?cursor=&limit=` | `GET` | Lista paginada por cursor (`limit` até 50) | `{ items: [{ id, type, title, body, breachNames, riskScoreBefore, riskScoreAfter, classification, readAt, createdAt }], nextCursor }` |
+| `/api/v1/notifications/unread-count` | `GET` | Contador do sino | `{ count }` |
+| `/api/v1/notifications/:id/read` | `PATCH` | Marca uma como lida | `204`; `404` se não for do usuário |
+| `/api/v1/notifications/read-all` | `PATCH` | Marca todas como lidas | `204` |
+
+### Preferências de monitoramento
+
+| Endpoint | Método | Auth | Uso | Resposta |
+|---|---|---|---|---|
+| `/api/v1/monitoring/status` | `GET` | Bearer | Estado nas configurações do painel | `{ enabled, lastMonitoredAt, lastCatalogSyncAt }` |
+| `/api/v1/monitoring/preferences` | `PATCH` | Bearer | Body `{ enabled }`; ao ligar agenda uma checagem imediata | Mesmo formato do status |
+| `/api/v1/monitoring/unsubscribe?token=` | `GET` | Token do e-mail | Link de opt-out do alerta | `302` para `/?monitoring=disabled` ou `/?monitoring=invalid` |
+| `/api/v1/monitoring/unsubscribe?token=` | `POST` | Token do e-mail | One-click (RFC 8058), chamado pelo cliente de e-mail | `200` ou `400` com `code: TOKEN_INVALID` |
+
+### Operação (não é consumido pelo frontend)
+
+- `GET /api/health/jobs` com header `X-Admin-Token`: estado das filas, schedulers, heartbeats, plano HIBP e última sincronização do catálogo. Sem `ADMIN_TOKEN` configurado responde `403`.
+
+### Funções do cliente (`client/src/lib/api.js`)
+
+`signup(email, password, acceptTerms, acceptMonitoring)`, `verifyEmail(token)`, `resendVerification(email)`, `fetchNotifications(cursor)`, `fetchUnreadCount()`, `markNotificationRead(id)`, `markAllNotificationsRead()`, `fetchMonitoringStatus()` e `updateMonitoringPreferences(enabled)`.
+
+---
+
+## 9) Conclusão prática
 
 Se a meta for fazer o frontend consumir a API atual sem mudar o backend, o caminho mínimo é:
 

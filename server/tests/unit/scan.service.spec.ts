@@ -377,4 +377,30 @@ describe('ScanService', () => {
       });
     });
   });
+
+  it('rescores known breaches and refreshes the dashboard snapshot (monitoring)', async () => {
+    const result = {
+      jobId: 'job-mon',
+      riskScore: 70,
+      classification: 'CRITICAL',
+      breachesFound: 1,
+      isVerified: true,
+      breachNames: ['MegaLeak'],
+    };
+    (service as any).executeRiskScanUseCase.scoreAndPersist = jest.fn(async () => result);
+    prismaMock.scanHistory.findFirst.mockResolvedValue(null);
+    prismaMock.user.update.mockResolvedValue({ id: 5 });
+
+    await expect(service.scoreBreaches(5, 'user@example.com', [{ Name: 'MegaLeak' }], 'MONITORING')).resolves.toEqual(result);
+
+    expect((service as any).executeRiskScanUseCase.scoreAndPersist).toHaveBeenCalledWith({
+      userId: 5,
+      email: 'user@example.com',
+      breaches: [{ Name: 'MegaLeak' }],
+      source: 'MONITORING',
+    });
+    expect(prismaMock.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 5 }, data: expect.objectContaining({ scanSnapshot: expect.objectContaining({ riskScore: 70 }) }) }),
+    );
+  });
 });

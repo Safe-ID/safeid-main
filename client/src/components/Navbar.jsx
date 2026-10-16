@@ -1,3 +1,5 @@
+import NotificationBell from "./NotificationBell";
+
 export default function Navbar({ user, onSignOut, onNav }) {
   const initial = user?.email?.charAt(0)?.toUpperCase() || "U";
   const displayName = user?.email || "Convidado";
@@ -34,6 +36,7 @@ export default function Navbar({ user, onSignOut, onNav }) {
           </>
         ) : (
           <>
+            <NotificationBell />
             <div className="hidden sm:flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-safe-primary to-safe-secondary flex items-center justify-center text-xs font-bold text-white">
                 {initial}
