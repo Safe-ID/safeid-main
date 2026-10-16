@@ -1,13 +1,17 @@
 import { Inject, Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { Job, Worker } from 'bullmq';
+import { Job, Queue, Worker } from 'bullmq';
 import Redis from 'ioredis';
-import { HibpRateLimitError } from '../../../infra/http/hibp.errors';
+import { HibpAuthError, HibpRateLimitError } from '../../../infra/http/hibp.errors';
+import { PrismaService } from '../../../infra/database/prisma.service';
 import { HibpPlanService } from '../../../infra/http/hibp-plan.service';
 import { HibpClientLike } from '../../../infra/http/hibp.types';
 import {
   HIBP_CLIENT,
   HIBP_PLAN_CHANGED_CHANNEL,
   JOB_CHECK_HIBP,
+  JOB_MONITOR_CHECK,
+  JOB_MONITOR_PROCESS,
+  MONITORING_QUEUE,
   QUEUE_HIBP,
 } from '../../../infra/queue/queue.constants';
 import { createBullConnection } from '../../../infra/queue/redis-connection';
@@ -30,6 +34,8 @@ export class HibpProcessor implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(HIBP_CLIENT) private readonly hibpClient: HibpClientLike,
     private readonly hibpPlan: HibpPlanService,
+    private readonly prisma: PrismaService,
+    @Inject(MONITORING_QUEUE) private readonly monitoringQueue: Queue,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -66,6 +72,8 @@ export class HibpProcessor implements OnModuleInit, OnModuleDestroy {
     switch (job.name) {
       case JOB_CHECK_HIBP:
         return this.handleCheck(job);
+      case JOB_MONITOR_CHECK:
+        return this.handleMonitorCheck(job);
       default:
         throw new Error(`Unknown job '${job.name}' in queue ${QUEUE_HIBP}`);
     }
@@ -89,6 +97,52 @@ export class HibpProcessor implements OnModuleInit, OnModuleDestroy {
       }
       throw error;
     }
+  }
+
+  /**
+   * T4.3 Monitoramento: consulta estrita (erro da HIBP nunca vira "sem vazamentos";
+   * propaga para o BullMQ tentar de novo) e passa só userId + nomes para a fila monitoring.
+   */
+  private async handleMonitorCheck(job: Job): Promise<{ skipped: true } | { breaches: number }> {
+    const userId = Number(job.data?.userId);
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, monitoringEnabled: true, emailVerifiedAt: true },
+    });
+
+    // Conta apagada, opt-out ou e-mail não verificado desde o enfileiramento
+    if (!user || !user.monitoringEnabled || !user.emailVerifiedAt) {
+      return { skipped: true };
+    }
+
+    let result: unknown[];
+    try {
+      result = await this.hibpClient.getBreachedAccountStrict(user.email, { truncate: true });
+    } catch (error) {
+      if (error instanceof HibpRateLimitError) {
+        await this.applyRateLimit(error);
+      }
+      if (error instanceof HibpAuthError) {
+        log('error', 'HibpProcessor', 'hibp.auth_failed', { job: job.name, status: error.status });
+      }
+      throw error;
+    }
+
+    const breachNames = Array.from(
+      new Set(
+        result
+          .map(item => (item as { Name?: unknown } | null)?.Name)
+          .filter((name): name is string => typeof name === 'string' && name.length > 0),
+      ),
+    );
+
+    await this.monitoringQueue.add(
+      JOB_MONITOR_PROCESS,
+      { userId, breachNames, checkedAt: new Date().toISOString() },
+      { jobId: `process-${job.id}`, attempts: 3, backoff: { type: 'exponential', delay: 30_000 } },
+    );
+
+    return { breaches: breachNames.length };
   }
 
   /** 429: pausa a fila inteira pelo retry-after e devolve o job para a fila sem gastar tentativa */

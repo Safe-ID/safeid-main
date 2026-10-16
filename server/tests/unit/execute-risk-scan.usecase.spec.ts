@@ -21,6 +21,7 @@ describe('ExecuteRiskScanUseCase', () => {
     cacheService = {
       get: jest.fn(async () => null),
       setex: jest.fn(async () => undefined),
+      del: jest.fn(async () => 1),
     };
 
     hibpQueue = {
@@ -539,5 +540,32 @@ describe('ExecuteRiskScanUseCase', () => {
       expect(aiSpy).toHaveBeenCalledTimes(1);
       expect(result.recommendation).toBe('Resumo do modelo.');
     });
+  });
+
+  it('scores and persists known breaches without calling the HIBP (monitoring rescore)', async () => {
+    jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    jest.spyOn(AIEngine.prototype, 'generateRecommendation').mockResolvedValue({
+      executive_summary: 'Troque a senha.',
+      urgency_level: 'HIGH',
+      mitigation_steps: ['Troque a senha'],
+      source: 'ai',
+    } as any);
+    const useCase = new ExecuteRiskScanUseCase(repository, cacheService, hibpQueue, 'test-key');
+
+    const result = await useCase.scoreAndPersist({
+      userId: 12,
+      email: 'User@Example.com',
+      breaches: [{ Name: 'MegaLeak', Title: 'Mega', BreachDate: '2026-09-28', DataClasses: ['Passwords'], IsVerified: true }],
+      source: 'MONITORING',
+    });
+
+    expect(hibpQueue.add).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ isVerified: true, breachNames: ['MegaLeak'], recommendation: 'Troque a senha.' });
+    expect(repository.create).toHaveBeenCalledWith(expect.objectContaining({ userId: 12, source: 'MONITORING' }));
+    // O resultado antigo do cache é apagado antes do novo ser gravado
+    const delOrder = cacheService.del.mock.invocationCallOrder[0];
+    const setexOrder = cacheService.setex.mock.invocationCallOrder.at(-1);
+    expect(cacheService.del).toHaveBeenCalledWith(expect.stringMatching(/^scan:/));
+    expect(delOrder).toBeLessThan(setexOrder);
   });
 });

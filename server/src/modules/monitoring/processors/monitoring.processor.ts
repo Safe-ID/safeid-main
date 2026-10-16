@@ -4,8 +4,17 @@ import Redis from 'ioredis';
 import {
   JOB_CATALOG_PROBE,
   JOB_CATALOG_SYNC,
+  JOB_CLEANUP_UNVERIFIED,
+  JOB_HIBP_PLAN_CHECK,
+  JOB_MONITOR_PROCESS,
+  JOB_MONITOR_SWEEP,
+  JOB_MONITORING_RECONCILE,
   QUEUE_MONITORING,
 } from '../../../infra/queue/queue.constants';
+import { HibpPlanService } from '../../../infra/http/hibp-plan.service';
+import { EmailVerificationService } from '../../auth/email-verification.service';
+import { MonitoringService } from '../services/monitoring.service';
+import { MonitoringReconcileService } from '../services/monitoring-reconcile.service';
 import { createBullConnection } from '../../../infra/queue/redis-connection';
 import { runsWorkers } from '../../../shared/config/app-role';
 import { log } from '../../../shared/utils/logger';
@@ -15,15 +24,21 @@ import { CatalogMonitorService, CatalogSyncOrigin } from '../services/catalog-mo
 const MONITORING_CONCURRENCY = 2;
 
 /**
- * Worker da fila monitoring. Na F3 trata o catálogo (probe e sync);
- * varreduras, reprocessamento, limpeza e reconciliação entram na F4.
+ * Worker da fila monitoring: catálogo, varredura, reprocessamento das checagens,
+ * limpeza de contas não verificadas, plano HIBP e reconciliação.
  */
 @Injectable()
 export class MonitoringProcessor implements OnModuleInit, OnModuleDestroy {
   private worker: Worker | null = null;
   private connection: Redis | null = null;
 
-  constructor(private readonly catalogMonitor: CatalogMonitorService) {}
+  constructor(
+    private readonly catalogMonitor: CatalogMonitorService,
+    private readonly monitoring: MonitoringService,
+    private readonly reconcile: MonitoringReconcileService,
+    private readonly emailVerification: EmailVerificationService,
+    private readonly hibpPlan: HibpPlanService,
+  ) {}
 
   onModuleInit(): void {
     if (!runsWorkers()) {
@@ -67,6 +82,20 @@ export class MonitoringProcessor implements OnModuleInit, OnModuleDestroy {
         return this.catalogMonitor.handleCatalogProbe();
       case JOB_CATALOG_SYNC:
         return this.catalogMonitor.handleCatalogSync((job.data?.origin as CatalogSyncOrigin) || 'cron');
+      case JOB_MONITOR_SWEEP:
+        return this.monitoring.runSweep(job.data?.reason || 'WEEKLY');
+      case JOB_MONITOR_PROCESS:
+        return this.monitoring.processCheckResult(
+          Number(job.data?.userId),
+          Array.isArray(job.data?.breachNames) ? job.data.breachNames : [],
+          job.data?.checkedAt ? new Date(job.data.checkedAt) : new Date(),
+        );
+      case JOB_CLEANUP_UNVERIFIED:
+        return this.emailVerification.cleanupUnverified();
+      case JOB_HIBP_PLAN_CHECK:
+        return this.hibpPlan.refresh();
+      case JOB_MONITORING_RECONCILE:
+        return this.reconcile.run();
       default:
         throw new Error(`Unknown job '${job.name}' in queue ${QUEUE_MONITORING}`);
     }
