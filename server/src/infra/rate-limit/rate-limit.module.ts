@@ -17,6 +17,7 @@ export const RATE_LIMITS = {
   scan: { default: { limit: 5, ttl: 15 * MINUTE } },
   verifyEmail: { default: { limit: 10, ttl: 15 * MINUTE } },
   resendVerification: { default: { limit: 5, ttl: 15 * MINUTE } },
+  unsubscribe: { default: { limit: 20, ttl: 15 * MINUTE } },
 };
 
 /**

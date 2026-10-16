@@ -105,6 +105,22 @@ A documentação Swagger em **http://localhost:3000/api/docs**
 - `npm run db:migrate` - Cria nova migration
 - `npm run db:push` - Aplica schema sem migration
 - `npm run db:studio` - Abre Prisma Studio para visualizar dados
+- `npm run backfill:user-breaches` - Define a base de vazamentos conhecidos a partir dos scans (ver abaixo)
+
+### Backfill da base de vazamentos (monitoramento)
+
+O monitoramento só avisa sobre vazamentos **fora** da base de cada usuário (tabela `user_breach`). Depois de aplicar a migration `20261006000000_email_verification_and_breach_monitoring`, e **antes** de ligar o monitoramento, rode uma vez:
+
+```bash
+npm run backfill:user-breaches -- --dry-run
+npm run backfill:user-breaches
+```
+
+- Para cada usuário, lê o scan mais recente do **próprio email da conta** e grava os vazamentos como `BASELINE`, além de `breachBaselineAt`.
+- Usuários sem scan ficam sem base. A primeira checagem do monitoramento define a base em silêncio, sem notificar.
+- Use as mesmas `ENCRYPTION_KEY` e `EMAIL_HASH_SECRET` da aplicação. Sem elas o `breachData` criptografado não abre e o `emailHash` não bate.
+- É idempotente: rodar de novo não duplica linhas nem muda a data da base.
+- Em produção, rode com a `DATABASE_URL` do RDS pelo túnel do bastion (`connect-bastion-ssm.ps1`). Faça o snapshot do banco antes (`create-database.ps1 -Action Snapshot`).
 
 ## 🗂️ Estrutura de módulos
 
