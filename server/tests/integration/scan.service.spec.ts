@@ -66,7 +66,7 @@ describe('ScanService integration slice', () => {
     mockQueue.add.mockResolvedValue(job);
     mockPrisma.scanHistory.create.mockResolvedValue({
       jobId: 'job-123',
-      riskScore: 15,
+      riskScore: 20,
       classification: 'LOW',
       breachesFound: 1,
       breachData: JSON.stringify(breaches),
@@ -76,7 +76,7 @@ describe('ScanService integration slice', () => {
     });
     mockPrisma.scanHistory.findFirst.mockResolvedValue({
       jobId: 'job-123',
-      riskScore: 15,
+      riskScore: 20,
       classification: 'LOW',
       breachesFound: 1,
       breachData: JSON.stringify(breaches),
@@ -92,7 +92,7 @@ describe('ScanService integration slice', () => {
 
     expect(result).toMatchObject({
       jobId: expect.any(String),
-      riskScore: 15,
+      riskScore: 20,
       classification: 'LOW',
       breachesFound: 1,
       isVerified: true,
