@@ -1,16 +1,46 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "./components/Navbar";
 import Landing from "./components/Landing";
 import Auth from "./components/Auth";
 import Dashboard from "./components/Dashboard";
 import Privacy from "./components/Privacy";
-import { SESSION_EXPIRED_EVENT, clearToken, fetchMe, getToken, setAuthTokens, setToken } from "./lib/api";
+import { SESSION_EXPIRED_EVENT, clearToken, fetchMe, getToken, setAuthTokens, setToken, verifyEmail } from "./lib/api";
+
+const MONITORING_NOTICES = {
+  disabled: { tone: "info", text: "Alertas de vazamento desativados. Você pode religar quando quiser no seu painel." },
+  invalid: { tone: "error", text: "Este link de descadastro é inválido. Entre na sua conta para desligar os alertas pelo painel." },
+};
+
+// Uma verificação por carregamento da página. O StrictMode roda o efeito duas vezes em dev:
+// a segunda execução reaproveita a mesma chamada em vez de perder o token já tirado da URL.
+let pendingVerification = null;
+
+function verifyOnce(token) {
+  if (!pendingVerification || pendingVerification.token !== token) {
+    pendingVerification = { token, promise: verifyEmail(token) };
+  }
+  return pendingVerification.promise;
+}
+
+/** Lê um parâmetro da URL e o remove do endereço (tokens não ficam no histórico) */
+function takeQueryParam(name) {
+  const params = new URLSearchParams(window.location.search);
+  const value = params.get(name);
+  if (value === null) return null;
+
+  params.delete(name);
+  const query = params.toString();
+  window.history.replaceState({}, document.title, window.location.pathname + (query ? `?${query}` : "") + window.location.hash);
+  return value;
+}
 
 export default function SafeID() {
   const [page, setPage] = useState("landing");
   const [user, setUser] = useState(null);
   const [booting, setBooting] = useState(true);
   const [notice, setNotice] = useState("");
+  // Aviso da página inicial (ex.: alertas desativados pelo link do email)
+  const [landingNotice, setLandingNotice] = useState(null);
   // Página de onde a pessoa abriu a Política de Privacidade, para o botão Voltar
   const [privacyReturn, setPrivacyReturn] = useState("landing");
 
@@ -23,6 +53,7 @@ export default function SafeID() {
   const goTo = (p) => {
     if (p === "landing") setUser(null);
     setNotice("");
+    setLandingNotice(null);
     setPage(p);
   };
   const onAuth = (u, token) => {
@@ -48,6 +79,35 @@ export default function SafeID() {
   useEffect(() => {
     let active = true;
     const restoreSession = async () => {
+      const monitoringParam = takeQueryParam("monitoring");
+      if (monitoringParam && MONITORING_NOTICES[monitoringParam] && active) {
+        setLandingNotice(MONITORING_NOTICES[monitoringParam]);
+      }
+
+      // Link do email de verificação: o token sai da URL antes da chamada
+      const verifyToken = takeQueryParam("verify_token") ?? pendingVerification?.token;
+      if (verifyToken) {
+        clearToken();
+        try {
+          const session = await verifyOnce(verifyToken);
+          if (!active) return;
+          setAuthTokens(session);
+          setUser(session.user);
+          setPage("dashboard");
+        } catch (error) {
+          if (!active) return;
+          setNotice(
+            error.code === "TOKEN_EXPIRED"
+              ? "Este link de verificação expirou ou já foi usado. Entre com seu email e senha para receber um novo link."
+              : "Link de verificação inválido. Entre com seu email e senha para receber um novo link.",
+          );
+          setPage("login");
+        } finally {
+          if (active) setBooting(false);
+        }
+        return;
+      }
+
       const oauthHash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
       const accessToken = oauthHash.get("access_token");
       const refreshToken = oauthHash.get("refresh_token");
@@ -102,8 +162,22 @@ export default function SafeID() {
           </div>
         )}
 
+        {!booting && page === "landing" && landingNotice && (
+          <div className="w-full max-w-4xl mx-auto px-6 pt-6">
+            <div
+              role="status"
+              className={`rounded-xl border py-3 px-4 text-sm ${
+                landingNotice.tone === "error"
+                  ? "bg-safe-danger/10 border-safe-danger/30 text-safe-danger"
+                  : "bg-safe-accent/10 border-safe-accent/30 text-safe-accent"
+              }`}
+            >
+              {landingNotice.text}
+            </div>
+          </div>
+        )}
         {!booting && page === "landing" && <Landing onNav={goTo} />}
-        {!booting && page === "register" && <Auth mode="register" onSuccess={(u) => onAuth(u)} onSwitch={() => setPage("login")} onOpenPrivacy={openPrivacy} />}
+        {!booting && page === "register" && <Auth mode="register" onSuccess={(u) => onAuth(u)} onSwitch={() => setPage("login")} onGoToLogin={() => setPage("login")} onOpenPrivacy={openPrivacy} />}
         {!booting && page === "login" && <Auth mode="login" notice={notice} onSuccess={(u) => onAuth(u)} onSwitch={() => { setNotice(""); setPage("register"); }} onOpenPrivacy={openPrivacy} />}
         {!booting && page === "privacy" && <Privacy onBack={() => setPage(privacyReturn)} />}
         {!booting && page === "dashboard" && isAuthenticated && <Dashboard user={user} onSignOut={onOut} onDeleteAccount={onAccountDeleted} />}

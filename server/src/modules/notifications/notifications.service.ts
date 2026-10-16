@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Notification, Prisma } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { createHash } from 'crypto';
@@ -97,4 +97,82 @@ export class NotificationsService {
 
     return notification;
   }
+
+  /** Lista paginada por cursor (id), da mais recente para a mais antiga */
+  async list(userId: number, cursor?: number, limit = 20): Promise<{ items: NotificationDto[]; nextCursor: number | null }> {
+    const take = Math.min(Math.max(limit, 1), 50);
+    const rows = await this.prisma.notification.findMany({
+      where: { userId, ...(cursor ? { id: { lt: cursor } } : {}) },
+      orderBy: { id: 'desc' },
+      take: take + 1,
+    });
+
+    const page = rows.slice(0, take);
+    return {
+      items: page.map(toNotificationDto),
+      nextCursor: rows.length > take ? page[page.length - 1].id : null,
+    };
+  }
+
+  async unreadCount(userId: number): Promise<number> {
+    return this.prisma.notification.count({ where: { userId, readAt: null } });
+  }
+
+  /** 404 também quando a notificação existe mas é de outro usuário (não revela que existe) */
+  async markRead(userId: number, id: number): Promise<void> {
+    const notification = await this.prisma.notification.findFirst({
+      where: { id, userId },
+      select: { id: true, readAt: true },
+    });
+
+    if (!notification) {
+      throw new NotFoundException('Notificação não encontrada');
+    }
+
+    if (!notification.readAt) {
+      await this.prisma.notification.update({ where: { id }, data: { readAt: new Date() } });
+    }
+  }
+
+  async markAllRead(userId: number): Promise<void> {
+    await this.prisma.notification.updateMany({
+      where: { userId, readAt: null },
+      data: { readAt: new Date() },
+    });
+  }
+}
+
+export interface NotificationDto {
+  id: number;
+  type: string;
+  title: string;
+  body: string;
+  breachNames: string[];
+  riskScoreBefore: number | null;
+  riskScoreAfter: number | null;
+  classification: string | null;
+  readAt: Date | null;
+  createdAt: Date;
+}
+
+function toNotificationDto(row: Notification): NotificationDto {
+  const payload = (row.payload ?? {}) as {
+    breachNames?: string[];
+    riskScoreBefore?: number | null;
+    riskScoreAfter?: number | null;
+    classification?: string | null;
+  };
+
+  return {
+    id: row.id,
+    type: row.type,
+    title: row.title,
+    body: row.body,
+    breachNames: Array.isArray(payload.breachNames) ? payload.breachNames : [],
+    riskScoreBefore: payload.riskScoreBefore ?? null,
+    riskScoreAfter: payload.riskScoreAfter ?? null,
+    classification: payload.classification ?? null,
+    readAt: row.readAt,
+    createdAt: row.createdAt,
+  };
 }

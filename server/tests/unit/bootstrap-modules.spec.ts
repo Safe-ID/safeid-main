@@ -233,6 +233,8 @@ describe('bootstrap and module wiring coverage', () => {
       ApiBearerAuth: () => () => undefined,
       ApiProperty: () => () => undefined,
       ApiPropertyOptional: () => () => undefined,
+      ApiQuery: () => () => undefined,
+      ApiHeader: () => () => undefined,
       SwaggerModule: {
         createDocument: mockDocument,
         setup: mockSetup,
@@ -319,6 +321,8 @@ describe('bootstrap and module wiring coverage', () => {
       ApiBearerAuth: () => () => undefined,
       ApiProperty: () => () => undefined,
       ApiPropertyOptional: () => () => undefined,
+      ApiQuery: () => () => undefined,
+      ApiHeader: () => () => undefined,
       SwaggerModule: {
         createDocument: mockDocument,
         setup: mockSetup,
