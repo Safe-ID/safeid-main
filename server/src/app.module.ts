@@ -7,6 +7,7 @@ import { HealthModule } from './modules/health/health.module';
 import { ScanModule } from './modules/scan/scan.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MonitoringModule } from './modules/monitoring/monitoring.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 // Infra modules
 import { DatabaseModule } from './infra/database/database.module';
@@ -36,6 +37,7 @@ import { EmailModule } from './infra/email/email.module';
     AuthModule,
     ScanModule,
     MonitoringModule,
+    NotificationsModule,
     HealthModule,
   ],
 })

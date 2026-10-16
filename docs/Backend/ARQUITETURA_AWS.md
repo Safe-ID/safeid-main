@@ -68,9 +68,9 @@ AWS IAM (Identity and Access Management) Roles: Sistema de gestão de identidade
 
 Execution Role (safeid-cluster-ecsTaskExecutionRole): o que o ECS precisa para subir o contêiner. Puxa a imagem do repositório (ECR), escreve logs no Amazon CloudWatch e lê os segredos do SSM (ssm:GetParameters restrito a /safeid/prod/* e kms:Decrypt só via SSM).
 
-Task Role (safeid-task-role): o que o código da aplicação chama na AWS. Começa sem nenhuma permissão; o envio de e-mails pelo SES será a primeira a entrar.
+Task Role (safeid-task-role): o que o código da aplicação chama na AWS. A única permissão é a policy inline safeid-ses-send: ses:SendEmail na identidade do domínio (safeid.app.br) e no configuration set safeid-default, com a condição ses:FromAddress = *@safeid.app.br. Mesmo com a credencial da task, não dá para enviar e-mail em nome de outro domínio.
 
-Segredos no SSM Parameter Store: DATABASE_URL, JWT_SECRET, REFRESH_TOKEN_SECRET, SESSION_SECRET, HIBP_API_KEY e, quando existirem, AI_API_KEY, GOOGLE_CLIENT_SECRET, MONITORING_UNSUBSCRIBE_SECRET e ADMIN_TOKEN ficam como SecureString em /safeid/prod/<NOME> (tier standard, sem custo). A task definition só guarda a referência (bloco secrets); o ECS injeta os valores como variáveis de ambiente quando o contêiner sobe. Quem tem leitura no ECS não vê nenhum segredo.
+Segredos no SSM Parameter Store: DATABASE_URL, JWT_SECRET, REFRESH_TOKEN_SECRET, SESSION_SECRET, HIBP_API_KEY, MONITORING_UNSUBSCRIBE_SECRET e, quando existirem, AI_API_KEY, GOOGLE_CLIENT_SECRET e ADMIN_TOKEN ficam como SecureString em /safeid/prod/<NOME> (tier standard, sem custo). A task definition só guarda a referência (bloco secrets); o ECS injeta os valores como variáveis de ambiente quando o contêiner sobe. Quem tem leitura no ECS não vê nenhum segredo.
 
 6. Frontend e Distribuição de Conteúdo
 
@@ -103,7 +103,7 @@ Pool de conexões do Prisma: a DATABASE_URL de produção leva connection_limit=
 
 Logs estruturados e retenção: o código novo escreve uma linha JSON por evento ({ ts, level, ctx, event, ...campos }) pelo logger de server/src/shared/utils/logger.ts, que também oferece maskEmail para nunca registrar e-mail em texto. O log group /ecs/safeid-cluster guarda 30 dias (antes não havia expiração).
 
-Alertas: o tópico SNS safeid-alerts envia e-mail para o endereço do projeto (ALERTS_EMAIL). Alarmes de infraestrutura: safeid-redis-memory (DatabaseMemoryUsagePercentage acima de 80% por 15 min) e safeid-rds-storage (FreeStorageSpace abaixo de 2 GB). Os alarmes da feature de monitoramento serão acrescentados ao mesmo script.
+Alertas: o tópico SNS safeid-alerts envia e-mail para o endereço do projeto (ALERTS_EMAIL). Alarmes de infraestrutura: safeid-redis-memory (DatabaseMemoryUsagePercentage acima de 80% por 15 min) e safeid-rds-storage (FreeStorageSpace abaixo de 2 GB). Os alarmes do monitoramento de vazamentos estão na seção 10.
 
 Health check: /api/health checa o banco e o Redis (PING com timeout). O ALB continua recebendo HTTP 200 se o banco estiver ok; se só o Redis falhar, a resposta indica status degraded sem derrubar a task.
 
@@ -131,7 +131,8 @@ Os scripts PowerShell ficam em server/ e são versionados. Nenhum valor de ambie
 | push-ecr-image.ps1 | Build e push da imagem para o ECR |
 | put-ssm-secrets.ps1 | Envia os segredos de produção para o SSM. Aceita -EnvFile e -DryRun; recusa valores com localhost e nunca imprime valores |
 | deploy-ecs-fargate.ps1 | Cluster, ALB, roles, task definition (com secrets do SSM) e service |
-| create-alerts.ps1 | Tópico SNS e alarmes. Ações: Create, Test, Delete |
+| create-alerts.ps1 | Tópico SNS, metric filters e alarmes. Ações: Create, Test, Delete |
+| create-ses.ps1 | Identidade SES do domínio, MAIL FROM, configuration set e lista de supressão; imprime os registros DNS. Ações: Create, Status, Delete |
 
 Ordem para aplicar os ajustes de confiabilidade num ambiente que já existe:
 
@@ -140,3 +141,54 @@ Ordem para aplicar os ajustes de confiabilidade num ambiente que já existe:
 3. put-ssm-secrets.ps1 -DryRun, conferir a lista, e rodar sem -DryRun
 4. deploy-ecs-fargate.ps1 (task role, secrets do SSM, stopTimeout, retenção de logs)
 5. create-alerts.ps1, confirmar a assinatura pelo e-mail recebido e rodar create-alerts.ps1 -Action Test
+
+10. Monitoramento Contínuo de Vazamentos
+
+O SafeID passa a acompanhar os e-mails cadastrados (com consentimento) e avisar por e-mail e pelo sino do painel quando um deles aparece num vazamento novo. Tudo roda dentro da mesma task Fargate (APP_ROLE=all), com as filas do BullMQ no ElastiCache.
+
+Fluxo dos jobs (horários em America/Sao_Paulo, configuráveis pelas variáveis *_CRON):
+
+| Job | Quando | O que faz |
+|---|---|---|
+| hibp-plan-check | 02h00 | Lê /subscription/status da HIBP e ajusta o limite de requisições por minuto ao plano contratado |
+| catalog-sync | a cada 6 h | Baixa o catálogo público /breaches e grava os vazamentos novos ou alterados |
+| catalog-probe | de hora em hora (min 5) | Consulta /latestbreach; se surgiu um vazamento novo, antecipa o catalog-sync |
+| monitor-sweep | após um sync com novidades e toda segunda às 03h00 | Enfileira um monitor-check por usuário monitorado, com prioridade baixa para não atrasar os scans manuais |
+| monitor-check | sob demanda | Consulta a HIBP para um usuário, grava os vazamentos novos e cria a notificação e o e-mail |
+| monitoring-reconcile | de hora em hora (min 20) | Reconstrói pelo banco o que se perdeu no Redis: e-mails de alerta pendentes, catalog-sync atrasado (mais de 7 h) e usuários sem checagem há mais de 8 dias |
+| cleanup-unverified | 04h30 | Apaga contas que não confirmaram o e-mail em UNVERIFIED_ACCOUNT_TTL_DAYS |
+
+Os agendamentos são Job Schedulers do BullMQ: ficam no Redis e não duplicam se houver mais de uma task. Cada task com workers grava um heartbeat (worker:heartbeat:<host>, TTL 90 s), e um watchdog recria os schedulers se sumirem.
+
+Amazon SES (e-mails de verificação de conta e alertas):
+
+- Identidade de domínio safeid.app.br com Easy DKIM (3 CNAMEs), MAIL FROM mail.safeid.app.br (MX + SPF) e DMARC começando em p=none. Os registros vão no Registro.br; o create-ses.ps1 -Action Create imprime a tabela pronta.
+- Configuration set safeid-default com métricas de reputação ligadas, e lista de supressão da conta para BOUNCE e COMPLAINT: o SES deixa de enviar sozinho para endereços que voltaram ou reclamaram.
+- Todo e-mail de alerta leva List-Unsubscribe e List-Unsubscribe-Post (one-click, RFC 8058) apontando para APP_URL/api/v1/monitoring/unsubscribe, com token HMAC (MONITORING_UNSUBSCRIBE_SECRET).
+- Sandbox: a conta nova só envia para endereços verificados (200 e-mails/dia, 1/s). Antes de abrir para usuários reais é preciso pedir acesso de produção no console (SES > Account dashboard > Request production access): tipo Transactional, site https://safeid.app.br, descrevendo que os envios são verificação de conta e alertas de vazamento com consentimento explícito no cadastro, opt-out em um clique e supressão automática de bounces e reclamações. O create-ses.ps1 -Action Status mostra ProductionAccessEnabled e a cota.
+- SES_MAX_PER_SECOND (padrão 1) limita o worker de e-mail, abaixo da cota do sandbox.
+
+Variáveis da task definition: o deploy-ecs-fargate.ps1 passa EMAIL_PROVIDER (padrão ses), EMAIL_FROM, AWS_SES_REGION, SES_CONFIGURATION_SET, APP_URL e FRONTEND_URL, além das opcionais do monitoramento (crons, SCHEDULER_TZ, HIBP_RPM_*, MONITORING_*) quando estiverem no .env. O script recusa APP_URL/FRONTEND_URL com localhost, porque eles entram nos links dos e-mails.
+
+Alarmes do monitoramento (create-alerts.ps1, todos no tópico safeid-alerts). Os três primeiros vêm de metric filters sobre os logs JSON do /ecs/safeid-cluster, no namespace SafeID:
+
+| Alarme | Condição | O que indica |
+|---|---|---|
+| safeid-catalog-sync-stale | nenhum evento catalog.sync.done em 7 h (dado ausente conta como alarme) | O catalog-sync parou: schedulers, worker ou HIBP fora |
+| safeid-hibp-auth-failed | hibp.auth_failed ≥ 1 em 5 min | Chave da HIBP inválida ou assinatura vencida |
+| safeid-email-failed | email.failed ≥ 5 em 1 h | Envio pelo SES falhando (permissão, identidade, cota) |
+| safeid-ses-bounce-rate | AWS/SES Reputation.BounceRate > 5% | Risco de suspensão da conta SES (a AWS revisa acima de 5% e suspende perto de 10%) |
+| safeid-ses-complaint-rate | AWS/SES Reputation.ComplaintRate > 0,1% | Usuários marcando os alertas como spam |
+
+Diagnóstico: GET /api/health/jobs devolve a última sincronização do catálogo, o último probe, o plano HIBP em uso, a contagem das filas hibp-check, monitoring e email, os schedulers com o próximo disparo e os heartbeats vivos. Exige o header X-Admin-Token igual ao ADMIN_TOKEN (sem ADMIN_TOKEN a rota responde 403) e não participa do health check do ALB: fila atrasada não deve tirar a API do ar.
+
+Ordem de implantação do monitoramento (quando a conta AWS estiver disponível, depois dos passos da seção 9):
+
+1. create-ses.ps1 -Action Create e cadastrar os registros DNS impressos no Registro.br
+2. create-ses.ps1 -Action Status até DKIM = SUCCESS e MAIL FROM = SUCCESS; pedir o acesso de produção do SES
+3. Gerar MONITORING_UNSUBSCRIBE_SECRET (openssl rand -base64 32) e ADMIN_TOKEN no .env; put-ssm-secrets.ps1 -DryRun e depois sem -DryRun
+4. Snapshot do banco (create-database.ps1 -Action Snapshot); a migration roda na subida do contêiner
+5. deploy-ecs-fargate.ps1 (policy do SES na task role e variáveis novas)
+6. Rodar o backfill dos vazamentos já conhecidos (npm run backfill:user-breaches) pelo bastion, antes de liberar o primeiro sweep, para que ninguém receba alerta de vazamento antigo
+7. create-alerts.ps1 (metric filters e alarmes novos) e create-alerts.ps1 -Action Test
+8. Conferir GET /api/health/jobs: schedulers com next preenchido, heartbeat da task e catalog-sync recente

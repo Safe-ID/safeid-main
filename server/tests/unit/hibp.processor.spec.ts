@@ -27,7 +27,7 @@ jest.mock('ioredis', () =>
 import { Worker } from 'bullmq';
 import Redis from 'ioredis';
 import { HibpProcessor } from '../../src/modules/monitoring/processors/hibp.processor';
-import { HibpRateLimitError } from '../../src/infra/http/hibp.errors';
+import { HibpAuthError, HibpRateLimitError, HibpUnavailableError } from '../../src/infra/http/hibp.errors';
 
 const WorkerMock = Worker as unknown as jest.Mock & { RateLimitError: jest.Mock };
 const RedisMock = Redis as unknown as jest.Mock;
@@ -45,7 +45,12 @@ function lastWorker() {
 }
 
 describe('HibpProcessor', () => {
+  let prismaMock: any;
+  let monitoringQueueMock: any;
+
   beforeEach(() => {
+    prismaMock = { user: { findUnique: jest.fn() } };
+    monitoringQueueMock = { add: jest.fn(async () => ({})) };
     jest.clearAllMocks();
     delete process.env.APP_ROLE;
     jest.spyOn(console, 'log').mockImplementation(() => undefined);
@@ -60,7 +65,7 @@ describe('HibpProcessor', () => {
 
   it('creates the worker with the limiter and concurrency derived from the plan', async () => {
     const plan = createPlan();
-    const processor = new HibpProcessor({ checkAccount: jest.fn() } as any, plan as any);
+    const processor = new HibpProcessor({ checkAccount: jest.fn() } as any, plan as any, prismaMock, monitoringQueueMock);
 
     await processor.onModuleInit();
 
@@ -77,7 +82,7 @@ describe('HibpProcessor', () => {
   it('does not start workers when APP_ROLE=api', async () => {
     process.env.APP_ROLE = 'api';
     const plan = createPlan();
-    const processor = new HibpProcessor({ checkAccount: jest.fn() } as any, plan as any);
+    const processor = new HibpProcessor({ checkAccount: jest.fn() } as any, plan as any, prismaMock, monitoringQueueMock);
 
     await processor.onModuleInit();
     await processor.onModuleDestroy();
@@ -88,7 +93,7 @@ describe('HibpProcessor', () => {
 
   it('keeps the check-hibp contract: stores the breaches in job.data.result', async () => {
     const hibpClient = { checkAccount: jest.fn(async () => [{ Name: 'Adobe' }]) };
-    const processor = new HibpProcessor(hibpClient as any, createPlan() as any);
+    const processor = new HibpProcessor(hibpClient as any, createPlan() as any, prismaMock, monitoringQueueMock);
     const job = { name: 'check-hibp', data: { email: 'user@example.com', emailHash: 'abc' }, updateData: jest.fn() };
 
     await expect(processor.process(job as any)).resolves.toEqual([{ Name: 'Adobe' }]);
@@ -98,7 +103,7 @@ describe('HibpProcessor', () => {
   });
 
   it('rejects jobs without e-mail and unknown job names', async () => {
-    const processor = new HibpProcessor({ checkAccount: jest.fn() } as any, createPlan() as any);
+    const processor = new HibpProcessor({ checkAccount: jest.fn() } as any, createPlan() as any, prismaMock, monitoringQueueMock);
 
     await expect(processor.process({ name: 'check-hibp', data: {} } as any)).rejects.toThrow('Job missing email');
     await expect(processor.process({ name: 'other', data: {} } as any)).rejects.toThrow("Unknown job 'other'");
@@ -110,7 +115,7 @@ describe('HibpProcessor', () => {
         throw new HibpRateLimitError(3000);
       }),
     };
-    const processor = new HibpProcessor(hibpClient as any, createPlan() as any);
+    const processor = new HibpProcessor(hibpClient as any, createPlan() as any, prismaMock, monitoringQueueMock);
     await processor.onModuleInit();
 
     const job = { name: 'check-hibp', data: { email: 'user@example.com' }, updateData: jest.fn() };
@@ -126,14 +131,14 @@ describe('HibpProcessor', () => {
         throw new Error('boom');
       }),
     };
-    const processor = new HibpProcessor(hibpClient as any, createPlan() as any);
+    const processor = new HibpProcessor(hibpClient as any, createPlan() as any, prismaMock, monitoringQueueMock);
 
     await expect(processor.process({ name: 'check-hibp', data: { email: 'a@b.com' } } as any)).rejects.toThrow('boom');
   });
 
   it('logs failed jobs without the e-mail', async () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-    const processor = new HibpProcessor({ checkAccount: jest.fn() } as any, createPlan() as any);
+    const processor = new HibpProcessor({ checkAccount: jest.fn() } as any, createPlan() as any, prismaMock, monitoringQueueMock);
     await processor.onModuleInit();
 
     const failedHandler = lastWorker().on.mock.calls.find((call: any[]) => call[0] === 'failed')[1];
@@ -146,7 +151,7 @@ describe('HibpProcessor', () => {
 
   it('rebuilds the worker with the new limits when the plan changes', async () => {
     const plan = createPlan();
-    const processor = new HibpProcessor({ checkAccount: jest.fn() } as any, plan as any);
+    const processor = new HibpProcessor({ checkAccount: jest.fn() } as any, plan as any, prismaMock, monitoringQueueMock);
     await processor.onModuleInit();
     const firstWorker = lastWorker();
 
@@ -168,7 +173,7 @@ describe('HibpProcessor', () => {
   it('logs when the rebuild after a plan change fails', async () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
     const plan = createPlan();
-    const processor = new HibpProcessor({ checkAccount: jest.fn() } as any, plan as any);
+    const processor = new HibpProcessor({ checkAccount: jest.fn() } as any, plan as any, prismaMock, monitoringQueueMock);
     await processor.onModuleInit();
 
     plan.reload.mockRejectedValueOnce(new Error('redis down'));
@@ -179,7 +184,7 @@ describe('HibpProcessor', () => {
   });
 
   it('closes the subscriber, the worker and its connection on shutdown', async () => {
-    const processor = new HibpProcessor({ checkAccount: jest.fn() } as any, createPlan() as any);
+    const processor = new HibpProcessor({ checkAccount: jest.fn() } as any, createPlan() as any, prismaMock, monitoringQueueMock);
     await processor.onModuleInit();
     const worker = lastWorker();
     const [workerConnection, subscriber] = RedisMock.mock.instances as any[];
@@ -189,5 +194,81 @@ describe('HibpProcessor', () => {
     expect(subscriber.quit).toHaveBeenCalledTimes(1);
     expect(worker.close).toHaveBeenCalledTimes(1);
     expect(workerConnection.quit).toHaveBeenCalledTimes(1);
+  });
+
+  describe('monitor-check', () => {
+    const verifiedUser = { email: 'user@example.com', monitoringEnabled: true, emailVerifiedAt: new Date() };
+
+    it('runs the strict truncated lookup and forwards only userId and names to the monitoring queue', async () => {
+      prismaMock.user.findUnique.mockResolvedValue(verifiedUser);
+      const hibpClient = {
+        checkAccount: jest.fn(),
+        getBreachedAccountStrict: jest.fn(async () => [{ Name: 'Adobe' }, { Name: 'LinkedIn' }, { Name: 'Adobe' }, {}]),
+      };
+      const processor = new HibpProcessor(hibpClient as any, createPlan() as any, prismaMock, monitoringQueueMock);
+
+      await expect(
+        processor.process({ id: '42', name: 'monitor-check', data: { userId: 7, reason: 'WEEKLY' } } as any),
+      ).resolves.toEqual({ breaches: 2 });
+
+      expect(hibpClient.getBreachedAccountStrict).toHaveBeenCalledWith('user@example.com', { truncate: true });
+      expect(hibpClient.checkAccount).not.toHaveBeenCalled();
+      const [name, data, options] = monitoringQueueMock.add.mock.calls[0];
+      expect(name).toBe('monitor-process');
+      expect(data).toEqual({ userId: 7, breachNames: ['Adobe', 'LinkedIn'], checkedAt: expect.any(String) });
+      expect(JSON.stringify(data)).not.toContain('user@example.com');
+      expect(options).toEqual({ jobId: 'process-42', attempts: 3, backoff: { type: 'exponential', delay: 30000 } });
+    });
+
+    it.each([
+      ['deleted', null],
+      ['opted out', { ...verifiedUser, monitoringEnabled: false }],
+      ['unverified', { ...verifiedUser, emailVerifiedAt: null }],
+    ])('skips %s accounts without calling the HIBP', async (_label, user) => {
+      prismaMock.user.findUnique.mockResolvedValue(user);
+      const hibpClient = { getBreachedAccountStrict: jest.fn() };
+      const processor = new HibpProcessor(hibpClient as any, createPlan() as any, prismaMock, monitoringQueueMock);
+
+      await expect(processor.process({ id: '1', name: 'monitor-check', data: { userId: 7 } } as any)).resolves.toEqual({
+        skipped: true,
+      });
+      expect(hibpClient.getBreachedAccountStrict).not.toHaveBeenCalled();
+      expect(monitoringQueueMock.add).not.toHaveBeenCalled();
+    });
+
+    it('never turns a HIBP error into "no breaches": it rethrows for a retry', async () => {
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+      prismaMock.user.findUnique.mockResolvedValue(verifiedUser);
+      const hibpClient = {
+        getBreachedAccountStrict: jest
+          .fn<() => Promise<any[]>>()
+          .mockRejectedValueOnce(new HibpUnavailableError('down'))
+          .mockRejectedValueOnce(new HibpAuthError('unauthorized', 401)),
+      };
+      const processor = new HibpProcessor(hibpClient as any, createPlan() as any, prismaMock, monitoringQueueMock);
+      const job = { id: '1', name: 'monitor-check', data: { userId: 7 } } as any;
+
+      await expect(processor.process(job)).rejects.toBeInstanceOf(HibpUnavailableError);
+      await expect(processor.process(job)).rejects.toBeInstanceOf(HibpAuthError);
+
+      expect(monitoringQueueMock.add).not.toHaveBeenCalled();
+      expect(JSON.parse(errorSpy.mock.calls.at(-1)?.[0] as string)).toMatchObject({ event: 'hibp.auth_failed', status: 401 });
+    });
+
+    it('pauses the queue on 429 during the monitoring check', async () => {
+      prismaMock.user.findUnique.mockResolvedValue(verifiedUser);
+      const hibpClient = {
+        getBreachedAccountStrict: jest.fn(async () => {
+          throw new HibpRateLimitError(5000);
+        }),
+      };
+      const processor = new HibpProcessor(hibpClient as any, createPlan() as any, prismaMock, monitoringQueueMock);
+      await processor.onModuleInit();
+
+      await expect(processor.process({ id: '1', name: 'monitor-check', data: { userId: 7 } } as any)).rejects.toBe(
+        rateLimitError,
+      );
+      expect(lastWorker().rateLimit).toHaveBeenCalledWith(5000);
+    });
   });
 });
