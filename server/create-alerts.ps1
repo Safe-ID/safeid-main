@@ -1,5 +1,5 @@
-﻿# Tópico de alertas (SNS por e-mail) e alarmes de infraestrutura do SafeID (I.7).
-# Os alarmes da feature de monitoramento (T7.11) entram neste mesmo script.
+﻿# Tópico de alertas (SNS por e-mail), alarmes de infraestrutura (Redis, RDS) e alarmes do
+# monitoramento de vazamentos: metric filters sobre os logs JSON da aplicação + reputação do SES.
 #
 # Uso:
 #   .\create-alerts.ps1                 # cria/atualiza o tópico, a assinatura e os alarmes
@@ -25,9 +25,28 @@ $RedisClusterId = Get-EnvOrDefault -Name 'REDIS_CLUSTER_ID' -Default 'safeid-red
 $RedisNodeId = Get-EnvOrDefault -Name 'REDIS_NODE_ID' -Default '0001'
 $DbInstanceIdentifier = Get-EnvOrDefault -Name 'DB_INSTANCE_IDENTIFIER' -Default 'safeid-pg'
 
+$ClusterName = Get-EnvOrDefault -Name 'ECS_CLUSTER_NAME' -Default 'safeid-cluster'
+$LogGroupName = "/ecs/$ClusterName"
+$MetricNamespace = "SafeID"
+
 $RedisMemoryAlarm = "safeid-redis-memory"
 $RdsStorageAlarm = "safeid-rds-storage"
-$AlarmNames = @($RedisMemoryAlarm, $RdsStorageAlarm)
+$CatalogSyncAlarm = "safeid-catalog-sync-stale"
+$HibpAuthAlarm = "safeid-hibp-auth-failed"
+$EmailFailedAlarm = "safeid-email-failed"
+$SesBounceAlarm = "safeid-ses-bounce-rate"
+$SesComplaintAlarm = "safeid-ses-complaint-rate"
+$AlarmNames = @(
+    $RedisMemoryAlarm, $RdsStorageAlarm, $CatalogSyncAlarm, $HibpAuthAlarm,
+    $EmailFailedAlarm, $SesBounceAlarm, $SesComplaintAlarm
+)
+
+# Metric filters sobre os eventos do logger estruturado (uma linha JSON por evento)
+$MetricFilters = @(
+    @{ Name = "safeid-catalog-sync-done"; Metric = "CatalogSyncDone"; Event = "catalog.sync.done" },
+    @{ Name = "safeid-hibp-auth-failed"; Metric = "HibpAuthFailed"; Event = "hibp.auth_failed" },
+    @{ Name = "safeid-email-failed"; Metric = "EmailFailed"; Event = "email.failed" }
+)
 
 function Ensure-Topic {
     # create-topic é idempotente: devolve o ARN do tópico se ele já existir
@@ -96,31 +115,39 @@ function Set-Alarm {
         [Parameter(Mandatory = $true)] [string]$Description,
         [Parameter(Mandatory = $true)] [string]$Namespace,
         [Parameter(Mandatory = $true)] [string]$MetricName,
-        [Parameter(Mandatory = $true)] [string[]]$Dimensions,
+        [string[]]$Dimensions = @(),
         [Parameter(Mandatory = $true)] [string]$Statistic,
         [Parameter(Mandatory = $true)] [int]$PeriodSeconds,
         [Parameter(Mandatory = $true)] [int]$EvaluationPeriods,
         [Parameter(Mandatory = $true)] [double]$Threshold,
         [Parameter(Mandatory = $true)] [string]$ComparisonOperator,
-        [Parameter(Mandatory = $true)] [string]$TopicArn
+        [Parameter(Mandatory = $true)] [string]$TopicArn,
+        [ValidateSet("notBreaching", "breaching", "missing", "ignore")]
+        [string]$TreatMissingData = "notBreaching"
     )
 
+    $arguments = @(
+        "cloudwatch", "put-metric-alarm",
+        "--alarm-name", $Name,
+        "--alarm-description", $Description,
+        "--namespace", $Namespace,
+        "--metric-name", $MetricName,
+        "--statistic", $Statistic,
+        "--period", "$PeriodSeconds",
+        "--evaluation-periods", "$EvaluationPeriods",
+        "--threshold", "$Threshold",
+        "--comparison-operator", $ComparisonOperator,
+        "--treat-missing-data", $TreatMissingData,
+        "--alarm-actions", $TopicArn,
+        "--ok-actions", $TopicArn,
+        "--region", $AwsRegion
+    )
+    if ($Dimensions.Count -gt 0) {
+        $arguments += @("--dimensions") + $Dimensions
+    }
+
     # put-metric-alarm cria ou substitui: seguro para rodar de novo
-    aws cloudwatch put-metric-alarm `
-        --alarm-name $Name `
-        --alarm-description $Description `
-        --namespace $Namespace `
-        --metric-name $MetricName `
-        --dimensions $Dimensions `
-        --statistic $Statistic `
-        --period $PeriodSeconds `
-        --evaluation-periods $EvaluationPeriods `
-        --threshold $Threshold `
-        --comparison-operator $ComparisonOperator `
-        --treat-missing-data notBreaching `
-        --alarm-actions $TopicArn `
-        --ok-actions $TopicArn `
-        --region $AwsRegion
+    & aws @arguments
 
     if ($LASTEXITCODE -ne 0) {
         throw "Falha ao criar o alarme '$Name'."
@@ -129,9 +156,47 @@ function Set-Alarm {
     Write-Host "Alarme pronto: $Name"
 }
 
+# Conta cada linha de log com o evento: 1 quando acontece, 0 nas outras linhas
+function Ensure-MetricFilters {
+    aws logs describe-log-groups --log-group-name-prefix $LogGroupName --query "logGroups[?logGroupName=='$LogGroupName'] | length(@)" --output text > $null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Falha ao consultar o log group '$LogGroupName'. Rode o deploy-ecs-fargate.ps1 antes."
+    }
+
+    foreach ($filter in $MetricFilters) {
+        # Via arquivo JSON: no PowerShell 5.1, aspas dentro de argumentos de executáveis se perdem
+        $filterInput = @{
+            logGroupName          = $LogGroupName
+            filterName            = $filter.Name
+            filterPattern         = '{ $.event = "' + $filter.Event + '" }'
+            metricTransformations = @(
+                @{
+                    metricName      = $filter.Metric
+                    metricNamespace = $MetricNamespace
+                    metricValue     = "1"
+                    defaultValue    = 0
+                }
+            )
+        }
+        $filterInputPath = Join-Path $env:TEMP "$($filter.Name)-metric-filter.json"
+        [System.IO.File]::WriteAllText($filterInputPath, ($filterInput | ConvertTo-Json -Depth 5), [System.Text.UTF8Encoding]::new($false))
+
+        aws logs put-metric-filter `
+            --cli-input-json ("file://" + ($filterInputPath -replace '\\', '/')) `
+            --region $AwsRegion
+
+        if ($LASTEXITCODE -ne 0) {
+            throw "Falha ao criar o metric filter '$($filter.Name)'."
+        }
+
+        Write-Host "Metric filter pronto: $($filter.Name) ($($filter.Event))"
+    }
+}
+
 function Create-Alerts {
     $topicArn = Ensure-Topic
     Ensure-EmailSubscription -TopicArn $topicArn
+    Ensure-MetricFilters
 
     # Memória do Redis: com noeviction, encher a memória faz o Redis recusar escritas
     Set-Alarm `
@@ -159,6 +224,72 @@ function Create-Alerts {
         -EvaluationPeriods 2 `
         -Threshold 2147483648 `
         -ComparisonOperator "LessThanThreshold" `
+        -TopicArn $topicArn
+
+    # Monitoramento parado: nenhum catalog-sync concluído em 7 h (o normal é a cada 6 h).
+    # Sem log nenhum também alarma (task fora do ar).
+    Set-Alarm `
+        -Name $CatalogSyncAlarm `
+        -Description "Nenhum catalog-sync concluído nas últimas 7 horas: o monitoramento pode estar parado" `
+        -Namespace $MetricNamespace `
+        -MetricName "CatalogSyncDone" `
+        -Statistic "Sum" `
+        -PeriodSeconds 25200 `
+        -EvaluationPeriods 1 `
+        -Threshold 1 `
+        -ComparisonOperator "LessThanThreshold" `
+        -TreatMissingData "breaching" `
+        -TopicArn $topicArn
+
+    # Chave da HIBP inválida ou plano expirado: o monitoramento para de checar usuários
+    Set-Alarm `
+        -Name $HibpAuthAlarm `
+        -Description "HIBP recusou a chave (401/403): plano expirado ou chave inválida" `
+        -Namespace $MetricNamespace `
+        -MetricName "HibpAuthFailed" `
+        -Statistic "Sum" `
+        -PeriodSeconds 300 `
+        -EvaluationPeriods 1 `
+        -Threshold 1 `
+        -ComparisonOperator "GreaterThanOrEqualToThreshold" `
+        -TopicArn $topicArn
+
+    Set-Alarm `
+        -Name $EmailFailedAlarm `
+        -Description "5 ou mais e-mails (verificação/alerta) falharam em definitivo na última hora" `
+        -Namespace $MetricNamespace `
+        -MetricName "EmailFailed" `
+        -Statistic "Sum" `
+        -PeriodSeconds 3600 `
+        -EvaluationPeriods 1 `
+        -Threshold 5 `
+        -ComparisonOperator "GreaterThanOrEqualToThreshold" `
+        -TopicArn $topicArn
+
+    # Reputação do SES (métricas da conta, sem dimensões). Acima de 5% de bounce ou 0,1% de
+    # reclamação a AWS começa a revisar a conta e pode pausar o envio.
+    Set-Alarm `
+        -Name $SesBounceAlarm `
+        -Description "Taxa de bounce do SES acima de 5%" `
+        -Namespace "AWS/SES" `
+        -MetricName "Reputation.BounceRate" `
+        -Statistic "Maximum" `
+        -PeriodSeconds 3600 `
+        -EvaluationPeriods 1 `
+        -Threshold 0.05 `
+        -ComparisonOperator "GreaterThanThreshold" `
+        -TopicArn $topicArn
+
+    Set-Alarm `
+        -Name $SesComplaintAlarm `
+        -Description "Taxa de reclamação (spam) do SES acima de 0,1%" `
+        -Namespace "AWS/SES" `
+        -MetricName "Reputation.ComplaintRate" `
+        -Statistic "Maximum" `
+        -PeriodSeconds 3600 `
+        -EvaluationPeriods 1 `
+        -Threshold 0.001 `
+        -ComparisonOperator "GreaterThanThreshold" `
         -TopicArn $topicArn
 
     Write-Host ""
@@ -189,6 +320,13 @@ function Delete-Alerts {
 
     if ($LASTEXITCODE -ne 0) {
         throw "Falha ao remover os alarmes."
+    }
+
+    foreach ($filter in $MetricFilters) {
+        aws logs delete-metric-filter `
+            --log-group-name $LogGroupName `
+            --filter-name $filter.Name `
+            --region $AwsRegion 2>$null
     }
 
     $topicArn = Get-TopicArn

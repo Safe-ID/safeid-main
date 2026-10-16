@@ -9,6 +9,8 @@ import { MonitoringReconcileService } from './services/monitoring-reconcile.serv
 import { MonitoringSchedulerService } from './services/monitoring-scheduler.service';
 import { MonitoringPreferencesService } from './services/monitoring-preferences.service';
 import { MonitoringController } from './monitoring.controller';
+import { JobsHealthController } from './jobs-health.controller';
+import { JobsHealthService } from './services/jobs-health.service';
 import { ScanModule } from '../scan/scan.module';
 import { BreachesModule } from '../breaches/breaches.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -20,7 +22,7 @@ import { AuthModule } from '../auth/auth.module';
  */
 @Module({
   imports: [DatabaseModule, ScanModule, BreachesModule, NotificationsModule, AuthModule],
-  controllers: [MonitoringController],
+  controllers: [MonitoringController, JobsHealthController],
   providers: [
     HibpProcessor,
     MonitoringProcessor,
@@ -30,6 +32,7 @@ import { AuthModule } from '../auth/auth.module';
     MonitoringReconcileService,
     MonitoringSchedulerService,
     MonitoringPreferencesService,
+    JobsHealthService,
   ],
   exports: [HibpProcessor, BreachCatalogService, MonitoringService],
 })

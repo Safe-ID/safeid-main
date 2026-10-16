@@ -152,13 +152,15 @@ $SsmRequiredSecrets = @(
     'JWT_SECRET',
     'REFRESH_TOKEN_SECRET',
     'SESSION_SECRET',
-    'HIBP_API_KEY'
+    'HIBP_API_KEY',
+    # Assina o link de descadastro dos alertas de vazamento
+    'MONITORING_UNSUBSCRIBE_SECRET'
 )
 
 # Enviados só quando existem (ex.: os do monitoramento entram com a feature)
 $SsmOptionalSecrets = @(
     'AI_API_KEY',
     'GOOGLE_CLIENT_SECRET',
-    'MONITORING_UNSUBSCRIBE_SECRET',
+    # Protege GET /api/health/jobs
     'ADMIN_TOKEN'
 )

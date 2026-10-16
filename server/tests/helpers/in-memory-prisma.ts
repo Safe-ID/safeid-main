@@ -293,7 +293,17 @@ export class FakeQueue {
 
   getJobCounts = async (...types: string[]) => Object.fromEntries(types.map(type => [type, type === 'waiting' ? this.jobs.length : 0]));
 
-  upsertJobScheduler = async () => ({});
+  readonly schedulers: Array<{ key: string; name: string; pattern?: string; tz?: string; next?: number }> = [];
+
+  upsertJobScheduler = async (key: string, repeat: { pattern?: string; tz?: string }, template: { name: string }) => {
+    const existing = this.schedulers.find(item => item.key === key);
+    const next = { key, name: template.name, pattern: repeat.pattern, tz: repeat.tz, next: Date.UTC(2026, 9, 15, 13, 5) };
+    if (existing) Object.assign(existing, next);
+    else this.schedulers.push(next);
+    return {};
+  };
+
+  getJobSchedulers = async () => this.schedulers.map(item => ({ ...item }));
 }
 
 export function createFakeRedis() {
@@ -318,5 +328,10 @@ export function createFakeRedis() {
     },
     expire: async () => 1,
     publish: async () => 1,
+    // SCAN de uma página só, com MATCH no formato prefixo*
+    scan: async (_cursor: string, _match: string, pattern: string) => {
+      const prefix = pattern.replace(/\*$/, '');
+      return ['0', Array.from(store.keys()).filter(key => key.startsWith(prefix))];
+    },
   };
 }
