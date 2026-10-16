@@ -153,6 +153,21 @@ Conteúdo:
 
 ---
 
+### 10. ☁️ [ARQUITETURA_AWS.md](./ARQUITETURA_AWS.md)
+**Infraestrutura AWS e operação das cargas em segundo plano**
+
+Conteúdo:
+- rede, ECS Fargate, ALB, RDS, ElastiCache e CloudFront;
+- task role, segredos no SSM e scripts de provisionamento;
+- monitoramento contínuo de vazamentos: jobs agendados, Amazon SES e alarmes;
+- `GET /api/health/jobs` para diagnóstico;
+- ordem de implantação quando a conta AWS estiver disponível.
+
+**Público-alvo:** DevOps / SRE, Tech Leads
+**Tempo de leitura:** 15-20 minutos
+
+---
+
 ## 🗺️ MAPA DE NAVEGAÇÃO
 
 ```
@@ -200,6 +215,7 @@ Você está aqui → ÍNDICE (você está lendo)
 1. Leia: [RESUMO_EXECUTIVO.md](./RESUMO_EXECUTIVO.md) - Seção DevOps (5 min)
 2. Estude: [EXEMPLOS_PRATICOS.md](./EXEMPLOS_PRATICOS.md) - Docker (10 min)
 3. Revise: [CHECKLIST_MATURIDADE.md](./CHECKLIST_MATURIDADE.md) - Deployment (10 min)
+4. Siga: [ARQUITETURA_AWS.md](./ARQUITETURA_AWS.md) - Scripts, monitoramento e ordem de implantação (15 min)
 
 ---
 
@@ -246,10 +262,12 @@ Você está aqui → ÍNDICE (você está lendo)
 - Docker → [EXEMPLOS_PRATICOS.md](./EXEMPLOS_PRATICOS.md#10-docker-compose---ambiente-local)
 - Estratégia → [TECNOLOGIAS_E_BOAS_PRATICAS.md](./TECNOLOGIAS_E_BOAS_PRATICAS.md#-containerização)
 - Checklist → [CHECKLIST_MATURIDADE.md](./CHECKLIST_MATURIDADE.md#-deployment)
+- Infraestrutura AWS, SES e alarmes → [ARQUITETURA_AWS.md](./ARQUITETURA_AWS.md)
 
 ### 🔌 Integração Frontend ↔ API
 - Mapa completo → [MATRIZ_CONSUMO_API_FRONTEND.md](./MATRIZ_CONSUMO_API_FRONTEND.md)
 - Plano de execução → [PLANO_INTEGRACAO_FRONTEND_API.md](./PLANO_INTEGRACAO_FRONTEND_API.md)
+- Cadastro com verificação, notificações e monitoramento → [MATRIZ_CONSUMO_API_FRONTEND.md](./MATRIZ_CONSUMO_API_FRONTEND.md#8-monitoramento-de-vazamentos-contrato-atual)
 
 ---
 
@@ -345,6 +363,7 @@ CHECKLIST_MATURIDADE.md (Qualidade)
 | Data | Versão | Mudanças |
 |------|--------|----------|
 | 12/05/2026 | 1.0 | Versão inicial com 4 documentos |
+| 16/10/2026 | 1.1 | Monitoramento de vazamentos: ARQUITETURA_AWS.md (SES, jobs, alarmes) e novos contratos na matriz da API |
 | - | - | - |
 
 ---
