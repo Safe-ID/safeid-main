@@ -1,11 +1,10 @@
 /**
  * RiskEngine - Motor de Cálculo de Risco Cibernético
- * 
- * Implementa fórmula matemática de avaliação ponderada conforme especificação.
- * Cada vazamento é analisado segundo:
- * - Criticidade dos dados (Data Classes)
- * - Fator de Recência (quando ocorreu)
- * - Fator de Verificação (HIBP confirmado?)
+ *
+ * Implementa o cálculo determinístico do Risk Score (RN02 e RN03):
+ * - Cada vazamento soma os pesos das Data Classes expostas: sum(w_i)
+ * - O fator temporal T(t_j) reduz o peso de vazamentos antigos: S_j = T(t_j) * sum(w_i)
+ * - O score bruto é normalizado em [0, 100]: min(100, S_bruto / S_MAX * 100)
  */
 
 interface DataClassWeight {
@@ -22,99 +21,133 @@ interface BreachData {
 
 interface SubScore {
   breach: string;
-  maxPClass: number;
-  recencyFactor: number;
-  confidenceFactor: number;
+  ageInMonths: number;
+  temporalFactor: number;
+  rawScore: number;
   score: number;
 }
 
+export type RiskClassification = 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
+
 interface RiskCalculation {
   totalScore: number;
-  classification: 'LOW' | 'MODERATE' | 'CRITICAL';
+  classification: RiskClassification;
   subscores: SubScore[];
   breachesFound: number;
 }
 
+// Constante de saturação: score bruto a partir do qual o risco chega a 100
+const S_MAX = 50;
+
+// Peso usado para Data Classes que não estão no dicionário
+const DEFAULT_WEIGHT = 3;
+
+/**
+ * Pesos das Data Classes (Tabela 7 da documentação), com os nomes exatos
+ * que a API do HIBP devolve em DataClasses
+ */
+const DATA_CLASS_WEIGHTS: DataClassWeight = {
+  // Nível 4: Altíssima
+  'Passwords': 10,
+  'Credit cards': 10,
+  'Credit card CVV': 10,
+  'Bank account numbers': 10,
+  'Financial transactions': 10,
+
+  // Nível 3: Alta
+  'Partial credit card data': 8,
+  'Government issued IDs': 8,
+  'Social security numbers': 8,
+  'Passport numbers': 8,
+  "Driver's licenses": 8,
+  'Auth tokens': 8,
+  'Biometric data': 8,
+  'Security questions and answers': 8,
+  'Password hints': 7,
+
+  // Nível 2: Média
+  'Phone numbers': 5,
+  'Physical addresses': 5,
+  'Dates of birth': 4,
+
+  // Nível 1: Baixa
+  'Usernames': 3,
+  'Names': 3,
+  'Email addresses': 2,
+  'IP addresses': 2,
+  'Geographic locations': 2,
+  'User agent details': 1,
+  'Browser user agent details': 1,
+  'Device information': 1,
+};
+
 export class RiskEngine {
-  /**
-   * Dicionário Hierárquico de Data Classes com pesos
-   */
-  private readonly dataClassWeights: DataClassWeight = {
-    'Passwords': 10,
-    'Banking Information': 10,
-    'Credit Cards': 10,
-    'Social Security Numbers': 10,
-    'Phone Numbers': 7,
-    'Physical Addresses': 7,
-    'Passport Numbers': 7,
-    'Names': 4,
-    'Date of Birth': 4,
-    'Job Titles': 4,
-    'Employers': 4,
-    'Email Addresses': 1,
-    'Usernames': 1,
-    'IP Addresses': 1,
-  };
+  // Busca sem diferenciar maiúsculas, para não perder peso por variação de grafia
+  private readonly dataClassWeights: DataClassWeight = Object.fromEntries(
+    Object.entries(DATA_CLASS_WEIGHTS).map(([dataClass, weight]) => [dataClass.toLowerCase(), weight]),
+  );
 
   /**
-   * Calcula recency factor baseado em meses desde o breach
+   * Calcula o fator temporal T(t_j) conforme RN03:
+   * t_j <= 24 meses -> 1.0
+   * 24 < t_j <= 60 meses -> 0.7
+   * t_j > 60 meses -> 0.4
    */
-  private calculateRecencyFactor(breachDateStr: string): number {
+  private calculateTemporalFactor(breachDateStr: string): { factor: number; ageInMonths: number } {
     const breachDate = new Date(breachDateStr);
-    const now = new Date();
-    
-    const diffTime = Math.abs(now.getTime() - breachDate.getTime());
-    const diffMonths = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 30));
 
-    if (diffMonths < 12) {
-      return 1.5; // Risco agudo, senha provavelmente ainda ativa
-    } else if (diffMonths <= 36) {
-      return 1.0;
-    } else {
-      return 0.6; // Maioria dos usuários já rotacionou credenciais
+    // Data inválida conta como recente, para não reduzir o risco por falta de informação
+    if (Number.isNaN(breachDate.getTime())) {
+      return { factor: 1.0, ageInMonths: 0 };
     }
+
+    const now = new Date();
+    const diffInMonths =
+      (now.getFullYear() - breachDate.getFullYear()) * 12 + (now.getMonth() - breachDate.getMonth());
+    const ageInMonths = Math.max(0, diffInMonths);
+
+    if (ageInMonths <= 24) {
+      return { factor: 1.0, ageInMonths };
+    } else if (ageInMonths <= 60) {
+      return { factor: 0.7, ageInMonths };
+    }
+    return { factor: 0.4, ageInMonths };
   }
 
-  /**
-   * Calcula confidence factor baseado em se breach foi verificado pelo HIBP
-   */
-  private calculateConfidenceFactor(isVerified: boolean): number {
-    return isVerified ? 1.0 : 0.5;
-  }
-
-  /**
-   * Extrai o peso máximo (mais crítico) das Data Classes de um vazamento
-   */
-  private getMaxDataClassWeight(dataClasses: string[]): number {
-    return dataClasses.reduce((max, dataClass) => {
-      const weight = this.dataClassWeights[dataClass] || 0;
-      return Math.max(max, weight);
-    }, 0);
+  private getDataClassWeight(dataClass: string): number {
+    return this.dataClassWeights[dataClass.toLowerCase()] ?? DEFAULT_WEIGHT;
   }
 
   /**
    * Calcula o SubScore para um vazamento individual
-   * Formula: Si = max(Pclasses) × Frecencia × Fconfianca
+   * Formula: S_j = T(t_j) * sum(w_i)
    */
   private calculateSubScore(breach: BreachData): SubScore {
-    const maxPClass = this.getMaxDataClassWeight(breach.DataClasses);
-    const recencyFactor = this.calculateRecencyFactor(breach.BreachDate);
-    const confidenceFactor = this.calculateConfidenceFactor(breach.IsVerified);
-
-    const score = maxPClass * recencyFactor * confidenceFactor;
+    const { factor: temporalFactor, ageInMonths } = this.calculateTemporalFactor(breach.BreachDate);
+    const rawScore = (breach.DataClasses || []).reduce(
+      (sum, dataClass) => sum + this.getDataClassWeight(dataClass),
+      0,
+    );
 
     return {
       breach: breach.Name,
-      maxPClass,
-      recencyFactor,
-      confidenceFactor,
-      score,
+      ageInMonths,
+      temporalFactor,
+      rawScore,
+      score: Number((temporalFactor * rawScore).toFixed(2)),
     };
   }
 
+  private classify(score: number): RiskClassification {
+    if (score >= 76) return 'CRITICAL';
+    if (score >= 51) return 'HIGH';
+    if (score >= 26) return 'MODERATE';
+    return 'LOW';
+  }
+
   /**
-   * Calcula Risk Score final agregando todos os SubScores
-   * Com teto máximo de 100 para evitar scores absurdos
+   * Calcula o Risk Score final normalizado em [0, 100]
+   * Formula: RiskScore = min(100, (S_bruto / S_MAX) * 100)
    */
   calculate(breaches: BreachData[]): RiskCalculation {
     if (!breaches || breaches.length === 0) {
@@ -130,25 +163,12 @@ export class RiskEngine {
       this.calculateSubScore(breach)
     );
 
-    // Soma todos os subscores com teto de 100
-    const totalScore = Math.min(
-      subscores.reduce((sum, sub) => sum + sub.score, 0),
-      100
-    );
-
-    // Classificação
-    let classification: 'LOW' | 'MODERATE' | 'CRITICAL';
-    if (totalScore >= 71) {
-      classification = 'CRITICAL';
-    } else if (totalScore >= 31) {
-      classification = 'MODERATE';
-    } else {
-      classification = 'LOW';
-    }
+    const rawTotal = subscores.reduce((sum, sub) => sum + sub.score, 0);
+    const totalScore = Math.min(100, Math.round((rawTotal / S_MAX) * 100));
 
     return {
-      totalScore: Math.round(totalScore),
-      classification,
+      totalScore,
+      classification: this.classify(totalScore),
       subscores,
       breachesFound: breaches.length,
     };

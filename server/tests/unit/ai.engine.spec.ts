@@ -137,7 +137,7 @@ describe('AIEngine', () => {
         DataClasses: ['Emails'],
         IsVerified: false,
       }],
-      riskScore: 55,
+      riskScore: 45,
     });
 
     expect(result.urgency_level).toBe('MEDIUM');
@@ -254,10 +254,14 @@ describe('AIEngine', () => {
       IsVerified: true,
     };
 
-    const atSeventy = await engine.generateRecommendation({ breaches: [breach], riskScore: 70 });
-    const low = await engine.generateRecommendation({ breaches: [breach], riskScore: 30 });
+    const high = await engine.generateRecommendation({ breaches: [breach], riskScore: 51 });
+    const atFifty = await engine.generateRecommendation({ breaches: [breach], riskScore: 50 });
+    const moderate = await engine.generateRecommendation({ breaches: [breach], riskScore: 26 });
+    const low = await engine.generateRecommendation({ breaches: [breach], riskScore: 25 });
 
-    expect(atSeventy.urgency_level).toBe('MEDIUM');
+    expect(high.urgency_level).toBe('HIGH');
+    expect(atFifty.urgency_level).toBe('MEDIUM');
+    expect(moderate.urgency_level).toBe('MEDIUM');
     expect(low.urgency_level).toBe('LOW');
     expect(low.executive_summary).toContain('dados não especificados');
   });
