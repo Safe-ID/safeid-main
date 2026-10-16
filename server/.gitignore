@@ -21,12 +21,4 @@ coverage
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
 
-#scripts aws CLI
-
-create-database.ps1
-create-redis.ps1
-create-nat-gateway.ps1
-create-bastion-ssm.ps1
-connect-bastion-ssm.ps1
-push-ecr-image.ps1
-deploy-ecs-fargate.ps1
+# Os scripts AWS (*.ps1) são versionados: IDs, senhas e e-mails ficam no .env

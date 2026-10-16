@@ -3,7 +3,14 @@ import { W, translateDataClass, severityFromWeight } from "./safeidData";
 import RiskCircle from "./RiskCircle";
 import BreachCard from "./BreachCard";
 import AIPanel from "./AIPanel";
-import { createScan, deleteAccount, fetchMe } from "../lib/api";
+import MonitoringSettings from "./MonitoringSettings";
+import {
+  NOTIFICATIONS_UPDATED_EVENT,
+  OPEN_DASHBOARD_TAB_EVENT,
+  createScan,
+  deleteAccount,
+  fetchMe,
+} from "../lib/api";
 
 function resolveLogoPath(logoPath) {
   if (!logoPath || typeof logoPath !== "string") return "";
@@ -46,6 +53,28 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
     };
     load();
     return () => { active = false; };
+  }, []);
+
+  // Sino: clicar numa notificação abre a aba de vazamentos; alerta novo recarrega o perfil,
+  // porque o monitoramento já recalculou o score e o plano de ação
+  useEffect(() => {
+    const onOpenTab = (event) => {
+      if (event.detail) setTab(event.detail);
+    };
+    const onNotificationsUpdated = async () => {
+      try {
+        setProfile(await fetchMe());
+      } catch {
+        // Mantém o que está na tela; o próximo ciclo do sino tenta de novo
+      }
+    };
+
+    window.addEventListener(OPEN_DASHBOARD_TAB_EVENT, onOpenTab);
+    window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, onNotificationsUpdated);
+    return () => {
+      window.removeEventListener(OPEN_DASHBOARD_TAB_EVENT, onOpenTab);
+      window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, onNotificationsUpdated);
+    };
   }, []);
 
   useEffect(() => {
@@ -386,6 +415,8 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
               <AIPanel recommendation={recommendation} mitigationSteps={mitigationSteps} urgencyLevel={urgencyLevel} updatedAt={updatedAt} classification={classification} riskScore={riskScore} />
             </div>
           )}
+
+          <MonitoringSettings />
         </>
       )}
     </div>

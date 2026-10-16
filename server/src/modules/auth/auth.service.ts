@@ -9,11 +9,15 @@ import {
   NotFoundException,
   UnauthorizedException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../infra/database/prisma.service';
 import { ScanService } from '../scan/services/scan.service';
 import { openBreachData } from '../../shared/crypto/breach-data.cipher';
+import { getFrontendUrl } from '../../shared/config/urls';
+import { log } from '../../shared/utils/logger';
+import { EmailVerificationService } from './email-verification.service';
 import {
   SignupDto,
   LoginDto,
@@ -21,6 +25,7 @@ import {
   JwtPayload,
   AuthUserDto,
   ScanSnapshotDto,
+  SignupResponseDto,
 } from './dto/auth.dto';
 import * as bcrypt from 'bcryptjs';
 import axios from 'axios';
@@ -50,13 +55,13 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private scanService: ScanService,
+    private emailVerification: EmailVerificationService,
   ) {}
 
   private getGoogleOAuthConfig() {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     const callbackUrl = process.env.GOOGLE_CALLBACK_URL;
-    const frontendUrl = process.env.FRONTEND_URL || process.env.CORS_ORIGIN || process.env.APP_URL;
 
     if (!clientId || !clientSecret || !callbackUrl) {
       throw new BadRequestException('Google OAuth não configurado');
@@ -66,7 +71,7 @@ export class AuthService {
       clientId,
       clientSecret,
       callbackUrl,
-      frontendUrl: frontendUrl || 'http://localhost:5173',
+      frontendUrl: getFrontendUrl(),
     };
   }
 
@@ -194,13 +199,17 @@ export class AuthService {
     });
 
     if (existingByGoogleId) {
-      if (existingByGoogleId.email === input.email) {
+      const emailChanged = existingByGoogleId.email !== input.email;
+      if (!emailChanged && existingByGoogleId.emailVerifiedAt) {
         return existingByGoogleId;
       }
 
       return this.prisma.user.update({
         where: { id: existingByGoogleId.id },
-        data: { email: input.email },
+        data: {
+          email: input.email,
+          emailVerifiedAt: existingByGoogleId.emailVerifiedAt ?? new Date(),
+        },
       });
     }
 
@@ -209,31 +218,40 @@ export class AuthService {
     });
 
     if (existingByEmail) {
-      // O Google comprovou que a pessoa é dona do email. Uma senha cadastrada antes
-      // pode ter sido criada por outra pessoa (o cadastro não verifica o email),
-      // então ela é removida e a conta passa a entrar pelo Google.
+      // O Google comprovou que a pessoa é dona do email. Se o email da conta ainda não foi
+      // verificado, a senha pode ter sido criada por outra pessoa: ela é apagada e a conta
+      // passa a entrar pelo Google. Conta já verificada mantém a senha.
       return this.prisma.user.update({
         where: { id: existingByEmail.id },
-        data: { googleId: input.googleId, passwordHash: null },
+        data: {
+          googleId: input.googleId,
+          emailVerifiedAt: existingByEmail.emailVerifiedAt ?? new Date(),
+          ...(existingByEmail.emailVerifiedAt ? {} : { passwordHash: null }),
+        },
       });
     }
 
     // A tela de login avisa que continuar com o Google é aceitar a Política de Privacidade
+    // e os alertas de vazamento (que podem ser desligados no painel)
+    const now = new Date();
     return this.prisma.user.create({
       data: {
         email: input.email,
         googleId: input.googleId,
         passwordHash: null,
-        termsAcceptedAt: new Date(),
+        termsAcceptedAt: now,
+        emailVerifiedAt: now,
+        monitoringEnabled: true,
+        monitoringConsentAt: now,
       },
     });
   }
 
   /**
-   * Registra novo usuário
-   * Valida email, hash password, cria usuário
+   * Registra novo usuário por senha. A conta só é ativada depois da verificação do email:
+   * aqui não roda o scan nem emite tokens, só envia o link de verificação.
    */
-  async signup(dto: SignupDto): Promise<AuthResponseDto> {
+  async signup(dto: SignupDto): Promise<SignupResponseDto> {
     // Validar email
     if (!dto.email || !dto.email.includes('@')) {
       throw new BadRequestException('Email inválido');
@@ -253,49 +271,68 @@ export class AuthService {
       );
     }
 
-    // Verificar se email já existe
+    const email = dto.email.toLowerCase();
     const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.email.toLowerCase() },
+      where: { email },
     });
 
     // Contas criadas pelo Google não recebem senha pelo cadastro,
     // senão qualquer pessoa poderia definir uma senha para o email de outra
-    if (existingUser?.passwordHash) {
-      throw new ConflictException('Email já registrado');
-    }
-
-    if (existingUser) {
+    if (existingUser && !existingUser.passwordHash) {
       throw new ConflictException('Este email já está cadastrado com o Google. Entre usando o Google.');
     }
 
-    // Hash password
+    if (existingUser?.emailVerifiedAt) {
+      throw new ConflictException('Email já registrado');
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 10);
+    const acceptMonitoring = dto.acceptMonitoring ?? true;
+    const now = new Date();
+    const accountData = {
+      passwordHash,
+      termsAcceptedAt: now,
+      monitoringEnabled: acceptMonitoring,
+      monitoringConsentAt: acceptMonitoring ? now : null,
+    };
 
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email.toLowerCase(),
-        passwordHash,
-        termsAcceptedAt: new Date(),
-      },
-    });
+    if (existingUser) {
+      // Cadastro anterior nunca verificado: quem controla a caixa de entrada fica com a conta.
+      // A senha é trocada e um link novo é enviado (respeitando o limite de reenvio;
+      // dentro dele, o link anterior continua valendo).
+      await this.prisma.user.update({ where: { id: existingUser.id }, data: accountData });
+      if (await this.emailVerification.canResend(email)) {
+        await this.emailVerification.sendVerificationEmail(existingUser.id);
+      }
+      log('info', 'AuthService', 'signup.unverified_resubmitted', { userId: existingUser.id });
+    } else {
+      const user = await this.prisma.user.create({
+        data: { email, ...accountData },
+      });
+      // Conta o envio inicial no limite de reenvio
+      await this.emailVerification.canResend(email);
+      await this.emailVerification.sendVerificationEmail(user.id);
+      log('info', 'AuthService', 'signup.created', { userId: user.id, monitoring: acceptMonitoring });
+    }
 
-    let scanFailure: unknown = null;
+    return { requiresEmailVerification: true, email };
+  }
+
+  /**
+   * Confirma o email pelo token do link, roda o scan inicial e entra na conta
+   */
+  async verifyEmail(token: string): Promise<AuthResponseDto> {
+    const user = await this.emailVerification.consumeToken(token);
+
     try {
-      await this.scanService.submitScan(user.id, { email: user.email });
+      await this.scanService.submitScan(user.id, { email: user.email }, 'SIGNUP');
     } catch (error) {
-      scanFailure = error;
       console.error('[AuthService] Initial scan failed:', error);
       await this.scanService.persistFallbackSnapshot(user.id, user.email);
     }
 
-    // Gerar tokens
     const tokens = this.generateTokens(user.id, user.email);
-
     const profile = await this.getUserProfile(user.id);
-
-    if (scanFailure) {
-      console.warn('[AuthService] Returning account without scan snapshot because the initial scan failed.');
-    }
 
     return {
       access_token: tokens.access_token,
@@ -305,8 +342,28 @@ export class AuthService {
   }
 
   /**
+   * Reenvia o link de verificação. Sempre responde a mesma mensagem, exista o email ou não,
+   * para não revelar quais emails têm conta.
+   */
+  async resendVerification(email: string): Promise<{ message: string }> {
+    const normalizedEmail = (email || '').toLowerCase();
+    const user = await this.prisma.user.findUnique({
+      where: { email: normalizedEmail },
+      select: { id: true, emailVerifiedAt: true, passwordHash: true },
+    });
+
+    if (user && !user.emailVerifiedAt && user.passwordHash && (await this.emailVerification.canResend(normalizedEmail))) {
+      await this.emailVerification.sendVerificationEmail(user.id);
+    }
+
+    return {
+      message: 'Se houver uma conta aguardando verificação com este email, enviamos um novo link.',
+    };
+  }
+
+  /**
    * Login de usuário
-   * Valida credentials, gera JWT
+   * Valida credentials, gera JWT. Conta sem email verificado recebe 403 e um novo link.
    */
   async login(dto: LoginDto): Promise<AuthResponseDto> {
     if (!dto.email || !dto.password) {
@@ -336,6 +393,16 @@ export class AuthService {
       throw new UnauthorizedException('Email ou senha inválidos');
     }
 
+    if (!user.emailVerifiedAt) {
+      if (await this.emailVerification.canResend(user.email)) {
+        await this.emailVerification.sendVerificationEmail(user.id);
+      }
+      throw new ForbiddenException({
+        code: 'EMAIL_NOT_VERIFIED',
+        message: 'Confirme seu email para entrar. Enviamos um link para a sua caixa de entrada.',
+      });
+    }
+
     // Gerar tokens
     const tokens = this.generateTokens(user.id, user.email);
 
@@ -359,6 +426,11 @@ export class AuthService {
 
     if (!user) {
       throw new UnauthorizedException('Usuário não encontrado');
+    }
+
+    // Cobre tokens emitidos antes da verificação de email passar a ser obrigatória
+    if (!user.emailVerifiedAt) {
+      throw new UnauthorizedException({ code: 'EMAIL_NOT_VERIFIED', message: 'Email não verificado' });
     }
 
     return { id: user.id, email: user.email };
@@ -395,6 +467,9 @@ export class AuthService {
       select: {
         id: true,
         email: true,
+        emailVerifiedAt: true,
+        monitoringEnabled: true,
+        lastMonitoredAt: true,
         scanSnapshot: true,
         scanSnapshotUpdatedAt: true,
       },
@@ -409,6 +484,9 @@ export class AuthService {
     return {
       id: user.id,
       email: user.email,
+      emailVerified: Boolean(user.emailVerifiedAt),
+      monitoringEnabled: user.monitoringEnabled,
+      lastMonitoredAt: user.lastMonitoredAt,
       // Os vazamentos ficam criptografados no banco e são abertos só na resposta
       scanSnapshot: snapshot
         ? { ...snapshot, breachData: openBreachData(snapshot.breachData) }

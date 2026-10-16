@@ -1,242 +1,193 @@
-import { describe, expect, it, jest, beforeEach } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import axios from 'axios';
-import { createHash } from 'crypto';
 import { HibpClient } from '../../src/infra/http/hibp.client';
+import {
+  HibpAuthError,
+  HibpError,
+  HibpRateLimitError,
+  HibpUnavailableError,
+  toHibpError,
+} from '../../src/infra/http/hibp.errors';
 
 jest.mock('axios');
 
 describe('HibpClient', () => {
   const mockedAxios = axios as jest.Mocked<typeof axios>;
+  let mockGet: jest.Mock<any>;
+  const clients: HibpClient[] = [];
+
+  const createClient = (apiKey = 'test-key') => {
+    const client = new HibpClient({ apiKey });
+    clients.push(client);
+    return client;
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    mockGet = jest.fn();
+    mockedAxios.create.mockReturnValue({ get: mockGet } as any);
   });
 
-  it('returns an empty list when the API key is missing', async () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-
-    mockedAxios.create.mockReturnValue({
-      get: jest.fn(),
-    } as any);
-
-    const client = new HibpClient({ apiKey: '' });
-    await expect(client.checkAccount('user@example.com')).resolves.toEqual([]);
-    expect(warnSpy).toHaveBeenCalledWith(
-      '[HIBP Client] HIBP_API_KEY not configured. Returning empty result in degraded mode.'
-    );
-
-    warnSpy.mockRestore();
+  afterEach(async () => {
+    await Promise.all(clients.splice(0).map(client => client.shutdown()));
+    jest.restoreAllMocks();
   });
 
-  it('falls back to the range endpoint when direct lookup is unauthorized', async () => {
-    const email = 'test@example.com';
-    const sha1 = createHash('sha1').update(email.trim().toLowerCase()).digest('hex').toUpperCase();
-    const prefix = sha1.slice(0, 6);
-    const suffix = sha1.slice(6);
+  describe('getBreachedAccountStrict', () => {
+    it('requests the truncated response by default and returns the names', async () => {
+      mockGet.mockResolvedValueOnce({ data: [{ Name: 'Adobe' }, { Name: 'LinkedIn' }] });
 
-    const mockGet = jest.fn() as any;
-    mockGet
-      .mockRejectedValueOnce({ response: { status: 401 } })
-      .mockResolvedValueOnce({
-        data: [
-          {
-            hashSuffix: suffix,
-            websites: ['ExampleSite'],
-          },
-        ],
-      })
-      .mockResolvedValueOnce({
-        data: {
-          Name: 'ExampleSite',
-          Title: 'Example breach',
-          BreachDate: '2024-01-01',
-          DataClasses: ['Email addresses'],
-          IsVerified: true,
-        },
+      const result = await createClient().getBreachedAccountStrict('user@example.com');
+
+      expect(result).toEqual([{ Name: 'Adobe' }, { Name: 'LinkedIn' }]);
+      expect(mockGet).toHaveBeenCalledWith('/breachedaccount/user%40example.com', {
+        params: { truncateResponse: true },
       });
-
-    mockedAxios.create.mockReturnValue({
-      get: mockGet,
-    } as any);
-
-    const client = new HibpClient({ apiKey: 'secret-key' });
-    const result = await client.checkAccount(email);
-
-    expect(result).toEqual([
-      expect.objectContaining({
-        Name: 'ExampleSite',
-        Title: 'Example breach',
-      }),
-    ]);
-    expect(mockGet).toHaveBeenNthCalledWith(1, `/breachedaccount/${encodeURIComponent(email)}`, {
-      params: { truncateResponse: false },
     });
-    expect(mockGet).toHaveBeenNthCalledWith(2, `/breachedaccount/range/${prefix}`);
-    expect(mockGet).toHaveBeenNthCalledWith(3, `/breach/${encodeURIComponent('ExampleSite')}`);
-  });
 
-  it('returns an empty array for a 404 direct lookup and rethrows other failures', async () => {
-    const mockGet = jest.fn() as any;
-    mockGet.mockRejectedValue({ response: { status: 404 } });
-    mockedAxios.create.mockReturnValue({ get: mockGet } as any);
+    it('returns an empty list only for 404 (account without breaches)', async () => {
+      mockGet.mockRejectedValueOnce({ response: { status: 404 } });
 
-    const client = new HibpClient({ apiKey: 'secret-key' });
-    await expect(client.checkAccount('clean@example.com')).resolves.toEqual([]);
+      await expect(createClient().getBreachedAccountStrict('clean@example.com')).resolves.toEqual([]);
+    });
 
-    const clientTwo = new HibpClient({ apiKey: 'secret-key' });
-    mockGet.mockRejectedValueOnce({ response: { status: 500 }, message: 'Server error' });
-    await expect(clientTwo.checkAccount('broken@example.com')).rejects.toMatchObject({
-      response: { status: 500 },
-      message: 'Server error',
+    it('maps 429 to HibpRateLimitError using the retry-after header', async () => {
+      mockGet.mockRejectedValueOnce({ response: { status: 429, headers: { 'retry-after': '3' } } });
+
+      const error = await createClient().getBreachedAccountStrict('user@example.com').catch(err => err);
+
+      expect(error).toBeInstanceOf(HibpRateLimitError);
+      expect(error.retryAfterMs).toBe(3000);
+      expect(error.status).toBe(429);
+    });
+
+    it.each([401, 403])('maps %i to HibpAuthError', async status => {
+      mockGet.mockRejectedValueOnce({ response: { status } });
+
+      await expect(createClient().getBreachedAccountStrict('user@example.com')).rejects.toBeInstanceOf(HibpAuthError);
+    });
+
+    it('maps 5xx and network failures to HibpUnavailableError', async () => {
+      const client = createClient();
+      mockGet.mockRejectedValueOnce({ response: { status: 503 } });
+      await expect(client.getBreachedAccountStrict('user@example.com')).rejects.toBeInstanceOf(HibpUnavailableError);
+
+      mockGet.mockRejectedValueOnce({ code: 'ECONNABORTED', message: 'timeout of 10000ms exceeded' });
+      await expect(client.getBreachedAccountStrict('user@example.com')).rejects.toBeInstanceOf(HibpUnavailableError);
+    });
+
+    it('throws HibpAuthError instead of returning [] when the API key is missing', async () => {
+      await expect(createClient('').getBreachedAccountStrict('user@example.com')).rejects.toBeInstanceOf(HibpAuthError);
+      expect(mockGet).not.toHaveBeenCalled();
+    });
+
+    it('never calls the k-anonymity range endpoint (not available on Core plans)', async () => {
+      mockGet.mockRejectedValueOnce({ response: { status: 401 } });
+
+      await createClient().getBreachedAccountStrict('user@example.com').catch(() => undefined);
+
+      expect(mockGet).toHaveBeenCalledTimes(1);
+      expect(mockGet.mock.calls.some(call => String(call[0]).includes('/range/'))).toBe(false);
+    });
+
+    it('does not open the circuit on rate limits', async () => {
+      const client = createClient();
+
+      mockGet.mockRejectedValue({ response: { status: 429, headers: {} } });
+      for (let i = 0; i < 10; i++) {
+        await expect(client.getBreachedAccountStrict('user@example.com')).rejects.toBeInstanceOf(HibpRateLimitError);
+      }
+
+      // O circuito continua fechado: a próxima chamada chega à HIBP
+      mockGet.mockResolvedValueOnce({ data: [{ Name: 'Adobe' }] });
+      await expect(client.getBreachedAccountStrict('user@example.com')).resolves.toEqual([{ Name: 'Adobe' }]);
+      expect(mockGet).toHaveBeenCalledTimes(11);
+    });
+
+    it('opens the circuit on repeated failures and reports it as unavailable', async () => {
+      const client = createClient();
+
+      mockGet.mockRejectedValue({ response: { status: 500 } });
+      for (let i = 0; i < 6; i++) {
+        await client.getBreachedAccountStrict('user@example.com').catch(() => undefined);
+      }
+
+      // Com o circuito aberto, a HIBP nem é chamada e o erro é "indisponível"
+      const callsBefore = mockGet.mock.calls.length;
+      await expect(client.getBreachedAccountStrict('user@example.com')).rejects.toBeInstanceOf(HibpUnavailableError);
+      expect(mockGet.mock.calls.length).toBe(callsBefore);
     });
   });
 
-  it('returns direct response data or an empty array when data is missing', async () => {
-    const mockGet = jest.fn() as any;
-    mockGet.mockResolvedValueOnce({ data: [{ Name: 'Direct breach' }] }).mockResolvedValueOnce({});
-    mockedAxios.create.mockReturnValue({ get: mockGet } as any);
+  describe('checkAccount (manual scan)', () => {
+    it('requests the full breach data', async () => {
+      mockGet.mockResolvedValueOnce({ data: [{ Name: 'Adobe', DataClasses: ['Passwords'] }] });
 
-    const client = new HibpClient({ apiKey: 'secret-key' });
-    await expect(client.checkAccount('direct@example.com')).resolves.toEqual([
-      { Name: 'Direct breach' },
-    ]);
-    await expect(client.checkAccount('empty@example.com')).resolves.toEqual([]);
-  });
-
-  it('accepts alternative range response shapes and deduplicates websites', async () => {
-    const email = 'dupe@example.com';
-    const sha1 = createHash('sha1').update(email.trim().toLowerCase()).digest('hex').toUpperCase();
-    const prefix = sha1.slice(0, 6);
-    const suffix = sha1.slice(6);
-
-    const mockGet = jest.fn() as any;
-    mockGet
-      .mockRejectedValueOnce({ response: { status: 401 } })
-      .mockResolvedValueOnce({
-        data: [
-          {
-            hashSuffix: suffix,
-            Websites: ['ExampleSite', 'ExampleSite'],
-          },
-        ],
-      })
-      .mockResolvedValueOnce({
-        data: {
-          Name: 'ExampleSite',
-          Title: 'Example breach',
-          BreachDate: '2024-03-01',
-          DataClasses: ['Email addresses'],
-          IsVerified: true,
-        },
+      await expect(createClient().checkAccount('user@example.com')).resolves.toEqual([
+        { Name: 'Adobe', DataClasses: ['Passwords'] },
+      ]);
+      expect(mockGet).toHaveBeenCalledWith('/breachedaccount/user%40example.com', {
+        params: { truncateResponse: false },
       });
-
-    mockedAxios.create.mockReturnValue({ get: mockGet } as any);
-
-    const client = new HibpClient({ apiKey: 'secret-key' });
-    await expect(client.checkAccount(email)).resolves.toEqual([
-      expect.objectContaining({ Name: 'ExampleSite', Title: 'Example breach' }),
-    ]);
-
-    expect(mockGet).toHaveBeenNthCalledWith(2, `/breachedaccount/range/${prefix}`);
-    expect(mockGet).toHaveBeenNthCalledWith(3, `/breach/${encodeURIComponent('ExampleSite')}`);
-  });
-
-  it('returns an empty array when the range lookup is forbidden or the breaker is open', async () => {
-    const email = 'test@example.com';
-    const sha1 = createHash('sha1').update(email.trim().toLowerCase()).digest('hex').toUpperCase();
-    const prefix = sha1.slice(0, 6);
-
-    const mockGet = jest.fn() as any;
-    mockGet
-      .mockRejectedValueOnce({ response: { status: 401 } })
-      .mockResolvedValueOnce({ data: [{ hashSuffix: 'OTHER', websites: ['OtherSite'] }] });
-
-    mockedAxios.create.mockReturnValue({ get: mockGet } as any);
-
-    const client = new HibpClient({ apiKey: 'secret-key' });
-    await expect(client.checkAccount(email)).resolves.toEqual([]);
-
-    const breakerClient = new HibpClient({ apiKey: 'secret-key' });
-    const breaker = { fire: jest.fn() } as any;
-    breaker.fire.mockRejectedValue({ message: 'Circuit breaker is open' });
-    Object.defineProperty(breakerClient, 'breaker', {
-      value: breaker,
-      configurable: true,
     });
 
-    await expect(breakerClient.checkAccount(email)).resolves.toEqual([]);
-    expect(mockGet).toHaveBeenNthCalledWith(1, `/breachedaccount/${encodeURIComponent(email)}`, {
-      params: { truncateResponse: false },
+    it('keeps the degraded mode for a missing key, auth errors and outages', async () => {
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+      const noKey = createClient('');
+      await expect(noKey.checkAccount('user@example.com')).resolves.toEqual([]);
+      await expect(noKey.checkAccount('user@example.com')).resolves.toEqual([]);
+      expect(
+        warnSpy.mock.calls.filter(call => String(call[0]).includes('HIBP_API_KEY not configured')),
+      ).toHaveLength(1);
+
+      const client = createClient();
+      mockGet.mockRejectedValueOnce({ response: { status: 401 } });
+      await expect(client.checkAccount('user@example.com')).resolves.toEqual([]);
+
+      mockGet.mockRejectedValueOnce({ response: { status: 502 } });
+      await expect(client.checkAccount('user@example.com')).resolves.toEqual([]);
     });
-    expect(mockGet).toHaveBeenNthCalledWith(2, `/breachedaccount/range/${prefix}`);
 
-    const forbiddenClient = new HibpClient({ apiKey: 'secret-key' });
-    const forbiddenBreaker = { fire: jest.fn() as any };
-    forbiddenBreaker.fire.mockRejectedValue({ response: { status: 403 }, message: 'Forbidden' });
-    Object.defineProperty(forbiddenClient, 'breaker', {
-      value: forbiddenBreaker,
-      configurable: true,
+    it('always propagates rate limits so the worker can wait and retry', async () => {
+      mockGet.mockRejectedValueOnce({ response: { status: 429, headers: { 'retry-after': '1' } } });
+
+      await expect(createClient().checkAccount('user@example.com')).rejects.toBeInstanceOf(HibpRateLimitError);
     });
-    await expect(forbiddenClient.checkAccount('blocked@example.com')).resolves.toEqual([]);
-  });
 
-  it('handles empty and alternative range breach metadata', async () => {
-    const email = 'range@example.com';
-    const sha1 = createHash('sha1').update(email).digest('hex').toUpperCase();
-    const suffix = sha1.slice(6);
-    const mockGet = jest.fn() as any;
-    mockGet
-      .mockRejectedValueOnce({ response: { status: 403 } })
-      .mockResolvedValueOnce({ data: [{ HashSuffix: suffix, breaches: ['SiteA', 'SiteB'] }] })
-      .mockResolvedValueOnce({ data: { Name: 'SiteA' } })
-      .mockResolvedValueOnce({ data: null });
-    mockedAxios.create.mockReturnValue({ get: mockGet } as any);
+    it('propagates unexpected client errors', async () => {
+      mockGet.mockRejectedValueOnce({ response: { status: 400 } });
 
-    const client = new HibpClient({ apiKey: 'secret-key' });
-    await expect(client.checkAccount(email)).resolves.toEqual([{ Name: 'SiteA' }]);
-
-    const noEntriesGet = jest.fn() as any;
-    noEntriesGet
-      .mockRejectedValueOnce({ response: { status: 401 } })
-      .mockResolvedValueOnce({ data: {} });
-    mockedAxios.create.mockReturnValue({ get: noEntriesGet } as any);
-    const noEntriesClient = new HibpClient({ apiKey: 'secret-key' });
-    await expect(noEntriesClient.checkAccount('no-entries@example.com')).resolves.toEqual([]);
-  });
-
-  it('rethrows non-authentication errors from the range lookup', async () => {
-    const mockGet = jest.fn() as any;
-    mockGet.mockRejectedValueOnce({ response: { status: 401 } }).mockRejectedValueOnce({
-      response: { status: 500 },
-      message: 'Range unavailable',
-    });
-    mockedAxios.create.mockReturnValue({ get: mockGet } as any);
-
-    const client = new HibpClient({ apiKey: 'secret-key' });
-    await expect(client.checkAccount('range-error@example.com')).rejects.toMatchObject({
-      response: { status: 500 },
-      message: 'Range unavailable',
+      const error = await createClient().checkAccount('bad').catch(err => err);
+      expect(error).toBeInstanceOf(HibpError);
+      expect(error.status).toBe(400);
     });
   });
 
-  it('warns only once when the API key is missing and rethrows breaker errors', async () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
-    mockedAxios.create.mockReturnValue({ get: jest.fn() } as any);
-    const degradedClient = new HibpClient({ apiKey: '' });
+  describe('getSubscriptionStatus', () => {
+    it('returns the plan from /subscription/status', async () => {
+      mockGet.mockResolvedValueOnce({ data: { SubscriptionName: 'Pwned 1', Rpm: 10 } });
 
-    await degradedClient.checkAccount('one@example.com');
-    await degradedClient.checkAccount('two@example.com');
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-
-    const breakerClient = new HibpClient({ apiKey: 'secret-key' });
-    const breaker = { fire: jest.fn() as any };
-    breaker.fire.mockRejectedValue({ response: { status: 500 }, message: 'Breaker failure' });
-    Object.defineProperty(breakerClient, 'breaker', { value: breaker, configurable: true });
-
-    await expect(breakerClient.checkAccount('breaker-error@example.com')).rejects.toMatchObject({
-      response: { status: 500 },
-      message: 'Breaker failure',
+      await expect(createClient().getSubscriptionStatus()).resolves.toEqual({ SubscriptionName: 'Pwned 1', Rpm: 10 });
+      expect(mockGet).toHaveBeenCalledWith('/subscription/status');
     });
-    warnSpy.mockRestore();
+
+    it('maps errors and requires an API key', async () => {
+      mockGet.mockRejectedValueOnce({ response: { status: 401 } });
+      await expect(createClient().getSubscriptionStatus()).rejects.toBeInstanceOf(HibpAuthError);
+      await expect(createClient('').getSubscriptionStatus()).rejects.toBeInstanceOf(HibpAuthError);
+    });
+  });
+});
+
+describe('toHibpError', () => {
+  it('keeps HibpError instances and defaults retry-after to 2 s', () => {
+    const original = new HibpUnavailableError('down');
+    expect(toHibpError(original)).toBe(original);
+
+    const rateLimit = toHibpError({ response: { status: 429, headers: { 'retry-after': 'abc' } } }) as HibpRateLimitError;
+    expect(rateLimit.retryAfterMs).toBe(2000);
+    expect(rateLimit.name).toBe('HibpRateLimitError');
   });
 });

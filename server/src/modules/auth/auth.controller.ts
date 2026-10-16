@@ -1,7 +1,9 @@
 /**
  * Authentication Controller
- * POST /auth/signup - Registra novo usuário
- * POST /auth/login - Faz login
+ * POST /auth/signup - Registra novo usuário (envia o link de verificação)
+ * POST /auth/verify-email - Confirma o email e entra na conta
+ * POST /auth/resend-verification - Reenvia o link de verificação
+ * POST /auth/login - Faz login (403 se o email não foi verificado)
  * GET /auth/me - Retorna dados do usuário autenticado
  * GET /auth/google - Inicia login/cadastro com Google
  * GET /auth/google/callback - Finaliza OAuth do Google
@@ -29,8 +31,15 @@ import {
 import { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
-import { SignupDto, LoginDto } from './dto/auth.dto';
-import { AuthResponseDto, JwtPayload } from './dto/auth.dto';
+import {
+  SignupDto,
+  LoginDto,
+  VerifyEmailDto,
+  ResendVerificationDto,
+  AuthResponseDto,
+  JwtPayload,
+  SignupResponseDto,
+} from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from '../../api/decorators/current-user.decorator';
 import { RATE_LIMITS } from '../../infra/rate-limit/rate-limit.module';
@@ -45,6 +54,9 @@ const authResponseSchema = {
       properties: {
         id: { type: 'number' },
         email: { type: 'string' },
+        emailVerified: { type: 'boolean' },
+        monitoringEnabled: { type: 'boolean' },
+        lastMonitoredAt: { type: 'string', nullable: true },
         scanSnapshotUpdatedAt: { type: 'string', nullable: true },
         scanSnapshot: {
           nullable: true,
@@ -68,6 +80,14 @@ const authResponseSchema = {
   required: ['access_token', 'user'],
 };
 
+const errorCodeSchema = (code: string) => ({
+  type: 'object',
+  properties: {
+    code: { type: 'string', example: code },
+    message: { type: 'string' },
+  },
+});
+
 @ApiTags('auth')
 @Controller('api/v1/auth')
 export class AuthController {
@@ -76,11 +96,17 @@ export class AuthController {
   @Post('signup')
   @Throttle(RATE_LIMITS.signup)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Registra novo usuário' })
+  @ApiOperation({ summary: 'Registra novo usuário e envia o link de verificação do email' })
   @ApiResponse({
     status: 201,
-    description: 'Usuário registrado com sucesso',
-    schema: authResponseSchema,
+    description: 'Conta criada; o acesso só é liberado depois da verificação do email',
+    schema: {
+      type: 'object',
+      properties: {
+        requiresEmailVerification: { type: 'boolean', example: true },
+        email: { type: 'string' },
+      },
+    },
   })
   @ApiResponse({
     status: 400,
@@ -88,10 +114,30 @@ export class AuthController {
   })
   @ApiResponse({
     status: 409,
-    description: 'Email já registrado',
+    description: 'Email já registrado e verificado, ou cadastrado com o Google',
   })
-  async signup(@Body() dto: SignupDto): Promise<AuthResponseDto> {
+  async signup(@Body() dto: SignupDto): Promise<SignupResponseDto> {
     return this.authService.signup(dto);
+  }
+
+  @Post('verify-email')
+  @Throttle(RATE_LIMITS.verifyEmail)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Confirma o email pelo token do link e entra na conta' })
+  @ApiResponse({ status: 200, description: 'Email verificado', schema: authResponseSchema })
+  @ApiResponse({ status: 400, description: 'Token inválido', schema: errorCodeSchema('TOKEN_INVALID') })
+  @ApiResponse({ status: 410, description: 'Token expirado ou já usado', schema: errorCodeSchema('TOKEN_EXPIRED') })
+  async verifyEmail(@Body() dto: VerifyEmailDto): Promise<AuthResponseDto> {
+    return this.authService.verifyEmail(dto.token);
+  }
+
+  @Post('resend-verification')
+  @Throttle(RATE_LIMITS.resendVerification)
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({ summary: 'Reenvia o link de verificação (mesma resposta exista a conta ou não)' })
+  @ApiResponse({ status: 202, description: 'Pedido recebido' })
+  async resendVerification(@Body() dto: ResendVerificationDto): Promise<{ message: string }> {
+    return this.authService.resendVerification(dto.email);
   }
 
   @Post('login')
@@ -106,6 +152,11 @@ export class AuthController {
   @ApiResponse({
     status: 401,
     description: 'Credenciais inválidas',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Email não verificado (um novo link é enviado)',
+    schema: errorCodeSchema('EMAIL_NOT_VERIFIED'),
   })
   async login(@Body() dto: LoginDto): Promise<AuthResponseDto> {
     return this.authService.login(dto);

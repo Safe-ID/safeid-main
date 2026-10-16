@@ -28,9 +28,11 @@
     "test:setup:user": "node tests/manual/setup-test-user.js",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "backfill:user-breaches": "ts-node --transpile-only scripts/backfill-user-breaches.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-sesv2": "^3.1152.0",
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^3.1.0",
     "@nestjs/core": "^10.3.0",
