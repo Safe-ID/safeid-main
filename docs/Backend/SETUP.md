@@ -1,287 +1,138 @@
-# Guia de Setup - SafeID Backend
+# Guia de setup local - SafeID Backend
 
-## 📋 Pré-requisitos
+Passo a passo para rodar a API, o banco e o frontend na sua máquina.
 
-- **Node.js 20+** (https://nodejs.org/)
-- **npm 10+** ou **yarn 4+**
-- **Docker** e **Docker Compose** (para infraestrutura local)
-- **PostgreSQL 16+** (se não usar Docker)
-- **Redis 7+** (opcional, para cache)
+## Pré-requisitos
 
-## 🚀 Instalação Local
+- **Node.js 20 ou mais novo** (o CI e o Dockerfile usam o 20)
+- **Docker Desktop** (PostgreSQL 16 e Redis 7 em contêiner)
+- **Git**
 
-### 1. Clonar repositório e instalar dependências
+## 1. Instalar as dependências
 
 ```bash
-# Entrar na pasta do servidor
 cd server
-
-# Instalar dependências
 npm install
 ```
 
-### 2. Configurar variáveis de ambiente
+## 2. Configurar o `.env`
 
 ```bash
-# Copiar arquivo de exemplo
 cp .env.example .env
-
-# Editar com suas configurações
-nano .env  # ou seu editor favorito
 ```
 
-### 3. Subir infraestrutura com Docker
+O `.env.example` traz todas as variáveis, com comentários. Para rodar localmente, preencha pelo menos:
+
+| Variável | Valor local |
+|---|---|
+| `POSTGRES_PASSWORD` | uma senha qualquer (usada pelo contêiner do PostgreSQL) |
+| `DATABASE_URL` | `postgresql://safeid_user:<POSTGRES_PASSWORD>@localhost:5432/safeid_db` |
+| `JWT_SECRET`, `REFRESH_TOKEN_SECRET`, `SESSION_SECRET` | valores aleatórios e diferentes entre si |
+| `ENCRYPTION_KEY` | 32 bytes em base64 (`openssl rand -base64 32`), criptografa os vazamentos no banco |
+| `HIBP_USE_MOCK` | `true` para usar a HIBP simulada; `false` com uma `HIBP_API_KEY` válida |
+| `EMAIL_PROVIDER` | `console`: os e-mails de verificação e de alerta aparecem no log, com o link |
+| `MONITORING_UNSUBSCRIBE_SECRET` | 32 caracteres ou mais |
+| `FRONTEND_URL`, `CORS_ORIGIN` | `http://localhost:3001` |
+
+A IA (`AI_API_KEY`, `AI_ENDPOINT`) é opcional no ambiente local: sem ela, o plano de ação usa a resposta padrão. `ADMIN_TOKEN` só é necessário para consultar `/api/health/jobs`.
+
+Com `HIBP_USE_MOCK=true`, o e-mail `breached@example.com` tem vazamentos simulados e `clean@example.com` não tem nenhum.
+
+## 3. Subir o PostgreSQL e o Redis
 
 ```bash
-# Iniciar containers (PostgreSQL + Redis)
-docker-compose up -d
-
-# Verificar status
-docker-compose ps
+docker compose up -d postgres redis
+docker compose ps
 ```
 
-### 4. Setup do banco de dados
+O Redis sobe com `maxmemory-policy noeviction`, igual à produção (exigência do BullMQ).
+
+## 4. Iniciar a API
 
 ```bash
-# Aplicar schema (cria tabelas)
-npm run db:push
-
-# Gerar Prisma Client manualmente, se necessário
-npm run prisma:generate
-
-# Ou criar migration para versionar mudanças
-npm run db:migrate
-
-# (Opcional) Explorar dados com Prisma Studio
-npm run db:studio
-```
-
-### 5. Iniciar servidor
-
-```bash
-# Modo desenvolvimento (com auto-reload)
 npm run dev
-
-# Modo produção (após build)
-npm run build
-npm start
 ```
 
-O servidor estará em **http://localhost:3000**
+O `predev` roda `prisma generate` e `prisma migrate deploy` antes de iniciar, então as migrations são aplicadas sozinhas. A API fica em **http://localhost:3000**:
 
-## 🔗 Endpoints principais
+- `GET /api/health`: deve responder `{"status":"ok", "database":{"status":"ok"}, "redis":{"status":"ok"}}`
+- Swagger em `http://localhost:3000/api/docs`, quando `SWAGGER_ENABLED=true`
 
-```
-POST   /api/auth/login           # Login com email/CPF e senha
-POST   /api/auth/logout          # Logout
-POST   /api/auth/refresh         # Renovar sessão
+Use `npm run db:migrate` só para **criar** uma migration nova depois de mudar o `schema.prisma`. Evite o `npm run db:push`: ele altera o banco sem gerar migration e deixa o histórico inconsistente.
 
-GET    /api/usuarios             # Listar usuários
-POST   /api/usuarios             # Criar usuário
-GET    /api/usuarios/:id         # Obter usuário
-PUT    /api/usuarios/:id         # Atualizar usuário
-DELETE /api/usuarios/:id         # Desativar usuário
+## 5. Iniciar o frontend
 
-GET    /api/instituicoes         # Listar instituições
-POST   /api/instituicoes         # Criar instituição
-GET    /api/instituicoes/:id     # Obter instituição
-PUT    /api/instituicoes/:id     # Atualizar instituição
-DELETE /api/instituicoes/:id     # Desativar instituição
-
-GET    /api/beneficiarios/instituicao/:instituicaoId  # Listar beneficiários
-GET    /api/atendimentos         # Listar atendimentos
-GET    /api/servicos             # Listar serviços
-
-GET    /api/health               # Status de saúde
-```
-
-## 📚 Documentação da API
-
-Acesse **http://localhost:3000/api/docs** para ver a documentação completa do Swagger/OpenAPI
-
-## 🧪 Testes
+Em outro terminal:
 
 ```bash
-# Testes unitários
-npm test
-
-# Testes em modo watch
-npm run test:watch
-
-# Testes com cobertura
-npm run test:cov
-
-# Testes de integração
-npm run test:integration
-
-# Testes E2E
-npm run test:e2e
-```
-
-## 💻 Desenvolvimento
-
-### Linting e Formatting
-
-```bash
-# Verificar estilo do código
-npm run lint
-
-# Corrigir automaticamente
-npm run lint:fix
-
-# Formatar com Prettier
-npm run format
-```
-
-### Banco de dados
-
-```bash
-# Ver schema atual
-npm run db:studio
-
-# Criar nova migration
-npm run db:migrate
-
-# Gerar Prisma Client
-npm run prisma:generate
-
-# Resetar banco de dados (cuidado!)
-npx prisma migrate reset
-```
-
-## 🐳 Docker
-
-### Build da imagem
-
-```bash
-# Build imagem
-docker build -t safeid-app:latest .
-
-# Rodar container
-docker run -p 3000:3000 --env-file .env safeid-app:latest
-```
-
-### Com Docker Compose
-
-```bash
-# Subir tudo
-docker-compose up
-
-# Em background
-docker-compose up -d
-
-# Ver logs
-docker-compose logs -f app
-
-# Parar tudo
-docker-compose down
-
-# Remover volumes (BD) também
-docker-compose down -v
-```
-
-## 🔍 Troubleshooting
-
-### Erro: "Database connection failed"
-
-1. Verificar se PostgreSQL está rodando:
-   ```bash
-   docker-compose ps
-   ```
-
-2. Verificar `DATABASE_URL` no `.env`
-
-3. Testar conexão:
-   ```bash
-   npm run db:push
-   ```
-
-### Erro: "Port 3000 already in use"
-
-```bash
-# Mudar porta no .env ou usar outra:
-APP_PORT=3001
-npm run dev
-
-# Ou matar processo usando a porta:
-lsof -i :3000
-kill -9 <PID>
-```
-
-### Erro: "npm install" falha
-
-```bash
-# Limpar cache
-npm cache clean --force
-
-# Reinstalar
-rm -rf node_modules package-lock.json
+cd client
 npm install
+npm run dev
 ```
 
-## 📝 Estrutura de projeto
+O painel fica em **http://localhost:3001** e usa a API em `http://localhost:3000` (ou a `VITE_API_URL` do `client/.env`).
 
-```
-server/
-├── src/
-│   ├── @types/             # Tipos TypeScript globais
-│   ├── api/                # Camada de apresentação
-│   │   ├── controllers/
-│   │   ├── middlewares/
-│   │   └── routes/
-│   ├── core/               # Lógica de domínio
-│   │   ├── entities/
-│   │   ├── repositories/
-│   │   └── use-cases/
-│   ├── infra/              # Infraestrutura
-│   │   ├── database/
-│   │   ├── cache/
-│   │   └── http/
-│   ├── shared/             # Recursos compartilhados
-│   │   ├── utils/
-│   │   ├── crypto/
-│   │   └── schemas/
-│   ├── modules/            # Módulos de domínio
-│   │   ├── auth/
-│   │   ├── usuarios/
-│   │   ├── instituicoes/
-│   │   └── ...
-│   ├── app.module.ts
-│   └── main.ts
-├── prisma/
-│   └── schema.prisma
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── e2e/
-├── docker-compose.yml
-├── Dockerfile
-├── .env.example
-└── README.md
+## 6. Testes
+
+```bash
+cd server
+npm run test:unit          # testes unitários
+npm run test:cov           # unitários com cobertura (o CI exige os limites)
+npm run test:integration   # integração (fluxos com banco em memória)
+npm run test:e2e           # API completa via HTTP
+
+cd ../client
+npm test                   # testes de componente (Vitest)
 ```
 
-## 🔐 Segurança
+Detalhes em [GUIA_TESTES_E_FLUXO_IMPLEMENTACAO.md](./GUIA_TESTES_E_FLUXO_IMPLEMENTACAO.md).
 
-- **Nunca** commitar `.env` com segredos reais
-- Usar `.env.example` como template
-- Em produção, usar variáveis de ambiente do orquestrador (Kubernetes, ECS, etc.)
-- Manter dependências atualizadas: `npm outdated`
+## 7. Qualidade de código
 
-## 🚀 Próximos passos
+```bash
+npm run lint        # ESLint
+npm run lint:fix    # corrige o que der automaticamente
+npm run format      # Prettier
+npm run build       # compila o TypeScript
+```
 
-1. Implementar testes unitários e de integração
-2. Adicionar validações mais complexas
-3. Implementar sistema de logs e monitoramento
-4. Setup de CI/CD (GitHub Actions, GitLab CI, etc.)
-5. Deploy em produção (Docker, Kubernetes, etc.)
+## Banco de dados
 
-## 📞 Suporte
+```bash
+npm run db:studio                 # Prisma Studio para explorar os dados
+npm run db:migrate                # cria uma migration a partir do schema.prisma
+npm run backfill:user-breaches    # registra os vazamentos já conhecidos das contas antigas
+npx prisma migrate reset          # apaga e recria o banco local (cuidado!)
+```
 
-Para dúvidas, consulte:
-- [README.md](./README.md)
-- [Estrutura do Backend SafeID.pdf](../docs/Backend/Estrutura%20do%20Backend%20SafeID.pdf)
-- [Plan do Projeto](../docs/Backend/plan.prompt.md)
+## Docker
+
+```bash
+docker compose up -d            # PostgreSQL, Redis e a API em contêiner
+docker compose logs -f app      # logs da API
+docker compose down             # para tudo (os dados ficam nos volumes)
+docker compose down -v          # para tudo e APAGA os dados
+```
+
+A imagem de produção é construída com o `Dockerfile` multi-stage, e o `docker-entrypoint.sh` aplica as migrations antes de iniciar.
+
+## Problemas comuns
+
+**`failed to connect to the docker API`**: o Docker Desktop está fechado. Abra e espere o engine iniciar.
+
+**Erro de conexão com o banco**: confira `docker compose ps` e se a senha da `DATABASE_URL` é a mesma do `POSTGRES_PASSWORD`.
+
+**Porta 3000 ou 3001 ocupada**: no Windows, `netstat -ano | findstr :3000` mostra o processo, e `taskkill /PID <pid> /F` encerra.
+
+**`hibp.auth_failed` no log**: a `HIBP_API_KEY` é inválida ou venceu. Use `HIBP_USE_MOCK=true` enquanto isso.
+
+**Dois testes do `/api/health/jobs` falhando localmente**: atualize a branch. Isso foi corrigido no PR #80 (o `ADMIN_TOKEN` do `.env` vazava para os testes).
+
+## Segurança
+
+- Nunca faça commit do `.env`. Em produção, os segredos ficam no AWS SSM Parameter Store (ver [ARQUITETURA_AWS.md](./ARQUITETURA_AWS.md)).
+- Ao subir, a API confere os segredos (`shared/config/env.validation.ts`) e avisa no log se algum estiver faltando, com valor de exemplo ou repetido. É só um aviso: a API sobe mesmo assim, então leia o log ao configurar um ambiente novo.
 
 ---
 
-**SafeID Backend** • Proteção de Identidade Segura
+**SafeID Backend** · Documentação atualizada em 17/10/2026

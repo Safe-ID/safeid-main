@@ -17,9 +17,12 @@ Se a equipe seguir este fluxo, novas funcionalidades entram com menos risco e me
 
 O SafeID usa a pirâmide de testes:
 
-- Testes unitários: validam uma função ou classe isolada.
-- Testes de integração: validam a comunicação entre módulos e banco/serviços internos.
-- Testes E2E: validam o comportamento da API em nível de fluxo real, simulando uso do sistema.
+- Testes unitários: validam uma função ou classe isolada (Jest, 349 testes).
+- Testes de integração: validam fluxos que atravessam vários módulos, com Prisma, filas e Redis simulados em memória (Jest, 5 testes). No CI, o mesmo job aplica as migrations num PostgreSQL real para garantir que elas rodam.
+- Testes E2E: sobem a API e chamam as rotas por HTTP, como um cliente faria (Jest, 23 testes).
+- Testes de componente do frontend: renderizam telas React e interagem como o usuário (Vitest e Testing Library, 26 testes).
+
+Há também fuzz testing no motor de risco: o fast-check gera centenas de entradas aleatórias e confere propriedades que precisam valer sempre (por exemplo, o score fica entre 0 e 100).
 
 Isso significa que o ideal não é apenas “ter testes”, e sim ter o teste certo no nível certo.
 
@@ -77,6 +80,14 @@ npm run test:cov
 
 Esse comando gera relatório de cobertura para verificar se as áreas críticas estão sendo exercitadas.
 
+### Testes do frontend
+
+```bash
+cd client
+npm test            # roda uma vez (como no CI)
+npm run test:watch  # repete a cada alteração
+```
+
 ---
 
 ## 3. Quando usar cada tipo de teste
@@ -126,17 +137,19 @@ Exemplo:
 
 ### Exemplo 1: teste unitário simples
 
-O projeto já usa testes unitários para validação de regras de negócio, como cálculo de score e sanitização de payload.
-
-Exemplo de ideia:
+O projeto usa testes unitários para as regras de negócio, como o cálculo do score. Trecho real de `tests/unit/example.spec.ts`:
 
 ```ts
-it('calcula score máximo quando há vazamento crítico recente', () => {
-  const score = calculateRiskScore([
-    { category: 'PASSWORD', leakedAt: new Date() }
+it('aggregates breaches of different ages into the high band', () => {
+  const result = riskEngine.calculate([
+    breachWith(['Passwords', 'IP addresses', 'Names'], '2026-03-15', 'LojaX'),
+    breachWith(['Password hints', 'Usernames'], '2023-09-10', 'ServicoY'),
+    breachWith(['Credit cards', 'Phone numbers'], '2025-09-20', 'PlataformaZ'),
   ]);
 
-  expect(score).toBe(100);
+  // 15 * 1.0 + 10 * 0.7 + 15 * 1.0 = 37 -> 74
+  expect(result.totalScore).toBe(74);
+  expect(result.classification).toBe('HIGH');
 });
 ```
 
@@ -146,17 +159,7 @@ Esse tipo de teste responde à pergunta:
 
 ### Exemplo 2: teste de integração
 
-Valida que o serviço de scan grava corretamente o snapshot no banco ou usa uma fila com comportamento esperado.
-
-Exemplo de ideia:
-
-```ts
-it('salva o snapshot do usuário após o scan', async () => {
-  await service.submitScan(userId, { email: 'user@example.com' });
-
-  expect(prisma.user.update).toHaveBeenCalled();
-});
-```
+Valida que as peças funcionam juntas. Em `tests/integration/monitoring.flow.spec.ts`, o fluxo completo do monitoramento roda de ponta a ponta: catálogo novo, sincronização, varredura, checagem do usuário e notificação criada. Em `tests/integration/scan.service.spec.ts`, o serviço de scan grava o histórico e o snapshot do usuário.
 
 Esse tipo de teste responde:
 
@@ -189,15 +192,14 @@ Esse tipo de teste responde:
 
 O projeto também define uma regra de qualidade para a suíte de testes: a cobertura mínima de código precisa ser respeitada pela CI.
 
-A meta atual definida para a suíte unitária é:
+Os limites configurados em `server/jest.unit.config.js` são:
 
-- 80% de linhas
-- 75% de branches
-- 85% de funções
+- 80% de statements
+- 80% de branches
+- 85% de functions
+- 80% de lines
 
-Essa regra já foi introduzida na configuração do Jest para que o pipeline passe a falhar quando a base estiver abaixo da meta. Isso evita que a equipe entregue features sem manter a qualidade mínima da base de testes.
-
-> Importante: nesta fase, a cobertura ainda está abaixo da meta, o que mostra claramente que o próximo trabalho do projeto é expandir a suíte de testes, especialmente para módulos ainda não cobertos como autenticação, scan e APIs internas.
+Se a cobertura ficar abaixo de qualquer um deles, o job do backend falha e o PR não entra na `main`. Hoje a suíte está bem acima: 99,05% de linhas e 90,25% de branches (ver [COBERTURA_TESTES_ATUAL.md](./COBERTURA_TESTES_ATUAL.md)).
 
 A forma correta de trabalhar no SafeID é começar pelo teste.
 
@@ -350,6 +352,9 @@ npm run test:e2e
 
 # rodar cobertura
 npm run test:cov
+
+# rodar os testes do frontend
+cd ../client && npm test
 ```
 
 Esses comandos são a base do ciclo de garantia de qualidade do projeto e devem ser usados como parte natural do processo.
