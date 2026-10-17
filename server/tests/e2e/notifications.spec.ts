@@ -224,8 +224,17 @@ describe('Notifications and monitoring API E2E', () => {
   });
 
   describe('GET /api/health/jobs', () => {
-    afterEach(() => {
+    // Começa sem ADMIN_TOKEN e devolve o valor que havia: o ConfigModule de outro teste
+    // pode ter carregado o .env local no mesmo processo (--runInBand)
+    const originalAdminToken = process.env.ADMIN_TOKEN;
+
+    beforeEach(() => {
       delete process.env.ADMIN_TOKEN;
+    });
+
+    afterEach(() => {
+      if (originalAdminToken === undefined) delete process.env.ADMIN_TOKEN;
+      else process.env.ADMIN_TOKEN = originalAdminToken;
     });
 
     it('is disabled without ADMIN_TOKEN and requires the admin header', async () => {
