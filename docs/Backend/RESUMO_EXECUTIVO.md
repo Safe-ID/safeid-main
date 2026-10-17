@@ -1,240 +1,106 @@
-# ⚡ RESUMO EXECUTIVO - SafeID Backend
+# ⚡ Resumo executivo - SafeID Backend
 
-## 📦 STACK TECNOLÓGICO
+O SafeID consulta se o e-mail do usuário apareceu em vazamentos de dados (Have I Been Pwned), calcula um score de risco, gera um plano de ação com IA e acompanha o e-mail ao longo do tempo, avisando quando ele aparece num vazamento novo.
 
-```
-Runtime:        Node.js 20+
-Framework:      NestJS 10.3.0
-Linguagem:      TypeScript 5.3.3
-Banco:          PostgreSQL 16+ (Prisma ORM)
-Cache:          Redis 7+
-Auth:           JWT + Passport.js
-Docs:           Swagger/OpenAPI
-Tests:          Jest
-DevOps:         Docker + Docker Compose
-CI/CD:          GitHub Actions
-AI:             Google Gemini API
-```
-
----
-
-## ✅ TOP 20 BOAS PRÁTICAS IMPLEMENTADAS
-
-### 🏗️ Arquitetura (1-3)
-1. **Clean Architecture** - Camadas separadas (API, Core, Infra, Shared)
-2. **Repository Pattern** - Abstração de dados com interfaces
-3. **Use Cases** - Lógica de negócio isolada
-
-### 🔒 Segurança (4-8)
-4. **Helmet** - Proteção de headers HTTP
-5. **JWT** - Autenticação stateless com expiração
-6. **bcrypt** - Hash de senhas
-7. **CORS** - Controle de origem
-8. **Validação DTO** - class-validator + whitelist
-
-### 📊 Banco de Dados (9-11)
-9. **Prisma ORM** - Type-safe queries
-10. **Migrations** - Versionamento de schema
-11. **Relacionamentos** - Definidos no schema
-
-### 🎨 Qualidade de Código (12-14)
-12. **ESLint** - Linting de regras
-13. **Prettier** - Formatação automática
-14. **TypeScript Strict** - Type safety total
-
-### 🧪 Testes (15-16)
-15. **Jest** - Testes unitários/integração
-16. **Coverage** - Cobertura de código
-
-### 📡 Integração (17-18)
-17. **Circuit Breaker** - Opossum (resiliência)
-18. **HTTP Client** - Axios + retry
-
-### 🚀 Performance (19-20)
-19. **Compressão** - Response compression
-20. **Cache** - Redis + BullMQ (filas)
-
----
-
-## 📂 ESTRUTURA LIMPA
+## 📦 Stack
 
 ```
-server/
-├── src/
-│   ├── api/          → Controllers, middlewares
-│   ├── core/         → Entities, repositories, use-cases
-│   ├── infra/        → Database, cache, HTTP
-│   ├── modules/      → Auth, Scan, Health
-│   └── shared/       → Utils, crypto, validators
-├── tests/            → Unit, integration, e2e
-├── prisma/           → Schema ORM
-└── docker-compose.yml → Local environment
+Runtime:        Node.js 20
+Framework:      NestJS 10 (Express)
+Linguagem:      TypeScript 5 (strict)
+Banco:          PostgreSQL 16 + Prisma 5
+Cache e filas:  Redis 7 + BullMQ
+Auth:           JWT (Passport) + refresh token + Google OAuth
+IA:             SDK da OpenAI, via Azure AI Foundry (modelo configurável em AI_MODEL)
+E-mail:         Amazon SES (console no ambiente local)
+Docs da API:    Swagger / OpenAPI
+Testes:         Jest + fast-check (backend), Vitest + Testing Library (frontend)
+CI:             GitHub Actions + CodeQL + Dependabot, merge queue na main
+Infra alvo:     AWS (ECS Fargate, RDS, ElastiCache, SES), scripts prontos e não implantados
 ```
 
----
+## 🔄 O que o backend faz
 
-## 🔐 SEGURANÇA EM CAMADAS
+1. **Cadastro com verificação de e-mail**: a conta só é ativada pelo link enviado ao e-mail. O aceite da Política de Privacidade e o consentimento para alertas são gravados separadamente (LGPD).
+2. **Scan**: consulta a HIBP sempre para o e-mail da conta logada (nunca para um e-mail informado na requisição), com fila, limite pelo plano contratado e circuit breaker.
+3. **Score de risco**: soma dos pesos dos tipos de dado expostos em cada vazamento, multiplicada pelo fator de tempo (1,0 / 0,7 / 0,4) e normalizada de 0 a 100, com 4 faixas (LOW, MODERATE, HIGH, CRITICAL).
+4. **Plano de ação**: a IA recebe só metadados dos vazamentos (nunca o e-mail) e devolve resumo, passos e urgência. Se o modelo falhar, entra uma resposta padrão.
+5. **Monitoramento contínuo**: o catálogo público da HIBP é sincronizado a cada 6 h. Quando surge um vazamento novo, cada usuário com alertas ligados é checado de novo, e quem aparece recebe notificação no sino e e-mail com descadastro em 1 clique.
+
+## ✅ Boas práticas implementadas
+
+| Área | Prática |
+|---|---|
+| Arquitetura | Camadas (`core`, `infra`, `modules`, `shared`), use case de scan, repositórios |
+| Segurança | Helmet, CORS restrito, ValidationPipe com whitelist, bcrypt, JWT com `typ` separando acesso e refresh |
+| Dados pessoais | E-mail guardado no histórico e no cache como hash (HMAC-SHA256 com `EMAIL_HASH_SECRET`; SHA-256 sem a chave), vazamentos criptografados com AES-256-GCM, exclusão total da conta em cascata |
+| Abuso | Rate limit por IP e por rota (login, cadastro, scan, verificação, refresh, descadastro) |
+| Resiliência | Circuit breaker (Opossum), consulta estrita à HIBP (erro nunca vira "sem vazamentos"), filas com retentativa, shutdown gracioso |
+| Observabilidade | Logger JSON com e-mail mascarado, `/api/health`, `/api/health/jobs`, alarmes no CloudWatch (scripts) |
+| Qualidade | TypeScript strict, ESLint, Prettier, cobertura mínima no CI, fuzz testing do motor de risco |
+| Processo | PR obrigatório com template, aprovação de Code Owner, 4 checks obrigatórios, fila de merge |
+
+## 📊 Números atuais
+
+| Métrica | Valor |
+|---|---|
+| Testes unitários (backend) | 349 em 32 suítes |
+| Cobertura de linhas / branches | 99,05% / 90,25% (limites do CI: 80% / 80%) |
+| Testes de integração | 5 (fluxos de scan e monitoramento, com banco em memória) |
+| Testes e2e da API | 23 |
+| Testes de componente (frontend) | 26 |
+
+Medição de 17/10/2026. Detalhes em [COBERTURA_TESTES_ATUAL.md](./COBERTURA_TESTES_ATUAL.md).
+
+## 🔐 Fluxo de autenticação
 
 ```
-1. Helmet       (Headers HTTP)
-   ↓
-2. CORS         (Origin control)
-   ↓
-3. JWT          (Autenticação)
-   ↓
-4. Validation   (DTO validation)
-   ↓
-5. bcrypt       (Senha hash)
+Cadastro (e-mail + senha + aceite)  →  e-mail com link (24 h)
+        ↓
+Clique no link  →  conta verificada  →  scan inicial  →  access token (24 h) + refresh token (7 dias)
+        ↓
+Requisições com Authorization: Bearer <access token>
+        ↓
+Token vencido  →  POST /api/v1/auth/refresh  →  par novo (o cliente faz isso sozinho)
 ```
 
----
+O login com Google também está disponível, e a conta já entra verificada.
 
-## 📈 ESCALABILIDADE
+## 🏥 Saúde e operação
 
-| Aspecto | Solução |
-|---------|---------|
-| Dados | PostgreSQL + Prisma |
-| Cache | Redis + BullMQ |
-| Queues | BullMQ |
-| Docs | Swagger OpenAPI |
-| Monitoring | Health checks |
-| Container | Docker + Compose |
+```
+GET /api/health        → PostgreSQL e Redis (503 se algum falhar)
+GET /api/health/jobs   → filas, agendamentos, workers e plano HIBP (exige X-Admin-Token)
+```
 
----
-
-## 🚀 COMANDOS ÚTEIS
+## 🚀 Comandos
 
 ```bash
-# Desenvolvimento
-npm run dev              # Watch mode
-npm run build            # Build production
-npm run start            # Run production
+npm run dev               # API com reload (aplica as migrations antes)
+npm run build             # compila
+npm run test:cov          # testes unitários com cobertura
+npm run test:integration  # integração
+npm run test:e2e          # e2e
+npm run lint              # ESLint
+docker compose up -d postgres redis   # banco e Redis locais
+```
 
-# Banco de Dados
-npm run db:push          # Aplicar schema
-npm run db:migrate       # Criar migration
-npm run db:studio        # UI Prisma
+Passo a passo completo em [SETUP.md](./SETUP.md).
 
-# Testes
-npm run test             # Executar testes
-npm run test:cov         # Com cobertura
-npm run test:e2e         # Testes ponta a ponta
+## 📈 Pipeline
 
-# Qualidade
-npm run lint             # ESLint check
-npm run lint:fix         # Fix automático
-npm run format           # Prettier format
-
-# Docker
-docker-compose up -d     # Iniciar
-docker-compose down      # Parar
+```
+Pull Request
+   ├── Frontend: lint, testes (Vitest), build
+   ├── Backend: lint, build, testes unitários com cobertura
+   ├── Integração: migrations num PostgreSQL 16 + fluxos de scan e monitoramento
+   ├── E2E: API completa
+   ├── CodeQL e dependency review
+   └── Aprovação de Code Owner
+        ↓
+Merge when ready → fila de merge testa o PR com a main atual → merge
 ```
 
 ---
 
-## 📊 DEPENDÊNCIAS PRINCIPAIS
-
-### Production (27 packages)
-```
-@nestjs/* (6)          - Framework NestJS
-@prisma/client         - ORM
-@nestjs/jwt            - JWT auth
-passport*              - Autenticação
-class-validator        - Validação
-bcryptjs               - Hash senha
-helmet                 - Segurança
-ioredis                - Redis client
-bullmq                 - Task queue
-@google/generative-ai  - Gemini AI
-opossum                - Circuit breaker
-swagger-ui-express     - Docs
-```
-
-### Development (22 packages)
-```
-typescript             - Type safety
-@nestjs/testing        - Test utilities
-jest                   - Test framework
-eslint                 - Linting
-prettier               - Code formatting
-prisma                 - ORM CLI
-```
-
----
-
-## 🎯 FLUXO DE AUTENTICAÇÃO
-
-```
-1. Login com email/senha
-   ↓
-2. Validação no banco
-   ↓
-3. Hash password com bcrypt
-   ↓
-4. Gerar JWT (24h)
-   ↓
-5. Armazenar em session (Redis)
-   ↓
-6. Retornar token ao cliente
-```
-
----
-
-## 💾 ESTRUTURA DO BANCO
-
-```sql
-User
-├── id (UUID)
-├── email (UNIQUE)
-├── password (HASH)
-├── createdAt
-├── updatedAt
-└── [outros campos]
-
-ScanResult
-├── id
-├── userId (FK)
-├── riskScore
-├── findings
-└── timestamp
-```
-
----
-
-## 🏥 HEALTH CHECKS
-
-```
-GET /health/live   → Aplicação rodando?
-GET /health/ready  → Dependências OK?
-```
-
----
-
-## 📈 PIPELINE CI/CD
-
-```
-Git Push
-   ↓
-GitHub Actions
-   ├── npm install
-   ├── npm run lint
-   ├── npm run test
-   ├── npm run build
-   └── Docker push (se main)
-```
-
----
-
-## ⚙️ CONFIGURAÇÃO POR AMBIENTE
-
-| Variável | Dev | Prod |
-|----------|-----|------|
-| NODE_ENV | development | production |
-| LOG_LEVEL | debug | error |
-| JWT_SECRET | local | 🔐 Secret Manager |
-| DB_URL | localhost | 🔐 Connection String |
-| CORS_ORIGIN | localhost:3001 | domain.com |
-
----
-
-**Documentação Completa:** Ver `TECNOLOGIAS_E_BOAS_PRATICAS.md`
+**Documentação completa:** [TECNOLOGIAS_E_BOAS_PRATICAS.md](./TECNOLOGIAS_E_BOAS_PRATICAS.md) · Atualizado em 17/10/2026

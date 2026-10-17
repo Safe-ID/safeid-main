@@ -1,227 +1,111 @@
-# SafeID Backend - Estrutura Criada
+# SafeID Backend - Estrutura do código
 
-## 📦 Visão geral
+O backend é um monólito modular em NestJS, organizado em camadas inspiradas na Clean Architecture: o domínio (`core/`) não depende de HTTP nem de banco, a infraestrutura (`infra/`) concentra integrações externas, e cada funcionalidade fica num módulo próprio (`modules/`).
 
-A estrutura completa do backend SafeID foi criada seguindo os padrões de Clean Architecture e as tecnologias definidas no plano.
-
-## 🗂️ Estrutura de pastas
+## Estrutura de pastas
 
 ```
-safeid-main/
-└── server/
-    ├── src/
-    │   ├── @types/                    # Tipos TypeScript globais
-    │   │
-    │   ├── api/                       # CAMADA DE APRESENTAÇÃO
-    │   │   ├── controllers/           # Controladores REST
-    │   │   ├── middlewares/           # Middlewares (Auth, Helmet, Rate Limit)
-    │   │   └── routes/                # Definição de rotas
-    │   │
-    │   ├── core/                      # CAMADA DE DOMÍNIO
-    │   │   ├── entities/              # Entidades de negócio
-    │   │   ├── repositories/          # Interfaces de acesso a dados
-    │   │   └── use-cases/             # Casos de uso / Orquestração
-    │   │
-    │   ├── infra/                     # CAMADA DE INFRAESTRUTURA
-    │   │   ├── database/              # Prisma ORM + conexão
-    │   │   ├── cache/                 # Redis (futuro)
-    │   │   └── http/                  # Clientes HTTP (futuro)
-    │   │
-    │   ├── shared/                    # RECURSOS COMPARTILHADOS
-    │   │   ├── utils/                 # Funções utilitárias
-    │   │   ├── crypto/                # Criptografia
-    │   │   └── schemas/               # Validação com class-validator
-    │   │
-    │   ├── modules/                   # MÓDULOS DE DOMÍNIO
-    │   │   ├── auth/                  # Autenticação com sessão + refresh token
-    │   │   ├── usuarios/              # Gestão de usuários
-    │   │   ├── instituicoes/          # Gestão de instituições
-    │   │   ├── beneficiarios/         # Gestão de beneficiários
-    │   │   ├── atendimentos/          # Gestão de atendimentos
-    │   │   ├── servicos/              # Gestão de serviços
-    │   │   └── health/                # Health checks (liveness/readiness)
-    │   │
-    │   ├── app.module.ts              # Módulo raiz da aplicação
-    │   └── main.ts                    # Entry point + setup middleware
-    │
-    ├── prisma/
-    │   └── schema.prisma              # Schema de BD (tabelas, relacionamentos)
-    │
-    ├── tests/
-    │   ├── unit/                      # Testes unitários (Jest)
-    │   ├── integration/               # Testes de integração (Nock, BD simulada)
-    │   └── e2e/                       # Testes ponta a ponta
-    │
-    ├── .github/
-    │   └── workflows/
-    │       └── ci.yml                 # Pipeline CI/CD (GitHub Actions)
-    │
-    ├── .vscode/
-    │   └── settings.json              # Configuração VS Code (ESLint, Prettier)
-    │
-    ├── Dockerfile                     # Multi-stage build
-    ├── docker-compose.yml             # Orquestração local (app + PostgreSQL + Redis)
-    ├── jest.config.js                 # Configuração de testes
-    ├── package.json                   # Dependências do projeto
-    ├── tsconfig.json                  # Configuração TypeScript
-    ├── tsconfig.build.json            # Config build apenas
-    ├── .eslintrc.js                   # Regras ESLint
-    ├── .prettierrc                    # Configuração Prettier
-    ├── nest-cli.json                  # Configuração NestJS CLI
-    │
-    ├── .env.example                   # Template de variáveis (versionado)
-    ├── .env                           # Variáveis locais (NÃO versionado)
-    ├── .gitignore                     # Arquivos ignorados pelo Git
-    │
-    ├── README.md                      # Documentação geral do projeto
-    ├── SETUP.md                       # Guia de instalação e setup
-    └── .gitkeep                       # (removido, pasta não mais vazia)
+server/
+├── src/
+│   ├── main.ts                    # Bootstrap: Helmet, compressão, CORS, ValidationPipe, Swagger, APP_ROLE
+│   ├── app.module.ts              # Módulo raiz (ConfigModule, rate limit e módulos de funcionalidade)
+│   │
+│   ├── api/                       # Peças HTTP compartilhadas entre módulos
+│   │   ├── decorators/            # @CurrentUser()
+│   │   └── guards/                # AdminTokenGuard (rotas operacionais)
+│   │
+│   ├── core/                      # Domínio: regras sem dependência de framework externo
+│   │   ├── engines/               # RiskEngine (score), AIEngine (plano de ação), diffNewBreaches
+│   │   ├── entities/              # ScanResult
+│   │   ├── repositories/          # Interface ScanHistoryRepository
+│   │   └── use-cases/             # ExecuteRiskScanUseCase (orquestra scan, score, IA e cache)
+│   │
+│   ├── infra/                     # Integrações e infraestrutura
+│   │   ├── cache/                 # Cliente Redis (ioredis)
+│   │   ├── database/              # PrismaService
+│   │   ├── email/                 # Envio pelo Amazon SES ou console (dev) + templates
+│   │   ├── http/                  # Clientes HIBP (conta, catálogo, plano), mocks e erros tipados
+│   │   ├── queue/                 # Filas BullMQ: hibp-check, monitoring, email
+│   │   └── rate-limit/            # @nestjs/throttler com limites por rota
+│   │
+│   ├── modules/                   # Funcionalidades (controller + services + processors)
+│   │   ├── auth/                  # Cadastro, verificação de e-mail, login, refresh, Google OAuth, exclusão
+│   │   ├── breaches/              # UserBreachRepository (vazamentos já conhecidos de cada usuário)
+│   │   ├── health/                # GET /api/health (PostgreSQL e Redis)
+│   │   ├── monitoring/            # Catálogo HIBP, varredura, agendamentos, opt-out, /api/health/jobs
+│   │   ├── notifications/         # Notificações do sino e worker de e-mail
+│   │   └── scan/                  # POST /api/v1/scan, histórico e detalhe
+│   │
+│   ├── shared/                    # Utilitários sem dependência de módulo
+│   │   ├── config/                # Validação do .env, APP_ROLE, URLs públicas
+│   │   ├── crypto/                # AES-256-GCM, hash HMAC do e-mail, token de descadastro
+│   │   ├── utils/                 # Logger JSON, datas em BRT, shutdown, nomes de vazamentos
+│   │   └── validation/            # @StrictBoolean()
+│   │
+│   └── types/                     # Declarações de tipos (opossum)
+│
+├── prisma/
+│   ├── schema.prisma              # 7 modelos (ver abaixo)
+│   └── migrations/                # Migrations versionadas, aplicadas com prisma migrate deploy
+│
+├── scripts/
+│   └── backfill-user-breaches.ts  # Registra os vazamentos já conhecidos das contas antigas
+│
+├── tests/
+│   ├── unit/                      # Jest, 32 suítes (inclui fuzz testing do RiskEngine)
+│   ├── integration/               # Fluxos de scan e monitoramento com banco em memória
+│   ├── e2e/                       # Jest subindo a API e chamando as rotas por HTTP
+│   ├── helpers/                   # Prisma, filas e Redis em memória
+│   ├── fixtures/                  # Catálogo HIBP simulado
+│   └── manual/                    # Scripts de teste manual (auth, HIBP)
+│
+├── *.ps1                          # Scripts de provisionamento AWS (ver ARQUITETURA_AWS.md)
+├── Dockerfile                     # Multi-stage: builder, dev e produção (Node 20 Alpine)
+├── docker-entrypoint.sh           # Aplica as migrations antes de iniciar o contêiner
+├── docker-compose.yml             # PostgreSQL 16, Redis 7 (noeviction) e a API
+├── jest.unit.config.js            # Testes unitários + limites de cobertura
+├── jest.integration.config.js
+├── jest.e2e.config.js
+├── tsconfig.json                  # TypeScript strict, aliases @core, @infra, @modules...
+├── .eslintrc.js / .prettierrc
+└── .env.example                   # Todas as variáveis, com comentários (o .env real não vai para o git)
 ```
 
-## 🔧 Tecnologias instaladas
+## Módulos
 
-### Runtime e Framework
-- **Node.js** 20+
-- **NestJS** 10.3.0 - Framework web completo
-- **Express** 4.18.2 - Servidor HTTP (usado pelo NestJS)
-- **TypeScript** 5.3.3 - Type safety
+| Módulo | Rotas | Responsabilidade |
+|---|---|---|
+| `auth` | `/api/v1/auth/*` | Cadastro com verificação de e-mail, login, renovação de sessão, Google OAuth, perfil e exclusão da conta |
+| `scan` | `/api/v1/scan/*` | Consulta de vazamentos do e-mail da própria conta, histórico e detalhe |
+| `notifications` | `/api/v1/notifications/*` | Sino do painel e envio dos e-mails (verificação e alerta) |
+| `monitoring` | `/api/v1/monitoring/*`, `/api/health/jobs` | Catálogo de vazamentos, varredura dos usuários, agendamentos, preferências e descadastro |
+| `breaches` | (interno) | Base de vazamentos que cada usuário já conhece, para alertar só os novos |
+| `health` | `/api/health` | Saúde do PostgreSQL e do Redis |
 
-### Banco de Dados
-- **Prisma** 5.8.0 - ORM moderna
-- **PostgreSQL** - Driver incluído via Prisma
-- **Migrations** - Versionamento de schema
+A lista completa de rotas, com payloads, está em [MATRIZ_CONSUMO_API_FRONTEND.md](./MATRIZ_CONSUMO_API_FRONTEND.md) e no Swagger (`/api/docs`, quando `SWAGGER_ENABLED=true`).
 
-### Segurança e Validação
-- **Helmet** 7.1.0 - Proteção de headers HTTP
-- **class-validator** 0.14.0 - Validação de DTOs
-- **class-transformer** 0.5.1 - Transformação de dados
-- **bcrypt** (será instalado) - Hash de senhas
+## Banco de dados
 
-### API e Documentação
-- **@nestjs/swagger** 7.1.0 - Documentação OpenAPI/Swagger
-- **swagger-ui-express** 5.0.0 - UI interativa
+O `schema.prisma` tem 7 modelos, todos removidos em cascata quando o usuário apaga a conta:
 
-### Testes
-- **Jest** 29.7.0 - Framework de testes
-- **@nestjs/testing** 10.3.0 - Utilitários de teste do NestJS
-- **ts-jest** 29.1.1 - Jest + TypeScript
+| Modelo | Para que serve |
+|---|---|
+| `User` | Conta: e-mail, senha (bcrypt) ou Google, aceite dos termos, verificação do e-mail, preferência de monitoramento, snapshot do último scan |
+| `EmailVerificationToken` | Hash dos tokens do link de verificação (validade de 24 h, uso único) |
+| `ScanHistory` | Cada análise: score, classificação, vazamentos (criptografados com AES-256-GCM), plano da IA e origem (`SIGNUP`, `MANUAL`, `MONITORING`) |
+| `UserBreach` | Vazamentos que o usuário já conhece; só os que não estão aqui geram alerta |
+| `BreachCatalog` | Cópia local do catálogo público da HIBP |
+| `CatalogSyncState` | Marca da última sincronização completa do catálogo |
+| `Notification` | Notificações do sino e situação do e-mail de alerta |
 
-### Code Quality
-- **ESLint** 8.55.0 - Linter
-- **Prettier** 3.1.1 - Formatter
-- **@typescript-eslint** 6.13.0 - Rules TypeScript
+## Processos
 
-### Utilitários
-- **dotenv** 16.3.1 - Variáveis de ambiente
-- **uuid** 9.0.1 - Geração de UUIDs
-- **compression** 1.7.4 - Compressão de respostas
-- **RxJS** 7.8.1 - Programação reativa
+O mesmo código roda em três papéis, definidos por `APP_ROLE`:
 
-## 📋 Módulos criados
-
-### `auth` - Autenticação
-- ✅ Login com email/CPF e senha
-- ✅ Logout
-- ✅ Refresh token para renovar sessão
-- ✅ Session management
-
-### `usuarios` - Gestão de usuários
-- ✅ CRUD completo
-- ✅ Hash de senhas com bcrypt
-- ✅ Validação de email e CPF
-- ✅ Paginação
-
-### `instituicoes` - Gestão de instituições
-- ✅ CRUD completo
-- ✅ Validação de CNPJ
-- ✅ Relacionamento com usuário responsável
-- ✅ Paginação
-
-### `beneficiarios` - Gestão de beneficiários
-- ✅ Listagem por instituição
-- ✅ Relacionamento hierárquico (responsável/dependentes)
-- ✅ Estrutura preparada para expansão
-
-### `atendimentos` - Gestão de atendimentos
-- ✅ Listagem com relacionamentos
-- ✅ Classificação de urgência
-- ✅ Rastreamento por usuário e beneficiário
-
-### `servicos` - Gestão de serviços
-- ✅ Catálogo de serviços
-- ✅ Filtros e buscas
-- ✅ Estrutura preparada para expansão
-
-### `health` - Health checks
-- ✅ Liveness probe (app rodando)
-- ✅ Readiness probe (BD conectado)
-- ✅ Status de saúde
-
-## 🚀 Como começar
-
-### 1. Instalação rápida
-```bash
-cd server
-npm install
-cp .env.example .env
-docker-compose up -d
-npm run db:push
-npm run dev
-```
-
-### 2. Verificar aplicação
-- API: http://localhost:3000
-- Swagger Docs: http://localhost:3000/api/docs
-- Health: http://localhost:3000/api/health
-
-### 3. Estrutura pronta para
-- ✅ Adicionar módulos novos
-- ✅ Implementar testes
-- ✅ Adicionar middlewares customizados
-- ✅ Integrar com APIs externas
-- ✅ Adicionar cache (Redis)
-- ✅ Implementar filas (Bull)
-- ✅ Deploy em Docker/Kubernetes
-
-## 📊 Banco de dados
-
-O schema Prisma inclui:
-- **Tabelas principais**: Usuario, Instituicao, Beneficiario, Atendimento, Servico
-- **Tabelas associativas**: ServicoInstituicao
-- **Tabelas de suporte**: Sessao, AuditLog
-- **Relacionamentos**: 1:N, N:M, self-referencing
-- **Tipos enumerados**: TipoUsuario, NivelUrgencia
-- **Indices**: Otimizados para queries comuns
-
-## 🔐 Segurança
-
-- ✅ Helmet para proteção de headers
-- ✅ Rate limiting configurável
-- ✅ CORS restrito
-- ✅ Validação de entrada com Zod/class-validator
-- ✅ Senhas hasheadas com bcrypt
-- ✅ Sessão com refresh token
-- ✅ HTTPOnly cookies em produção
-
-## 📚 Documentação
-
-- [README.md](./README.md) - Visão geral e scripts
-- [SETUP.md](./SETUP.md) - Guia completo de instalação
-- [plan.prompt.md](../docs/Backend/plan.prompt.md) - Plano do projeto
-- [Swagger/OpenAPI](http://localhost:3000/api/docs) - Documentação interativa
-
-## ✅ Próximas etapas
-
-1. Instalar dependências: `npm install`
-2. Configurar `.env` com suas credenciais
-3. Subir Docker: `docker-compose up -d`
-4. Aplicar migrations: `npm run db:push`
-5. Iniciar em desenvolvimento: `npm run dev`
-6. Acessar Swagger: http://localhost:3000/api/docs
-7. Começar a desenvolver!
+- `all` (padrão): API HTTP e workers no mesmo processo, como no ambiente local e na AWS hoje;
+- `api`: só a API HTTP;
+- `worker`: só os workers das filas e os agendamentos, sem abrir porta.
 
 ---
 
-**SafeID Backend** • Proteção de Identidade Segura
-
-Estrutura criada conforme plano em Clean Architecture com NestJS, Docker e Prisma.
+**SafeID Backend** · Documentação atualizada em 17/10/2026

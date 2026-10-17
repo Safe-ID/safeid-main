@@ -1,7 +1,7 @@
 # Cobertura Atual dos Testes
 
 **Projeto:** SafeID Backend  
-**Data da medição:** 16/10/2026  
+**Data da medição:** 17/10/2026 (commit da `main` com os PRs até o #88)  
 **Comando utilizado:** `npm run test:cov -- --runInBand`
 
 ## Resultado geral
@@ -10,17 +10,17 @@ A medição atual da suíte unitária apresentou:
 
 | Métrica | Resultado | Threshold | Situação |
 |---|---:|---:|---|
-| Statements | 98,87% | 80% | Aprovado |
-| Branches | 90,17% | 80% | Aprovado |
-| Functions | 96,93% | 85% | Aprovado |
-| Lines | 99,04% | 80% | Aprovado |
+| Statements | 98,88% | 80% | Aprovado |
+| Branches | 90,25% | 80% | Aprovado |
+| Functions | 96,96% | 85% | Aprovado |
+| Lines | 99,05% | 80% | Aprovado |
 
-Na contagem instrumentada desta execução, foram encontrados **804 branches**: **725 cobertos** e **79 não cobertos**. A cobertura ultrapassa a meta de 80%, que exige pelo menos **644 branches cobertos**.
+Na contagem instrumentada desta execução, foram encontrados **811 branches**: **732 cobertos** e **79 não cobertos**. A meta de 80% exige pelo menos **649 branches cobertos**.
 
 Também foram confirmados:
 
 - 32 suítes de teste aprovadas;
-- 344 testes aprovados;
+- 349 testes aprovados;
 - nenhum snapshot utilizado;
 - nenhum teste falhando na execução validada.
 
@@ -38,7 +38,7 @@ Configuração atual:
 coverageThreshold: {
   global: {
     statements: 80,
-    branches: 68,
+    branches: 80,
     functions: 85,
     lines: 80,
   },
@@ -59,17 +59,16 @@ A cobertura de statements, functions e lines está acima dos limites com margem 
 - dependência externa disponível e indisponível;
 - dados válidos, vazios ou inválidos.
 
-A baseline de branches havia sido fixada em 68% porque a suíte anterior alcançava 69,23%, enquanto os branches restantes estavam concentrados principalmente em infraestrutura, integrações externas, circuit breaker e bootstrap da aplicação. Após a expansão dos testes, a suíte alcançou 81,90% e superou a meta de 80%.
+O limite de branches começou em 68% e subiu para 80% depois da expansão dos testes. Hoje a suíte está em 90,25%, com folga sobre todos os limites.
 
 ## Principais áreas de atenção
 
-Na última execução detalhada, os maiores pontos de melhoria estavam em:
+Os 79 branches não cobertos estão concentrados em caminhos difíceis de reproduzir em teste unitário:
 
-- `ExecuteRiskScanUseCase`: caminhos alternativos de espera de jobs, timeout e persistência;
-- `HibpClient`: fallback por range, erros HTTP e estados do circuit breaker;
-- `AuthService`: OAuth, validações, fallback do scan inicial e estados de conta;
-- `ScanService`: snapshot existente, snapshot vazio e tratamento de JSON inválido;
-- workers e bootstrap: ramos condicionais de infraestrutura.
+- `ExecuteRiskScanUseCase`: espera de jobs da fila, timeout e falhas de persistência;
+- bootstrap e workers: ramos de `APP_ROLE`, shutdown e reconexão do Redis;
+- `HibpClient` e `HibpPlanService`: combinações de erro HTTP e estados do circuit breaker;
+- serviços de monitoramento: falhas parciais durante a varredura e a reconciliação.
 
 Esses pontos devem ser cobertos com testes de comportamento, sem testar detalhes internos desnecessários.
 
@@ -96,21 +95,16 @@ Arquivos úteis do relatório:
 
 ## Testes por camada
 
-A cobertura global deste documento é gerada pela configuração unitária:
+A cobertura deste documento vem só da suíte unitária. As outras camadas são medidas pela quantidade de testes:
 
-```powershell
-cd server
-npm run test:unit -- --runInBand
-```
+| Camada | Comando | Suítes | Testes |
+|---|---|---:|---:|
+| Unitários (com cobertura) | `npm run test:cov -- --runInBand` | 32 | 349 |
+| Integração (fluxos com Prisma em memória) | `npm run test:integration` | 3 | 5 |
+| E2E da API | `npm run test:e2e` | 5 | 23 |
+| Componentes do frontend (Vitest) | `cd client && npm test` | 3 | 26 |
 
-As outras camadas podem ser executadas separadamente:
-
-```powershell
-npm run test:integration -- --runInBand
-npm run test:e2e -- --runInBand
-```
-
-Integração e E2E validam fluxos mais amplos e não substituem o gate de cobertura unitária.
+Integração e E2E validam fluxos mais amplos e não substituem o limite de cobertura unitária.
 
 ### Fuzz testing do motor de risco
 
@@ -127,29 +121,25 @@ Cada propriedade roda 300 casos por execução. Se falhar, o fast-check mostra a
 
 ## Execução no CI
 
-O workflow principal está em:
+O workflow principal está em `.github/workflows/ci.yml` e roda em todo PR e na fila de merge. Os quatro jobs são checks obrigatórios da `main`:
 
-```text
-.github/workflows/ci.yml
-```
+| Job | O que roda |
+|---|---|
+| `Frontend lint and build` | `npm ci`, `npm run lint`, `npm test` (Vitest), `npm run build` |
+| `Backend lint, build and unit tests` | `npm ci`, `npm run lint`, `npm run build`, `npm run test:cov -- --runInBand` e envio do relatório de cobertura |
+| `Backend integration tests` | aplica as migrations num PostgreSQL 16 real (valida que elas rodam) e `npm run test:integration` |
+| `Backend E2E tests` | migrations num PostgreSQL 16 e `npm run test:e2e` |
 
-O job `Backend lint, build and unit tests` executa:
-
-1. `npm ci`;
-2. `npm run lint`;
-3. `npm run build`;
-4. `npm run test:cov -- --runInBand`.
-
-Se qualquer threshold ficar abaixo do configurado, o job falha e o Pull Request não pode ser integrado à `main`.
+Se qualquer limite de cobertura ficar abaixo do configurado, o job do backend falha e o PR não entra na `main`.
 
 ## Próxima meta recomendada
 
-A próxima evolução deve ser incremental:
+Os limites atuais (80/80/85/80) estão bem abaixo da cobertura real. Sugestões:
 
-1. manter todos os testes atuais passando;
-2. adicionar testes para os 40 branches de infraestrutura ainda não exercitados;
-3. avaliar a elevação do threshold de branches de 68% para 80%;
-4. repetir a medição no CI;
-5. continuar cobrindo caminhos de baixo risco de regressão até se aproximar de 90%.
+1. manter todos os testes passando e a cobertura acima de 90% de branches;
+2. avaliar subir o limite de branches para 85%, deixando folga para mudanças futuras;
+3. cobrir os caminhos de erro da fila e do bootstrap listados acima;
+4. acrescentar testes e2e no navegador e testes de carga, que hoje não existem.
 
-Não é recomendado aumentar o threshold apenas por decisão administrativa, sem que a suíte consiga demonstrar a nova cobertura.
+Não é recomendado aumentar o limite apenas por decisão administrativa, sem que a suíte consiga demonstrar a nova cobertura.
+

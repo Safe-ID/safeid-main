@@ -86,7 +86,7 @@ Segurança de Origem: Utilizamos um Origin Secret via cabeçalho injetado no Clo
 
 O funcionamento vital da ferramenta de verificação do SafeID depende de consultar provedores terceiros de forma segura. Graças à nossa arquitetura com NAT Gateway, o backend isolado consegue disparar conexões seguras (outbound) para as seguintes integrações:
 
-Azure AI Services: Nossa integração de inteligência artificial (Modelos da OpenAI via Microsoft Azure) para analisar cenários, validar dados e gerar insights em relatórios de segurança.
+Azure AI Foundry: a integração de inteligência artificial usa o SDK da OpenAI apontando para o Azure AI Foundry (modelo padrão grok-4-20-non-reasoning, trocável pela variável AI_MODEL). Ela gera o resumo, os passos e a urgência do plano de ação. O modelo recebe só metadados dos vazamentos (nome, data e tipos de dado), nunca o e-mail; se ele falhar, entra uma resposta padrão.
 
 Have I Been Pwned (HIBP): Utilização da API global V3 do HIBP. O backend consome esses dados para verificar históricos reais de vazamentos de e-mails, credenciais e violações atreladas às buscas dos usuários, garantindo anonimato durante o envio e recebimento dos dados.
 8. Cargas em Segundo Plano (Confiabilidade e Operação)
@@ -105,7 +105,7 @@ Logs estruturados e retenção: o código novo escreve uma linha JSON por evento
 
 Alertas: o tópico SNS safeid-alerts envia e-mail para o endereço do projeto (ALERTS_EMAIL). Alarmes de infraestrutura: safeid-redis-memory (DatabaseMemoryUsagePercentage acima de 80% por 15 min) e safeid-rds-storage (FreeStorageSpace abaixo de 2 GB). Os alarmes do monitoramento de vazamentos estão na seção 10.
 
-Health check: /api/health checa o banco e o Redis (PING com timeout). O ALB continua recebendo HTTP 200 se o banco estiver ok; se só o Redis falhar, a resposta indica status degraded sem derrubar a task.
+Health check: /api/health checa o banco (SELECT 1) e o Redis (PING), cada um com timeout de 2 s. Se qualquer um falhar, a rota responde 503 e o ALB tira a task do balanceamento até ela se recuperar. Isso vale também para o Redis: sem ele não há cache, filas nem limiter da HIBP, então nenhum scan funciona.
 
 Uma task só (DESIRED_COUNT=1): se a task cair, o ECS sobe outra em 1 a 2 minutos e os jobs retomam do Redis. Aceitável na escala atual.
 
