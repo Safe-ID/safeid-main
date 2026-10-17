@@ -5,6 +5,10 @@ on:
     branches: [main]
   # Qualquer branch base: PRs empilhados (feature → feature) também rodam os checks
   pull_request:
+  # Fila de merge da main: o GitHub junta a main atual com o PR e roda os checks
+  # obrigatórios antes de mesclar. Sem este gatilho a fila espera para sempre
+  merge_group:
+    types: [checks_requested]
 
 permissions:
   contents: read
