@@ -80,8 +80,9 @@ Essas rotas exigem autenticação com JWT.
 
 A API atual cobre o núcleo de autenticação e scan, e já pode alimentar o painel de IA via `auth/me`. Ainda pode faltar para o frontend ficar completo:
 
-- Endpoint de refresh token, se a sessão precisar ser renovada sem novo login.
-- Endpoint de logout, se houver revogação explícita no servidor.
+- Endpoint de logout, se houver revogação explícita no servidor. Hoje o logout só apaga os tokens do navegador; um refresh token copiado continua valendo até expirar (7 dias).
+
+A renovação de sessão já existe: veja "Renovação de sessão" na seção 8.
 - Possível endpoint de resumo consolidado para o dashboard, para evitar múltiplas chamadas.
 
 ---
@@ -144,13 +145,23 @@ Todas exigem `Authorization: Bearer <token>`.
 | `/api/v1/monitoring/unsubscribe?token=` | `GET` | Token do e-mail | Link de opt-out do alerta | `302` para `/?monitoring=disabled` ou `/?monitoring=invalid` |
 | `/api/v1/monitoring/unsubscribe?token=` | `POST` | Token do e-mail | One-click (RFC 8058), chamado pelo cliente de e-mail | `200` ou `400` com `code: TOKEN_INVALID` |
 
+### Renovação de sessão
+
+| Endpoint | Método | Payload | Resposta |
+|---|---|---|---|
+| `/api/v1/auth/refresh` | `POST` | `refresh_token` | `{ access_token, refresh_token }`. O refresh token também é renovado. 401 com `code: REFRESH_INVALID` se o token for inválido, estiver vencido, for um token de acesso, ou se a conta não existir mais ou não estiver verificada |
+
+O token de acesso dura 24 h (`JWT_EXPIRES_IN`) e o refresh token, 7 dias (`REFRESH_TOKEN_EXPIRES_IN`). O refresh token leva `typ: "refresh"` e não vale como token de acesso. O limite é de 20 renovações a cada 15 min por IP.
+
+No cliente, `request()` em `client/src/lib/api.js` trata isso sozinho: quando uma requisição com o token salvo recebe 401, ele chama `refreshSession()` uma vez (várias requisições ao mesmo tempo compartilham a mesma renovação) e repete a requisição. Se a renovação falhar, apaga os tokens e volta ao login com "Sua sessão expirou".
+
 ### Operação (não é consumido pelo frontend)
 
 - `GET /api/health/jobs` com header `X-Admin-Token`: estado das filas, schedulers, heartbeats, plano HIBP e última sincronização do catálogo. Sem `ADMIN_TOKEN` configurado responde `403`.
 
 ### Funções do cliente (`client/src/lib/api.js`)
 
-`signup(email, password, acceptTerms, acceptMonitoring)`, `verifyEmail(token)`, `resendVerification(email)`, `fetchNotifications(cursor)`, `fetchUnreadCount()`, `markNotificationRead(id)`, `markAllNotificationsRead()`, `fetchMonitoringStatus()` e `updateMonitoringPreferences(enabled)`.
+`signup(email, password, acceptTerms, acceptMonitoring)`, `refreshSession()`, `verifyEmail(token)`, `resendVerification(email)`, `fetchNotifications(cursor)`, `fetchUnreadCount()`, `markNotificationRead(id)`, `markAllNotificationsRead()`, `fetchMonitoringStatus()` e `updateMonitoringPreferences(enabled)`.
 
 ---
 
