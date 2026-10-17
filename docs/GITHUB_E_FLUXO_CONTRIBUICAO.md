@@ -27,6 +27,7 @@ O ruleset `Protect main` está ativo e exige:
 - revisão de Code Owner;
 - resolução das conversas do PR;
 - todos os checks obrigatórios aprovados;
+- entrada pela fila de merge (merge queue), que testa o PR junto com a `main` atual antes de mesclar;
 - histórico sem force push;
 - merge, squash merge ou rebase merge;
 - nenhum bypass configurado para desenvolvedores.
@@ -88,6 +89,9 @@ Outro desenvolvedor revisa e aprova ou solicita mudanças
     |
     v
 Todos os checks verdes + aprovação
+    |
+    v
+Merge when ready: fila de merge testa o PR com a main atual
     |
     v
 Merge do Pull Request
@@ -406,14 +410,23 @@ O PR será atualizado automaticamente. Como o último push muda, uma nova aprova
 
 ## 14. Fazer o merge
 
-O merge só deve ser feito quando:
+O merge pode ser pedido quando:
 
 - os quatro checks obrigatórios estiverem verdes;
 - CodeQL e Dependency Review não tiverem problemas bloqueantes;
 - pelo menos uma pessoa diferente do autor tiver aprovado;
 - todas as conversas obrigatórias estiverem resolvidas.
 
-O merge pode ser feito pelo botão do GitHub usando merge, squash ou rebase, conforme a preferência do time.
+A `main` usa fila de merge (merge queue). Em vez de mesclar direto, clique em **Merge when ready** (ou `gh pr merge <número> --merge`). O GitHub então:
+
+1. coloca o PR na fila, na ordem em que os pedidos chegaram;
+2. cria uma branch temporária com a `main` atual mais o PR (e os PRs que estão na frente na fila);
+3. roda os quatro checks obrigatórios nessa branch;
+4. mescla se passar, ou tira o PR da fila e avisa no PR se falhar.
+
+Não é preciso clicar em "Update branch" nem atualizar a branch com a `main`: a fila sempre testa contra a `main` do momento. Como a branch do PR não recebe push, a aprovação continua valendo. A atualização manual só é necessária quando o PR tem conflito com a `main`.
+
+O merge é feito com merge commit. A branch do PR é apagada automaticamente depois do merge.
 
 Depois do merge:
 
@@ -423,10 +436,10 @@ git pull origin main
 git branch -d feature/nova-tela
 ```
 
-Para remover também a branch remota, se ela não for mantida:
+A branch remota já é apagada pelo GitHub depois do merge (opção "Automatically delete head branches"). Para limpar a referência local a ela:
 
 ```powershell
-git push origin --delete feature/nova-tela
+git fetch --prune
 ```
 
 ## 15. Problemas comuns
