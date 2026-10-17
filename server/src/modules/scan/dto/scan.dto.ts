@@ -50,6 +50,9 @@ export class ScanHistoryDto {
   @ApiProperty()
   breachesFound!: number;
 
+  @ApiProperty({ enum: ['SIGNUP', 'MANUAL', 'MONITORING'], description: 'Cadastro, consulta do usuário ou recálculo automático do monitoramento' })
+  source!: 'SIGNUP' | 'MANUAL' | 'MONITORING';
+
   @ApiProperty()
   createdAt!: Date;
 }

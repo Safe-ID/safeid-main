@@ -137,6 +137,7 @@ export class ScanService {
       riskScore: scan.riskScore,
       classification: scan.classification as 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL',
       breachesFound: scan.breachesFound || 0,
+      source: scan.source,
       createdAt: scan.createdAt,
     }));
   }

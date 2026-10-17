@@ -4,6 +4,7 @@ import RiskCircle from "./RiskCircle";
 import BreachCard from "./BreachCard";
 import AIPanel from "./AIPanel";
 import MonitoringSettings from "./MonitoringSettings";
+import ScoreHistoryChart from "./ScoreHistoryChart";
 import {
   NOTIFICATIONS_UPDATED_EVENT,
   OPEN_DASHBOARD_TAB_EVENT,
@@ -322,6 +323,8 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
                   ))}
                 </div>
               </div>
+
+              <ScoreHistoryChart refreshKey={updatedAt} />
 
               <div className="bg-safe-card border border-safe-border rounded-[16px] p-[20px] mb-[16px]">
                 <div className="text-safe-dim text-[11px] font-semibold tracking-[1.2px] mb-[18px]">DADOS EXPOSTOS</div>
