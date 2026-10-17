@@ -12,8 +12,7 @@
  * 7. Persiste resultado
  */
 
-import { createHash } from 'crypto';
-import { v4 as uuidv4 } from 'uuid';
+import { createHash, randomUUID } from 'crypto';
 import { RiskEngine } from '../engines/risk.engine';
 import { JOB_CHECK_HIBP } from '../../infra/queue/queue.constants';
 import { hashEmail } from '../../shared/crypto/email-hash';
@@ -74,7 +73,7 @@ export class ExecuteRiskScanUseCase {
    * Executa o use case completo
    */
   async execute(input: ExecuteScanInput): Promise<ExecuteScanOutput> {
-    const jobId = uuidv4();
+    const jobId = randomUUID();
     const emailHash = this.hashEmail(input.email);
 
     try {
@@ -130,7 +129,7 @@ export class ExecuteRiskScanUseCase {
     source: ScanSource;
     jobId?: string;
   }): Promise<ExecuteScanOutput & { breachNames: string[] }> {
-    const jobId = input.jobId ?? uuidv4();
+    const jobId = input.jobId ?? randomUUID();
     const emailHash = this.hashEmail(input.email);
     const breaches = input.breaches;
 
