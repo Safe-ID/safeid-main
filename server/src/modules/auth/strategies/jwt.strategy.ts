@@ -21,7 +21,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<JwtPayload> {
-    if (!payload.sub || !payload.email) {
+    // O refresh token só serve na rota /auth/refresh
+    if (!payload.sub || !payload.email || payload.typ === 'refresh') {
       throw new UnauthorizedException('Invalid token');
     }
 

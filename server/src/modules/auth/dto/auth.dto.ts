@@ -64,6 +64,17 @@ export interface SignupResponseDto {
   email: string;
 }
 
+export class RefreshTokenDto {
+  @IsString()
+  @MinLength(20)
+  refresh_token!: string;
+}
+
+export interface TokenPairDto {
+  access_token: string;
+  refresh_token: string;
+}
+
 export class LoginDto {
   @IsEmail()
   email!: string;
@@ -81,6 +92,7 @@ export interface AuthResponseDto {
 export interface JwtPayload {
   sub: number; // user ID
   email: string;
+  typ?: 'refresh'; // só no refresh token: impede usar um token no lugar do outro
   iat?: number;
   exp?: number;
 }

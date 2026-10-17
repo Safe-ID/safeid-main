@@ -26,6 +26,7 @@ import {
   AuthUserDto,
   ScanSnapshotDto,
   SignupResponseDto,
+  TokenPairDto,
 } from './dto/auth.dto';
 import * as bcrypt from 'bcryptjs';
 import axios from 'axios';
@@ -496,6 +497,38 @@ export class AuthService {
   }
 
   /**
+   * Troca um refresh token válido por um par novo (o refresh token também é renovado).
+   * A conta precisa existir e estar verificada, como no JwtStrategy.
+   */
+  async refreshTokens(refreshToken: string): Promise<TokenPairDto> {
+    const invalid = () =>
+      new UnauthorizedException({ code: 'REFRESH_INVALID', message: 'Sessão expirada. Entre novamente.' });
+
+    let payload: JwtPayload;
+    try {
+      payload = this.jwtService.verify<JwtPayload>(refreshToken, { secret: process.env.REFRESH_TOKEN_SECRET });
+    } catch {
+      throw invalid();
+    }
+
+    // Um access token nunca vale como refresh token
+    if (payload.typ !== 'refresh' || !payload.sub) {
+      throw invalid();
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true, email: true, emailVerifiedAt: true },
+    });
+    if (!user || !user.emailVerifiedAt) {
+      throw invalid();
+    }
+
+    log('info', 'AuthService', 'auth.refreshed', { userId: user.id });
+    return this.generateTokens(user.id, user.email);
+  }
+
+  /**
    * Gera access_token e refresh_token
    */
   private generateTokens(userId: number, email: string) {
@@ -505,7 +538,7 @@ export class AuthService {
       expiresIn: (process.env.JWT_EXPIRES_IN as any) || '24h',
     });
 
-    const refresh_token = this.jwtService.sign(payload, {
+    const refresh_token = this.jwtService.sign({ ...payload, typ: 'refresh' }, {
       expiresIn: (process.env.REFRESH_TOKEN_EXPIRES_IN as any) || '7d',
       secret: process.env.REFRESH_TOKEN_SECRET,
     });
