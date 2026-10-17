@@ -8,14 +8,18 @@ body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
+
 /* Plano de ação para impressão / PDF (PrintablePlan.jsx): escondido na tela */
 #safeid-print-plan {
   display: none;
 }
 
 @media print {
+  /* Margem zero na página: as margens ficam no próprio layout (thead/tfoot e padding),
+     então o resultado não depende da opção "Margens" da janela de impressão */
   @page {
-    margin: 16mm;
+    size: A4;
+    margin: 0;
   }
 
   body {
@@ -30,14 +34,44 @@ body {
   #safeid-print-plan {
     display: block;
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 11pt;
+    font-size: 10.5pt;
     line-height: 1.45;
     color: #111827;
+    /* As cores de gravidade precisam sair na impressão */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  #safeid-print-plan .print-layout {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  #safeid-print-plan .print-layout > thead > tr > td,
+  #safeid-print-plan .print-layout > tbody > tr > td,
+  #safeid-print-plan .print-layout > tfoot > tr > td {
+    padding: 0 16mm;
+    vertical-align: top;
+  }
+
+  #safeid-print-plan .print-space {
+    height: 14mm;
+  }
+
+  #safeid-print-plan .print-page-footer {
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid #e5e7eb;
+    margin-top: 6mm;
+    padding: 2.5mm 0 8mm;
+    font-size: 8pt;
+    color: #6b7280;
   }
 
   #safeid-print-plan .print-header {
     display: flex;
     justify-content: space-between;
+    align-items: flex-end;
     gap: 16px;
     border-bottom: 2px solid #1a6fff;
     padding-bottom: 10px;
@@ -45,49 +79,77 @@ body {
   }
 
   #safeid-print-plan .print-brand {
-    color: #1a6fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  #safeid-print-plan .print-logo {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #1a6fff, #38bdf8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  #safeid-print-plan .print-brand-name {
     font-weight: 700;
-    font-size: 12pt;
+    font-size: 11pt;
+    color: #111827;
+  }
+
+  #safeid-print-plan .print-brand-name span {
+    color: #1a6fff;
   }
 
   #safeid-print-plan h1 {
-    font-size: 16pt;
-    margin: 2px 0 0;
+    font-size: 15pt;
+    margin: 1px 0 0;
   }
 
   #safeid-print-plan .print-meta {
     text-align: right;
-    font-size: 9pt;
+    font-size: 8.5pt;
     color: #4b5563;
   }
 
   #safeid-print-plan .print-summary {
     display: flex;
-    gap: 10px;
-    margin-bottom: 14px;
+    gap: 8px;
+    margin-bottom: 12px;
   }
 
-  #safeid-print-plan .print-summary > div {
+  #safeid-print-plan .print-card {
     flex: 1;
     border: 1px solid #d1d5db;
+    border-left: 4px solid #d1d5db;
     border-radius: 6px;
     padding: 6px 10px;
   }
 
-  #safeid-print-plan .print-summary span {
+  #safeid-print-plan .print-card span {
     display: block;
-    font-size: 8pt;
+    font-size: 7.5pt;
     color: #6b7280;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
 
-  #safeid-print-plan .print-summary strong {
+  #safeid-print-plan .print-card strong {
     font-size: 13pt;
   }
 
+  /* Gravidade: faixa à esquerda nos cards e ponto na tabela (o texto sempre diz o nível) */
+  #safeid-print-plan .print-card.level-low { border-left-color: #16a34a; }
+  #safeid-print-plan .print-card.level-moderate { border-left-color: #ca8a04; }
+  #safeid-print-plan .print-card.level-high { border-left-color: #ea580c; }
+  #safeid-print-plan .print-card.level-critical { border-left-color: #dc2626; }
+
   #safeid-print-plan h2 {
-    font-size: 12pt;
+    font-size: 11.5pt;
     margin: 14px 0 6px;
     break-after: avoid;
   }
@@ -97,46 +159,112 @@ body {
     margin: 0;
   }
 
-  #safeid-print-plan ol {
-    margin: 0;
-    padding-left: 20px;
-    /* O preflight do Tailwind tira a numeração das listas */
-    list-style: decimal;
+  #safeid-print-plan .print-hint {
+    margin: -2px 0 6px;
+    font-size: 8.5pt;
+    color: #6b7280;
   }
 
-  #safeid-print-plan li {
-    margin-bottom: 4px;
+  #safeid-print-plan .print-checklist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  #safeid-print-plan .print-checklist li {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin-bottom: 6px;
     break-inside: avoid;
   }
 
-  #safeid-print-plan table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 10pt;
+  #safeid-print-plan .print-checkbox {
+    width: 11px;
+    height: 11px;
+    border: 1.5px solid #374151;
+    border-radius: 2px;
+    margin-top: 3px;
+    flex-shrink: 0;
   }
 
-  #safeid-print-plan th,
-  #safeid-print-plan td {
+  #safeid-print-plan .print-step-number {
+    font-weight: 700;
+    min-width: 14px;
+  }
+
+  #safeid-print-plan .print-breaches {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+  }
+
+  #safeid-print-plan .print-breaches th,
+  #safeid-print-plan .print-breaches td {
     border-bottom: 1px solid #e5e7eb;
     padding: 5px 6px;
     text-align: left;
     vertical-align: top;
   }
 
-  #safeid-print-plan th {
+  #safeid-print-plan .print-breaches th {
     color: #4b5563;
-    font-size: 9pt;
+    font-size: 8.5pt;
   }
 
-  #safeid-print-plan tr {
+  #safeid-print-plan .print-breaches tr {
     break-inside: avoid;
   }
 
-  #safeid-print-plan footer {
-    margin-top: 18px;
-    padding-top: 8px;
-    border-top: 1px solid #e5e7eb;
-    font-size: 8.5pt;
+  #safeid-print-plan .print-severity,
+  #safeid-print-plan .print-nowrap {
+    white-space: nowrap;
+  }
+
+  #safeid-print-plan .print-severity::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 5px;
+    background: #9ca3af;
+  }
+
+  #safeid-print-plan .print-severity.level-low::before { background: #16a34a; }
+  #safeid-print-plan .print-severity.level-moderate::before { background: #ca8a04; }
+  #safeid-print-plan .print-severity.level-high::before { background: #ea580c; }
+
+  #safeid-print-plan .print-partner {
+    margin-top: 16px;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    border-radius: 6px;
+    padding: 2px 12px 8px;
+    break-inside: avoid;
+  }
+
+  #safeid-print-plan .print-partner h2 {
+    margin-top: 8px;
+  }
+
+  #safeid-print-plan .print-partner p {
+    margin: 0 0 4px;
+  }
+
+  #safeid-print-plan .print-partner-links {
+    font-size: 9pt;
+    color: #374151;
+  }
+
+  #safeid-print-plan .print-partner-links a {
+    color: #1a6fff;
+    text-decoration: none;
+  }
+
+  #safeid-print-plan .print-disclaimer {
+    margin: 12px 0 0;
+    font-size: 8pt;
     color: #6b7280;
   }
 }
