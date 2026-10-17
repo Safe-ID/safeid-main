@@ -82,8 +82,10 @@ const DATA_CLASS_WEIGHTS: DataClassWeight = {
 };
 
 export class RiskEngine {
-  // Busca sem diferenciar maiúsculas, para não perder peso por variação de grafia
-  private readonly dataClassWeights: DataClassWeight = Object.fromEntries(
+  // Busca sem diferenciar maiúsculas, para não perder peso por variação de grafia.
+  // Map em vez de objeto: nomes como "__proto__" ou "constructor" não podem achar
+  // propriedades herdadas (o score viraria NaN; achado pelo fuzz testing).
+  private readonly dataClassWeights = new Map<string, number>(
     Object.entries(DATA_CLASS_WEIGHTS).map(([dataClass, weight]) => [dataClass.toLowerCase(), weight]),
   );
 
@@ -115,7 +117,7 @@ export class RiskEngine {
   }
 
   private getDataClassWeight(dataClass: string): number {
-    return this.dataClassWeights[dataClass.toLowerCase()] ?? DEFAULT_WEIGHT;
+    return this.dataClassWeights.get(String(dataClass).toLowerCase()) ?? DEFAULT_WEIGHT;
   }
 
   /**

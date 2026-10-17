@@ -1,7 +1,7 @@
 # Cobertura Atual dos Testes
 
 **Projeto:** SafeID Backend  
-**Data da medição:** 06/10/2026  
+**Data da medição:** 16/10/2026  
 **Comando utilizado:** `npm run test:cov -- --runInBand`
 
 ## Resultado geral
@@ -10,17 +10,17 @@ A medição atual da suíte unitária apresentou:
 
 | Métrica | Resultado | Threshold | Situação |
 |---|---:|---:|---|
-| Statements | 96,42% | 80% | Aprovado |
-| Branches | 81,90% | 80% | Aprovado |
-| Functions | 91,17% | 85% | Aprovado |
-| Lines | 96,66% | 80% | Aprovado |
+| Statements | 98,87% | 80% | Aprovado |
+| Branches | 90,17% | 80% | Aprovado |
+| Functions | 96,93% | 85% | Aprovado |
+| Lines | 99,04% | 80% | Aprovado |
 
-Na contagem instrumentada desta execução, foram encontrados **221 branches**: **181 cobertos** e **40 não cobertos**. A cobertura já ultrapassa a meta de 80%, que exigia pelo menos **177 branches cobertos**.
+Na contagem instrumentada desta execução, foram encontrados **804 branches**: **725 cobertos** e **79 não cobertos**. A cobertura ultrapassa a meta de 80%, que exige pelo menos **644 branches cobertos**.
 
 Também foram confirmados:
 
-- 12 suítes de teste aprovadas;
-- 77 testes aprovados;
+- 32 suítes de teste aprovadas;
+- 344 testes aprovados;
 - nenhum snapshot utilizado;
 - nenhum teste falhando na execução validada.
 
@@ -111,6 +111,19 @@ npm run test:e2e -- --runInBand
 ```
 
 Integração e E2E validam fluxos mais amplos e não substituem o gate de cobertura unitária.
+
+### Fuzz testing do motor de risco
+
+`tests/unit/risk.engine.fuzz.spec.ts` usa o [fast-check](https://fast-check.dev) para gerar vazamentos aleatórios (nomes reais do HIBP, nomes desconhecidos, datas válidas, futuras e inválidas) e conferir propriedades que valem para qualquer entrada:
+
+- o score é sempre um inteiro entre 0 e 100 e o cálculo nunca lança erro;
+- a classificação segue as faixas LOW < 26 ≤ MODERATE < 51 ≤ HIGH < 76 ≤ CRITICAL;
+- o fator temporal é sempre 1,0, 0,7 ou 0,4, e data inválida conta como recente;
+- a ordem dos vazamentos e as maiúsculas dos nomes não mudam o resultado;
+- expor mais um dado ou encontrar mais um vazamento nunca diminui o score;
+- um vazamento mais antigo nunca pesa mais que um mais novo.
+
+Cada propriedade roda 300 casos por execução. Se falhar, o fast-check mostra a seed e o menor contraexemplo. Foi assim que apareceu um defeito: um tipo de dado chamado `__proto__` (ou `constructor`, `toString`) deixava o score como NaN, porque a busca do peso achava uma propriedade herdada do objeto. Os pesos passaram a ficar num `Map`.
 
 ## Execução no CI
 
