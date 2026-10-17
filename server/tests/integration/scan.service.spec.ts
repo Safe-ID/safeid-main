@@ -124,6 +124,7 @@ describe('ScanService integration slice', () => {
         riskScore: 42,
         classification: 'MODERATE',
         breachesFound: 3,
+        source: 'MANUAL',
         createdAt: new Date('2026-09-10T00:00:00.000Z'),
       },
     ]);
@@ -146,6 +147,7 @@ describe('ScanService integration slice', () => {
         riskScore: 42,
         classification: 'MODERATE',
         breachesFound: 3,
+        source: 'MANUAL',
         createdAt: new Date('2026-09-10T00:00:00.000Z'),
       },
     ]);

@@ -58,6 +58,8 @@ O backend expõe:
 
 Essas rotas exigem autenticação com JWT.
 
+`GET /api/v1/scan/history` devolve as últimas 50 análises, da mais nova para a mais antiga: `[{ id, riskScore, classification, breachesFound, source, createdAt }]`. `source` diz a origem de cada uma: `SIGNUP` (cadastro), `MANUAL` (o usuário pediu) ou `MONITORING` (o monitoramento recalculou o score após um vazamento novo). Uma consulta respondida pelo cache não gera análise nova. O componente `ScoreHistoryChart.jsx` usa essa rota para o gráfico "Evolução do risco" na Visão Geral do painel.
+
 ### Health
 
 - `GET /api/health` pode ser usado para mostrar disponibilidade da API ou para validação de infraestrutura.

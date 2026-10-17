@@ -122,6 +122,7 @@ describe('ScanService', () => {
         riskScore: 71,
         classification: 'CRITICAL',
         breachesFound: 4,
+        source: 'MONITORING',
         createdAt: new Date('2026-09-10T00:00:00.000Z'),
       },
     ]);
@@ -134,6 +135,7 @@ describe('ScanService', () => {
         riskScore: 71,
         classification: 'CRITICAL',
         breachesFound: 4,
+        source: 'MONITORING',
         createdAt: new Date('2026-09-10T00:00:00.000Z'),
       },
     ]);
