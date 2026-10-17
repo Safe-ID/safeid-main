@@ -64,6 +64,7 @@ src/
     ├── RiskCircle.jsx    # Gráfico do score de risco
     ├── BreachCard.jsx    # Card de cada vazamento
     ├── AIPanel.jsx       # Plano de ação gerado pela IA
+    ├── PrintablePlan.jsx # Versão do plano para impressão / PDF
     └── safeidData.js     # Pesos, cores e tradução dos tipos de dado
 ```
 
@@ -78,6 +79,12 @@ src/
 | Excluir conta | `DELETE /api/v1/auth/me` |
 
 O token de acesso é enviado no header `Authorization: Bearer <token>`.
+
+## 📄 Exportar o plano em PDF
+
+O botão **Exportar PDF** na aba Plano IA abre a janela de impressão do navegador, e o usuário escolhe **Salvar como PDF**. Não há biblioteca de PDF: o `PrintablePlan.jsx` renderiza uma versão do plano fora do `#root` (num portal no `<body>`), escondida na tela. As regras `@media print` do `main.css` escondem o app e mostram só essa versão, em fundo branco e fonte Arial.
+
+O PDF traz o e-mail da conta, a data da análise e a da impressão, o score, a classificação, a urgência, o resumo, os passos e a lista de vazamentos com os tipos de dado expostos. Senhas vazadas nunca aparecem, porque o SafeID não as recebe. O nome sugerido do arquivo é `SafeID-plano-de-acao-AAAA-MM-DD`.
 
 ## 🎨 Estilo
 

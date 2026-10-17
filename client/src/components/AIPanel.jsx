@@ -6,7 +6,7 @@ const URGENCY_BADGES = {
   LOW: { label: "URGÊNCIA BAIXA", className: "bg-safe-accent/10 border-safe-accent/30 text-safe-accent" },
 };
 
-export default function AIPanel({ recommendation, mitigationSteps = [], urgencyLevel, updatedAt, classification, riskScore }) {
+export default function AIPanel({ recommendation, mitigationSteps = [], urgencyLevel, updatedAt, classification, riskScore, onExportPdf }) {
   const text = recommendation || "Ainda não há uma recomendação de IA disponível para esta conta.";
   const formattedUpdatedAt = updatedAt ? new Date(updatedAt).toLocaleString("pt-BR") : null;
   const urgency = URGENCY_BADGES[urgencyLevel] || null;
@@ -18,10 +18,19 @@ export default function AIPanel({ recommendation, mitigationSteps = [], urgencyL
         <div className="w-8 h-8 rounded-lg bg-safe-accent/10 border border-safe-accent/30 flex items-center justify-center text-safe-accent text-sm shrink-0">
           ✦
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <div className="text-safe-text font-semibold text-sm">SafeID AI · Plano de Ação</div>
           <div className="text-safe-dim text-xs">Análise personalizada por inteligência artificial</div>
         </div>
+        {onExportPdf && recommendation && (
+          <button
+            type="button"
+            onClick={onExportPdf}
+            className="shrink-0 bg-safe-primary/10 border border-safe-primary/30 text-safe-secondary rounded-lg py-2 px-3 text-xs font-semibold hover:bg-safe-primary/20 transition-colors cursor-pointer"
+          >
+            Exportar PDF
+          </button>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2.5 mb-5">
