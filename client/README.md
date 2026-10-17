@@ -96,7 +96,9 @@ O token de acesso é enviado no header `Authorization: Bearer <token>`.
 
 O botão **Exportar PDF** na aba Plano IA abre a janela de impressão do navegador, e o usuário escolhe **Salvar como PDF**. Não há biblioteca de PDF: o `PrintablePlan.jsx` renderiza uma versão do plano fora do `#root` (num portal no `<body>`), escondida na tela. As regras `@media print` do `main.css` escondem o app e mostram só essa versão, em fundo branco e fonte Arial.
 
-O PDF traz o e-mail da conta, a data da análise e a da impressão, o score, a classificação, a urgência, o resumo, os passos e a lista de vazamentos com os tipos de dado expostos. Senhas vazadas nunca aparecem, porque o SafeID não as recebe. O nome sugerido do arquivo é `SafeID-plano-de-acao-AAAA-MM-DD`.
+O PDF traz o e-mail da conta, a data da análise e a da impressão, cards com score, classificação, vazamentos e urgência (com uma faixa de cor por nível), o resumo, os passos como checklist para marcar, a tabela de vazamentos com a gravidade de cada um e o contato da parceira ENETSEC. Senhas vazadas nunca aparecem, porque o SafeID não as recebe. O nome sugerido do arquivo é `SafeID-plano-de-acao-AAAA-MM-DD`.
+
+O layout é uma tabela cujo `<thead>` (espaço do topo) e `<tfoot>` (rodapé com site e data) se repetem em cada página, com `@page { margin: 0 }`. Assim as margens saem iguais mesmo se a pessoa escolher "Margens: nenhuma" na janela de impressão. As cores usam `print-color-adjust: exact` e sempre vêm acompanhadas do texto do nível, então o documento continua legível em preto e branco.
 
 ## 🎨 Estilo
 
