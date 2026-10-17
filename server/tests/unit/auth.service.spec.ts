@@ -45,6 +45,7 @@ describe('AuthService', () => {
         const suffix = options?.secret ? '-refresh' : '-access';
         return `token-${payload.sub}${suffix}`;
       }),
+      verify: jest.fn(),
     };
 
     scanServiceMock = {
@@ -349,6 +350,47 @@ describe('AuthService', () => {
         email: 'oauth@example.com',
         password: 'StrongPass123',
       })).rejects.toThrow('Use o login com Google para esta conta');
+    });
+  });
+
+  describe('refreshTokens', () => {
+    const verifiedUser = { id: 7, email: 'jane@example.com', emailVerifiedAt: verifiedAt };
+
+    it('issues a new token pair for a valid refresh token', async () => {
+      jwtServiceMock.verify.mockReturnValue({ sub: 7, email: 'jane@example.com', typ: 'refresh' });
+      prismaMock.user.findUnique.mockResolvedValue(verifiedUser);
+
+      await expect(service.refreshTokens('a-valid-refresh-token')).resolves.toEqual({
+        access_token: 'token-7-access',
+        refresh_token: 'token-7-refresh',
+      });
+      expect(jwtServiceMock.verify).toHaveBeenCalledWith('a-valid-refresh-token', { secret: 'test-refresh-secret' });
+      // O refresh token novo também leva a marca typ
+      expect(jwtServiceMock.sign).toHaveBeenCalledWith(
+        { sub: 7, email: 'jane@example.com', typ: 'refresh' },
+        expect.objectContaining({ secret: 'test-refresh-secret' }),
+      );
+    });
+
+    it.each([
+      ['an invalid or expired token', () => jwtServiceMock.verify.mockImplementation(() => { throw new Error('jwt expired'); })],
+      ['an access token', () => jwtServiceMock.verify.mockReturnValue({ sub: 7, email: 'jane@example.com' })],
+      ['a deleted account', () => {
+        jwtServiceMock.verify.mockReturnValue({ sub: 7, email: 'jane@example.com', typ: 'refresh' });
+        prismaMock.user.findUnique.mockResolvedValue(null);
+      }],
+      ['an unverified account', () => {
+        jwtServiceMock.verify.mockReturnValue({ sub: 7, email: 'jane@example.com', typ: 'refresh' });
+        prismaMock.user.findUnique.mockResolvedValue({ ...verifiedUser, emailVerifiedAt: null });
+      }],
+    ])('rejects %s with REFRESH_INVALID', async (_label, arrange) => {
+      arrange();
+
+      await expect(service.refreshTokens('some-refresh-token')).rejects.toMatchObject({
+        status: 401,
+        response: { code: 'REFRESH_INVALID' },
+      });
+      expect(jwtServiceMock.sign).not.toHaveBeenCalled();
     });
   });
 

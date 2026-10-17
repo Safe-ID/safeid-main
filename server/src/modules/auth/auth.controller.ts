@@ -4,6 +4,7 @@
  * POST /auth/verify-email - Confirma o email e entra na conta
  * POST /auth/resend-verification - Reenvia o link de verificação
  * POST /auth/login - Faz login (403 se o email não foi verificado)
+ * POST /auth/refresh - Troca o refresh token por um par novo de tokens
  * GET /auth/me - Retorna dados do usuário autenticado
  * GET /auth/google - Inicia login/cadastro com Google
  * GET /auth/google/callback - Finaliza OAuth do Google
@@ -36,6 +37,8 @@ import {
   LoginDto,
   VerifyEmailDto,
   ResendVerificationDto,
+  RefreshTokenDto,
+  TokenPairDto,
   AuthResponseDto,
   JwtPayload,
   SignupResponseDto,
@@ -160,6 +163,20 @@ export class AuthController {
   })
   async login(@Body() dto: LoginDto): Promise<AuthResponseDto> {
     return this.authService.login(dto);
+  }
+
+  @Post('refresh')
+  @Throttle(RATE_LIMITS.refresh)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Renova a sessão: troca o refresh token por um par novo de tokens' })
+  @ApiResponse({
+    status: 200,
+    description: 'Tokens renovados',
+    schema: { type: 'object', properties: { access_token: { type: 'string' }, refresh_token: { type: 'string' } } },
+  })
+  @ApiResponse({ status: 401, description: 'Refresh token inválido ou expirado', schema: errorCodeSchema('REFRESH_INVALID') })
+  async refresh(@Body() dto: RefreshTokenDto): Promise<TokenPairDto> {
+    return this.authService.refreshTokens(dto.refresh_token);
   }
 
   @Get('google')

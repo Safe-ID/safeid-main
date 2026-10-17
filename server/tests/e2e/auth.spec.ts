@@ -234,6 +234,34 @@ describe('Auth API E2E', () => {
     await expect(reused.json()).resolves.toMatchObject({ code: 'TOKEN_EXPIRED' });
   });
 
+  it('renews the session with the refresh token and keeps the two tokens apart', async () => {
+    await post('/api/v1/auth/signup', { email: 'renew@example.com', password: 'StrongPass123', acceptTerms: true });
+    const session = (await (await post('/api/v1/auth/verify-email', { token: tokenFromLastEmail('renew@example.com') })).json()) as any;
+    const me = (token: string) => fetch(`${baseUrl}/api/v1/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+
+    const refreshed = await post('/api/v1/auth/refresh', { refresh_token: session.refresh_token });
+    expect(refreshed.status).toBe(200);
+    const pair = (await refreshed.json()) as any;
+    expect(pair).toEqual({ access_token: expect.any(String), refresh_token: expect.any(String) });
+    expect((await me(pair.access_token)).status).toBe(200);
+    // O refresh token também é renovado e continua servindo
+    expect((await post('/api/v1/auth/refresh', { refresh_token: pair.refresh_token })).status).toBe(200);
+
+    // Um token não vale no lugar do outro
+    const accessAsRefresh = await post('/api/v1/auth/refresh', { refresh_token: session.access_token });
+    expect(accessAsRefresh.status).toBe(401);
+    await expect(accessAsRefresh.json()).resolves.toMatchObject({ code: 'REFRESH_INVALID' });
+    expect((await me(session.refresh_token)).status).toBe(401);
+
+    // Token adulterado ou inválido (aqui sem o ValidationPipe global do main.ts, o serviço é quem recusa)
+    expect((await post('/api/v1/auth/refresh', { refresh_token: `${session.refresh_token}x` })).status).toBe(401);
+    expect((await post('/api/v1/auth/refresh', { refresh_token: 'nao-e-um-jwt' })).status).toBe(401);
+
+    // Conta apagada: o refresh token deixa de valer
+    await fetch(`${baseUrl}/api/v1/auth/me`, { method: 'DELETE', headers: { Authorization: `Bearer ${pair.access_token}` } });
+    expect((await post('/api/v1/auth/refresh', { refresh_token: pair.refresh_token })).status).toBe(401);
+  });
+
   it('answers 400 TOKEN_INVALID for unknown tokens and validates the token format', async () => {
     const unknown = await post('/api/v1/auth/verify-email', { token: 'x'.repeat(43) });
     expect(unknown.status).toBe(400);

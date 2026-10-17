@@ -49,7 +49,42 @@ export function clearToken() {
   localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
 
+// Uma renovação por vez: requisições que recebem 401 juntas esperam a mesma chamada
+let pendingRefresh = null;
+
+/**
+ * Troca o refresh token salvo por um par novo (POST /api/v1/auth/refresh).
+ * Devolve true se a sessão foi renovada.
+ */
+export function refreshSession() {
+  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
+  if (!refreshToken) {
+    return Promise.resolve(false);
+  }
+
+  if (!pendingRefresh) {
+    pendingRefresh = fetch(`${normalizeBaseUrl(API_BASE_URL)}/api/v1/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    })
+      .then(async (response) => {
+        if (!response.ok) return false;
+        setAuthTokens(await response.json());
+        return true;
+      })
+      .catch(() => false)
+      .finally(() => {
+        pendingRefresh = null;
+      });
+  }
+
+  return pendingRefresh;
+}
+
 export async function request(path, options = {}) {
+  const { retried, ...fetchOptions } = options;
+  options = fetchOptions;
   const headers = new Headers(options.headers || {});
   if (!headers.has("Content-Type") && options.body) {
     headers.set("Content-Type", "application/json");
@@ -80,6 +115,11 @@ export async function request(path, options = {}) {
 
   if (!response.ok) {
     if (response.status === 401 && token) {
+      // Token de acesso vencido: renova a sessão uma vez e repete a requisição.
+      // Só com o token salvo (não quando a chamada passou um token próprio).
+      if (!retried && !options.token && (await refreshSession())) {
+        return request(path, { ...options, retried: true });
+      }
       clearToken();
       window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
       throw new ApiError("Sua sessão expirou. Entre novamente.", 401, payload?.code);
