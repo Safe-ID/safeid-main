@@ -1,11 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fetchScanHistory } from "../lib/api";
 
-// Área do gráfico no viewBox (o SVG escala com a largura do card)
-const VIEW_W = 640;
-const VIEW_H = 220;
-const PAD = { top: 16, right: 64, bottom: 30, left: 34 };
-const PLOT_W = VIEW_W - PAD.left - PAD.right;
+// O SVG é desenhado na largura real do card (1 unidade = 1 px), para o texto não escalar
+const VIEW_H = 200;
+const PAD = { top: 16, right: 56, bottom: 28, left: 30 };
 const PLOT_H = VIEW_H - PAD.top - PAD.bottom;
 
 // Mesmas faixas do RiskEngine do backend (linhas discretas no fundo)
@@ -38,6 +36,19 @@ export default function ScoreHistoryChart({ refreshKey }) {
   const [history, setHistory] = useState(null);
   const [error, setError] = useState("");
   const [active, setActive] = useState(null);
+  const [width, setWidth] = useState(640);
+  const boxRef = useRef(null);
+
+  useEffect(() => {
+    const box = boxRef.current;
+    if (!box || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(([entry]) => setWidth(Math.max(280, Math.round(entry.contentRect.width))));
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, [history]);
+
+  const VIEW_W = width;
+  const PLOT_W = VIEW_W - PAD.left - PAD.right;
 
   useEffect(() => {
     let alive = true;
@@ -89,10 +100,12 @@ export default function ScoreHistoryChart({ refreshKey }) {
 
       {!error && points.length >= 2 && (
         <>
-          <div className="relative">
+          <div className="relative" ref={boxRef}>
             <svg
+              width={VIEW_W}
+              height={VIEW_H}
               viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-              className="w-full h-auto overflow-visible"
+              className="block max-w-full overflow-visible"
               role="img"
               aria-label={`Evolução do score de risco em ${points.length} análises, de ${points[0].riskScore} para ${last.riskScore} de 100`}
               onMouseLeave={() => setActive(null)}
@@ -151,8 +164,11 @@ export default function ScoreHistoryChart({ refreshKey }) {
             {activePoint && (
               <div
                 role="status"
-                className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full bg-safe-hover border border-safe-borderL rounded-lg px-3 py-2 text-[12px] whitespace-nowrap shadow-lg"
-                style={{ left: `${(activePoint.x / VIEW_W) * 100}%`, top: `calc(${(activePoint.y / VIEW_H) * 100}% - 12px)` }}
+                // Perto das bordas o tooltip se alinha pelo lado do ponto, para não sair do card
+                className={`pointer-events-none absolute z-10 -translate-y-full bg-safe-hover border border-safe-borderL rounded-lg px-3 py-2 text-[12px] whitespace-nowrap shadow-lg ${
+                  activePoint.x > VIEW_W * 0.7 ? "-translate-x-full" : activePoint.x < VIEW_W * 0.3 ? "" : "-translate-x-1/2"
+                }`}
+                style={{ left: `${activePoint.x}px`, top: `${activePoint.y - 12}px` }}
               >
                 <div className="text-safe-text font-semibold">
                   Score {activePoint.riskScore} · {CLASSIFICATION_LABELS[activePoint.classification] || activePoint.classification}
