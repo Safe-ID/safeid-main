@@ -3,8 +3,8 @@ import { W, translateDataClass, severityFromWeight } from "./safeidData";
 import RiskCircle from "./RiskCircle";
 import BreachCard from "./BreachCard";
 import AIPanel from "./AIPanel";
-import MonitoringSettings from "./MonitoringSettings";
 import PrintablePlan from "./PrintablePlan";
+import MonitoringSettings from "./MonitoringSettings";
 import {
   NOTIFICATIONS_UPDATED_EVENT,
   OPEN_DASHBOARD_TAB_EVENT,
