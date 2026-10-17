@@ -59,7 +59,8 @@ server/
 │   ├── fixtures/                  # Catálogo HIBP simulado
 │   └── manual/                    # Scripts de teste manual (auth, HIBP)
 │
-├── *.ps1                          # Scripts de provisionamento AWS (ver ARQUITETURA_AWS.md)
+├── *.ps1                          # Scripts AWS (ver DEPLOY_PRODUCAO.md); leem o .env.production
+├── .env.production.example        # Modelo da configuração de produção
 ├── Dockerfile                     # Multi-stage: builder, dev e produção (Node 20 Alpine)
 ├── docker-entrypoint.sh           # Aplica as migrations antes de iniciar o contêiner
 ├── docker-compose.yml             # PostgreSQL 16, Redis 7 (noeviction) e a API

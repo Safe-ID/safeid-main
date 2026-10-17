@@ -1,15 +1,20 @@
-﻿param(
+﻿# Bastion sem porta aberta (acesso só pelo SSM Session Manager) para chegar ao RDS,
+# ao Redis e ao ALB interno a partir da sua máquina. Veja connect-bastion-ssm.ps1.
+#
+# Uso:
+#   .\create-bastion-ssm.ps1                  # cria (ou liga, se estiver parado) o bastion
+#   .\create-bastion-ssm.ps1 -Action Delete   # remove o bastion, a role e o security group
+param(
     [ValidateSet("Create", "Delete")]
-    [string]$Action = "Create"
+    [string]$Action = "Create",
+
+    [string]$EnvFile = ".env.production",
+    [switch]$Force
 )
 
-$ErrorActionPreference = "Stop"
-
-
 . (Join-Path $PSScriptRoot 'aws-common.ps1')
-Import-DotEnvFile -Path (Join-Path $PSScriptRoot '.env')
-
-$AwsRegion = if ($env:AWS_REGION) { $env:AWS_REGION } else { "us-east-1" }
+$aws = Initialize-AwsScript -EnvFile $EnvFile -BaseDir $PSScriptRoot
+$AwsRegion = $aws.Region
 $BastionSubnetId = Get-RequiredEnv -Name 'BASTION_SUBNET_ID'
 $BastionInstanceName = if ($env:BASTION_INSTANCE_NAME) { $env:BASTION_INSTANCE_NAME } else { "safeid-bastion" }
 $BastionInstanceType = if ($env:BASTION_INSTANCE_TYPE) { $env:BASTION_INSTANCE_TYPE } else { "t3.micro" }
@@ -152,12 +157,12 @@ function Ensure-IamResources {
     }
 
     if (-not (Test-IamRoleExists)) {
-        $trustPath = Join-Path $env:TEMP "$BastionRoleName-trust.json"
+        $trustPath = Join-Path ([System.IO.Path]::GetTempPath()) "$BastionRoleName-trust.json"
         [System.IO.File]::WriteAllText($trustPath, (($trustPolicy | ConvertTo-Json -Depth 10 -Compress)), [System.Text.UTF8Encoding]::new($false))
 
         aws iam create-role `
             --role-name $BastionRoleName `
-            --assume-role-policy-document ("file://" + ($trustPath -replace '\\', '/'))
+            --assume-role-policy-document ("file://" + ($trustPath -replace '\\', '/')) > $null
 
         if ($LASTEXITCODE -ne 0) {
             throw "Falha ao criar a role do bastion."
@@ -175,7 +180,7 @@ function Ensure-IamResources {
     }
 
     if (-not (Test-InstanceProfileExists)) {
-        aws iam create-instance-profile --instance-profile-name $BastionProfileName
+        aws iam create-instance-profile --instance-profile-name $BastionProfileName > $null
 
         if ($LASTEXITCODE -ne 0) {
             throw "Falha ao criar o instance profile do bastion."
@@ -212,8 +217,23 @@ function Create-Bastion {
 
     Ensure-IamResources
 
+    # O túnel do connect-bastion-ssm.ps1 sai do bastion: o banco e o Redis precisam aceitá-lo
+    foreach ($target in @(@('DATABASE_SECURITY_GROUP_ID', 5432), @('REDIS_SECURITY_GROUP_ID', 6379))) {
+        $targetGroupId = Get-EnvOrDefault -Name $target[0] -Default ''
+        if (-not [string]::IsNullOrWhiteSpace($targetGroupId) -and -not (Test-PlaceholderValue -Value $targetGroupId)) {
+            # Falha só quando a regra já existe (InvalidPermission.Duplicate)
+            $null = Invoke-AwsQuiet -Arguments @(
+                'ec2', 'authorize-security-group-ingress',
+                '--group-id', $targetGroupId,
+                '--protocol', 'tcp',
+                '--port', "$($target[1])",
+                '--source-group', $securityGroupId
+            )
+        }
+    }
+
     Write-Host "Criando bastion SSM..."
-    aws ec2 run-instances `
+    $null = aws ec2 run-instances `
         --image-id $amiId `
         --instance-type $BastionInstanceType `
         --subnet-id $BastionSubnetId `
@@ -254,8 +274,9 @@ function Delete-Bastion {
     $existingInstance = Test-BastionInstanceExists
 
     if ($existingInstance) {
+        Confirm-Destructive -Resource $BastionInstanceName -Description "remove a instância bastion '$BastionInstanceName'." -Force:$Force
         Write-Host "Removendo bastion..."
-        aws ec2 terminate-instances --instance-ids $existingInstance.InstanceId
+        aws ec2 terminate-instances --instance-ids $existingInstance.InstanceId > $null
 
         if ($LASTEXITCODE -ne 0) {
             throw "Falha ao solicitar a remoção do bastion."
@@ -278,27 +299,23 @@ function Delete-Bastion {
         --output text 2>$null
 
     if ($securityGroupId -and $securityGroupId -ne "None") {
-        aws ec2 delete-security-group --group-id $securityGroupId 2>$null
+        $null = Invoke-AwsQuiet -Arguments @('ec2', 'delete-security-group', '--group-id', $securityGroupId.Trim())
     }
 
     if (Test-InstanceProfileExists) {
         if (Test-InstanceProfileHasRole) {
-            aws iam remove-role-from-instance-profile `
-                --instance-profile-name $BastionProfileName `
-                --role-name $BastionRoleName 2>$null
+            $null = Invoke-AwsQuiet -Arguments @('iam', 'remove-role-from-instance-profile', '--instance-profile-name', $BastionProfileName, '--role-name', $BastionRoleName)
         }
 
-        aws iam delete-instance-profile --instance-profile-name $BastionProfileName 2>$null
+        $null = Invoke-AwsQuiet -Arguments @('iam', 'delete-instance-profile', '--instance-profile-name', $BastionProfileName)
     }
 
     if (Test-IamPolicyAttached) {
-        aws iam detach-role-policy `
-            --role-name $BastionRoleName `
-            --policy-arn $BastionPolicyArn 2>$null
+        $null = Invoke-AwsQuiet -Arguments @('iam', 'detach-role-policy', '--role-name', $BastionRoleName, '--policy-arn', $BastionPolicyArn)
     }
 
     if (Test-IamRoleExists) {
-        aws iam delete-role --role-name $BastionRoleName 2>$null
+        $null = Invoke-AwsQuiet -Arguments @('iam', 'delete-role', '--role-name', $BastionRoleName)
     }
 
     Write-Host "Bastion removido."

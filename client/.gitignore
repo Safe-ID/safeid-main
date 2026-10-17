@@ -25,9 +25,6 @@ dist-ssr
 *.sw?
 .env
 
-deploy-s3-cloudfront.ps1
-provision-s3-cloudfront.ps1
-
 bucket-*.json
 dist-config.json
 dist.json

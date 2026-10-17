@@ -9,21 +9,21 @@
 # Depois de criar, confirme a assinatura pelo link que chega no ALERTS_EMAIL.
 param(
     [ValidateSet("Create", "Delete", "Test")]
-    [string]$Action = "Create"
+    [string]$Action = "Create",
+
+    [string]$EnvFile = ".env.production",
+    [switch]$Force
 )
 
-$ErrorActionPreference = "Stop"
-$env:AWS_PAGER = ""
-
 . (Join-Path $PSScriptRoot 'aws-common.ps1')
-Import-DotEnvFile -Path (Join-Path $PSScriptRoot '.env')
+$aws = Initialize-AwsScript -EnvFile $EnvFile -BaseDir $PSScriptRoot
 
 # ===== Configurações =====
-$AwsRegion = Get-EnvOrDefault -Name 'AWS_REGION' -Default 'us-east-1'
+$AwsRegion = $aws.Region
 $TopicName = "safeid-alerts"
-$RedisClusterId = Get-EnvOrDefault -Name 'REDIS_CLUSTER_ID' -Default 'safeid-redis'
+$RedisClusterId = Get-RedisClusterId
 $RedisNodeId = Get-EnvOrDefault -Name 'REDIS_NODE_ID' -Default '0001'
-$DbInstanceIdentifier = Get-EnvOrDefault -Name 'DB_INSTANCE_IDENTIFIER' -Default 'safeid-pg'
+$DbInstanceIdentifier = Get-DbInstanceIdentifier
 
 $ClusterName = Get-EnvOrDefault -Name 'ECS_CLUSTER_NAME' -Default 'safeid-cluster'
 $LogGroupName = "/ecs/$ClusterName"
@@ -75,6 +75,9 @@ function Ensure-EmailSubscription {
     )
 
     $alertsEmail = Get-RequiredEnv -Name 'ALERTS_EMAIL'
+    if (Test-PlaceholderValue -Value $alertsEmail) {
+        throw "ALERTS_EMAIL ainda está com o valor de exemplo."
+    }
 
     $existing = aws sns list-subscriptions-by-topic `
         --topic-arn $TopicArn `
@@ -178,7 +181,7 @@ function Ensure-MetricFilters {
                 }
             )
         }
-        $filterInputPath = Join-Path $env:TEMP "$($filter.Name)-metric-filter.json"
+        $filterInputPath = Join-Path ([System.IO.Path]::GetTempPath()) "$($filter.Name)-metric-filter.json"
         [System.IO.File]::WriteAllText($filterInputPath, ($filterInput | ConvertTo-Json -Depth 5), [System.Text.UTF8Encoding]::new($false))
 
         aws logs put-metric-filter `
@@ -314,6 +317,8 @@ function Test-Alerts {
 }
 
 function Delete-Alerts {
+    Confirm-Destructive -Resource $TopicName -Description "remove os alarmes e o tópico '$TopicName': nenhum alerta chega mais por e-mail." -Force:$Force
+
     aws cloudwatch delete-alarms `
         --alarm-names $AlarmNames `
         --region $AwsRegion
@@ -323,16 +328,11 @@ function Delete-Alerts {
     }
 
     foreach ($filter in $MetricFilters) {
-        aws logs delete-metric-filter `
-            --log-group-name $LogGroupName `
-            --filter-name $filter.Name `
-            --region $AwsRegion 2>$null
+        $null = Invoke-AwsQuiet -Arguments @('logs', 'delete-metric-filter', '--log-group-name', $LogGroupName, '--filter-name', $filter.Name, '--region', $AwsRegion)
     }
 
     $topicArn = Get-TopicArn
-    aws sns delete-topic `
-        --topic-arn $topicArn `
-        --region $AwsRegion 2>$null
+    $null = Invoke-AwsQuiet -Arguments @('sns', 'delete-topic', '--topic-arn', $topicArn, '--region', $AwsRegion)
 
     Write-Host "Alarmes e tópico de alertas removidos."
 }

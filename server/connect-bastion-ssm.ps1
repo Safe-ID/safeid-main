@@ -1,4 +1,11 @@
-﻿param(
+﻿# Túnel do SSM Session Manager pelo bastion até o ALB, o RDS ou o Redis.
+# Precisa do plugin do Session Manager: https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html
+#
+# Uso:
+#   .\connect-bastion-ssm.ps1 -Target Rds     # PostgreSQL em localhost:5432
+#   .\connect-bastion-ssm.ps1 -Target Redis   # Redis em localhost:6379
+#   .\connect-bastion-ssm.ps1 -Target Alb     # ALB em localhost:8080
+param(
     [ValidateSet("Alb", "Rds", "Redis", "Custom")]
     [string]$Target = "Alb",
 
@@ -8,14 +15,13 @@
 
     [int]$LocalPort,
 
-    [string]$InstanceId
+    [string]$InstanceId,
+
+    [string]$EnvFile = ".env.production"
 )
 
-$ErrorActionPreference = "Stop"
-
-
 . (Join-Path $PSScriptRoot 'aws-common.ps1')
-Import-DotEnvFile -Path (Join-Path $PSScriptRoot '.env')
+$aws = Initialize-AwsScript -EnvFile $EnvFile -BaseDir $PSScriptRoot
 
 $ClusterName = if ($env:ECS_CLUSTER_NAME) { $env:ECS_CLUSTER_NAME } else { "safeid-cluster" }
 $BastionInstanceName = if ($env:BASTION_INSTANCE_NAME) { $env:BASTION_INSTANCE_NAME } else { "safeid-bastion" }
@@ -46,10 +52,12 @@ function Resolve-Target {
             }
 
             if ([string]::IsNullOrWhiteSpace($remoteHost)) {
-                $remoteHost = aws elbv2 describe-load-balancers `
-                    --names "$ClusterName-alb" `
-                    --query "LoadBalancers[0].DNSName" `
-                    --output text 2>$null
+                $remoteHost = Invoke-AwsQuiet -Arguments @(
+                    'elbv2', 'describe-load-balancers',
+                    '--names', "$ClusterName-alb",
+                    '--query', 'LoadBalancers[0].DNSName',
+                    '--output', 'text'
+                )
 
                 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($remoteHost) -or $remoteHost -eq "None") {
                     throw "Não consegui localizar o ALB interno do backend."
@@ -64,11 +72,7 @@ function Resolve-Target {
         }
 
         "Rds" {
-            $remoteHost = if ($RemoteHost) { $RemoteHost } elseif ($env:RDS_ENDPOINT) { $env:RDS_ENDPOINT } else { "" }
-
-            if ([string]::IsNullOrWhiteSpace($remoteHost)) {
-                throw "Defina RDS_ENDPOINT no .env ou passe -RemoteHost."
-            }
+            $remoteHost = if ($RemoteHost) { $RemoteHost } else { Get-RdsEndpoint }
 
             return @{
                 Host = $remoteHost.Trim()
@@ -78,11 +82,7 @@ function Resolve-Target {
         }
 
         "Redis" {
-            $remoteHost = if ($RemoteHost) { $RemoteHost } elseif ($env:REDIS_HOST) { $env:REDIS_HOST } else { "" }
-
-            if ([string]::IsNullOrWhiteSpace($remoteHost)) {
-                throw "Defina REDIS_HOST no .env ou passe -RemoteHost."
-            }
+            $remoteHost = if ($RemoteHost) { $RemoteHost } else { Get-RedisEndpoint }
 
             return @{
                 Host = $remoteHost.Trim()

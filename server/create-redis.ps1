@@ -1,17 +1,23 @@
-﻿param(
+﻿# ElastiCache Redis do SafeID (cache e filas do BullMQ), com maxmemory-policy=noeviction.
+#
+# Uso:
+#   .\create-redis.ps1                              # cria o Redis (uma vez)
+#   .\create-redis.ps1 -Action ApplyParameterGroup  # aplica o noeviction num Redis que já existe
+#   .\create-redis.ps1 -Action Delete               # apaga o Redis
+param(
     [ValidateSet("Create", "Delete", "ApplyParameterGroup")]
-    [string]$Action = "Create"
+    [string]$Action = "Create",
+
+    [string]$EnvFile = ".env.production",
+    [switch]$Force
 )
 
-$ErrorActionPreference = "Stop"
-$env:AWS_PAGER = ""
-
 . (Join-Path $PSScriptRoot 'aws-common.ps1')
-Import-DotEnvFile -Path (Join-Path $PSScriptRoot '.env')
+$aws = Initialize-AwsScript -EnvFile $EnvFile -BaseDir $PSScriptRoot
 
 # ===== Configurações =====
-$CACHE_CLUSTER_ID        = "safeid-redis"
-$CACHE_NODE_TYPE         = "cache.t3.micro"
+$CACHE_CLUSTER_ID        = Get-RedisClusterId
+$CACHE_NODE_TYPE         = Get-EnvOrDefault -Name 'REDIS_NODE_TYPE' -Default 'cache.t3.micro'
 $CACHE_ENGINE            = "redis"
 $CACHE_ENGINE_VERSION    = Get-EnvOrDefault -Name 'REDIS_ENGINE_VERSION' -Default '7.1'
 $CACHE_PORT              = 6379
@@ -25,30 +31,19 @@ $SUBNET_IDS              = Get-RequiredEnvList -Name 'REDIS_SUBNET_IDS'
 $CACHE_PARAMETER_GROUP   = "safeid-redis-queues"
 
 function Test-RedisSubnetGroupExists {
-    try {
-        $null = aws elasticache describe-cache-subnet-groups `
-            --cache-subnet-group-name $CACHE_SUBNET_GROUP_NAME `
-            --query "CacheSubnetGroups[0].CacheSubnetGroupName" `
-            --output text 2>$null
-        return ($LASTEXITCODE -eq 0)
-    }
-    catch {
-        return $false
-    }
+    $null = Invoke-AwsQuiet -Arguments @(
+        'elasticache', 'describe-cache-subnet-groups',
+        '--cache-subnet-group-name', $CACHE_SUBNET_GROUP_NAME
+    )
+    return ($LASTEXITCODE -eq 0)
 }
 
 function Test-RedisClusterExists {
-    try {
-        $null = aws elasticache describe-cache-clusters `
-            --cache-cluster-id $CACHE_CLUSTER_ID `
-            --show-cache-node-info `
-            --query "CacheClusters[0].CacheClusterId" `
-            --output text 2>$null
-        return ($LASTEXITCODE -eq 0)
-    }
-    catch {
-        return $false
-    }
+    $null = Invoke-AwsQuiet -Arguments @(
+        'elasticache', 'describe-cache-clusters',
+        '--cache-cluster-id', $CACHE_CLUSTER_ID
+    )
+    return ($LASTEXITCODE -eq 0)
 }
 
 # 7.x -> redis7; 6.x -> redis6.x; 5.0.6 -> redis5.0
@@ -89,10 +84,12 @@ function Ensure-ParameterGroup {
         [string]$Family
     )
 
-    $existingFamily = aws elasticache describe-cache-parameter-groups `
-        --cache-parameter-group-name $CACHE_PARAMETER_GROUP `
-        --query "CacheParameterGroups[0].CacheParameterGroupFamily" `
-        --output text 2>$null
+    $existingFamily = Invoke-AwsQuiet -Arguments @(
+        'elasticache', 'describe-cache-parameter-groups',
+        '--cache-parameter-group-name', $CACHE_PARAMETER_GROUP,
+        '--query', 'CacheParameterGroups[0].CacheParameterGroupFamily',
+        '--output', 'text'
+    )
 
     if ($LASTEXITCODE -ne 0) {
         Write-Host "Criando parameter group '$CACHE_PARAMETER_GROUP' ($Family)..."
@@ -128,7 +125,7 @@ function Ensure-SubnetGroup {
         aws elasticache create-cache-subnet-group `
             --cache-subnet-group-name $CACHE_SUBNET_GROUP_NAME `
             --cache-subnet-group-description $CACHE_SUBNET_GROUP_DESC `
-            --subnet-ids $SUBNET_IDS 2>$null
+            --subnet-ids $SUBNET_IDS > $null
 
         if ($LASTEXITCODE -ne 0) {
             throw "Falha ao criar o Redis Subnet Group."
@@ -158,7 +155,7 @@ function Create-Redis {
         --num-cache-nodes 1 `
         --cache-subnet-group-name $CACHE_SUBNET_GROUP_NAME `
         --security-group-ids $CACHE_SECURITY_GROUP_ID `
-        --port $CACHE_PORT 2>$null
+        --port $CACHE_PORT > $null
 
     if ($LASTEXITCODE -ne 0) {
         throw "Falha ao criar o Redis."
@@ -166,7 +163,7 @@ function Create-Redis {
 
     Write-Host "Aguardando o Redis ficar disponível..."
     aws elasticache wait cache-cluster-available `
-        --cache-cluster-id $CACHE_CLUSTER_ID 2>$null
+        --cache-cluster-id $CACHE_CLUSTER_ID
 
     if ($LASTEXITCODE -ne 0) {
         throw "O Redis não ficou disponível no tempo esperado."
@@ -176,18 +173,19 @@ function Create-Redis {
         --cache-cluster-id $CACHE_CLUSTER_ID `
         --show-cache-node-info `
         --query "CacheClusters[0].CacheNodes[0].Endpoint.Address" `
-        --output text 2>$null
+        --output text
 
     Write-Host "Redis pronto!"
-    Write-Host "Endpoint: $endpoint"
-    Write-Host "Porta: 6379"
+    Write-Host "Endpoint: $($endpoint):6379 (os scripts de deploy acham sozinhos; REDIS_HOST é opcional)"
 }
 
 function Delete-Redis {
     if (Test-RedisClusterExists) {
+        Confirm-Destructive -Resource $CACHE_CLUSTER_ID -Description "apaga o Redis '$CACHE_CLUSTER_ID' (filas e cache em andamento se perdem)." -Force:$Force
+
         Write-Host "Removendo cluster Redis..."
         aws elasticache delete-cache-cluster `
-            --cache-cluster-id $CACHE_CLUSTER_ID 2>$null
+            --cache-cluster-id $CACHE_CLUSTER_ID > $null
 
         if ($LASTEXITCODE -ne 0) {
             throw "Falha ao solicitar remoção do cluster Redis."
@@ -195,7 +193,7 @@ function Delete-Redis {
 
         Write-Host "Aguardando remoção do cluster..."
         aws elasticache wait cache-cluster-deleted `
-            --cache-cluster-id $CACHE_CLUSTER_ID 2>$null
+            --cache-cluster-id $CACHE_CLUSTER_ID
 
         if ($LASTEXITCODE -ne 0) {
             throw "Falha ao aguardar a remoção do cluster Redis."
@@ -208,7 +206,7 @@ function Delete-Redis {
     if (Test-RedisSubnetGroupExists) {
         Write-Host "Removendo Redis Subnet Group..."
         aws elasticache delete-cache-subnet-group `
-            --cache-subnet-group-name $CACHE_SUBNET_GROUP_NAME 2>$null
+            --cache-subnet-group-name $CACHE_SUBNET_GROUP_NAME
 
         if ($LASTEXITCODE -ne 0) {
             throw "Falha ao remover o Redis Subnet Group."

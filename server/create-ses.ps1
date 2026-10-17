@@ -1,4 +1,4 @@
-# Amazon SES para os e-mails do SafeID (verificação de conta e alertas de vazamento).
+﻿# Amazon SES para os e-mails do SafeID (verificação de conta e alertas de vazamento).
 # O domínio é verificado por DNS (Easy DKIM); o DNS continua no Registro.br.
 #
 # Uso:
@@ -10,29 +10,29 @@
 # modo avançado) e peça a liberação de produção no console (SES → Account dashboard).
 param(
     [ValidateSet("Create", "Status", "Delete")]
-    [string]$Action = "Create"
+    [string]$Action = "Create",
+
+    [string]$EnvFile = ".env.production",
+    [switch]$Force
 )
 
-$ErrorActionPreference = "Stop"
-$env:AWS_PAGER = ""
-
 . (Join-Path $PSScriptRoot 'aws-common.ps1')
-Import-DotEnvFile -Path (Join-Path $PSScriptRoot '.env')
+$aws = Initialize-AwsScript -EnvFile $EnvFile -BaseDir $PSScriptRoot
 
 # ===== Configurações =====
-$AwsRegion = Get-EnvOrDefault -Name 'AWS_SES_REGION' -Default (Get-EnvOrDefault -Name 'AWS_REGION' -Default 'us-east-1')
+$AwsRegion = Get-EnvOrDefault -Name 'AWS_SES_REGION' -Default $aws.Region
 $SesDomain = Get-EnvOrDefault -Name 'SES_DOMAIN' -Default 'safeid.app.br'
 $MailFromSubdomain = Get-EnvOrDefault -Name 'SES_MAIL_FROM_SUBDOMAIN' -Default 'mail'
 $ConfigurationSet = Get-EnvOrDefault -Name 'SES_CONFIGURATION_SET' -Default 'safeid-default'
 $MailFromDomain = "$MailFromSubdomain.$SesDomain"
 
 function Test-IdentityExists {
-    aws sesv2 get-email-identity --email-identity $SesDomain --region $AwsRegion > $null 2>&1
+    $null = Invoke-AwsQuiet -Arguments @('sesv2', 'get-email-identity', '--email-identity', $SesDomain, '--region', $AwsRegion)
     return ($LASTEXITCODE -eq 0)
 }
 
 function Test-ConfigurationSetExists {
-    aws sesv2 get-configuration-set --configuration-set-name $ConfigurationSet --region $AwsRegion > $null 2>&1
+    $null = Invoke-AwsQuiet -Arguments @('sesv2', 'get-configuration-set', '--configuration-set-name', $ConfigurationSet, '--region', $AwsRegion)
     return ($LASTEXITCODE -eq 0)
 }
 
@@ -133,6 +133,10 @@ function Show-DnsRecords {
 }
 
 function Show-Status {
+    if (-not (Test-IdentityExists)) {
+        throw "A identidade '$SesDomain' não existe. Rode .\create-ses.ps1 primeiro."
+    }
+
     $identity = aws sesv2 get-email-identity `
         --email-identity $SesDomain `
         --region $AwsRegion `
@@ -176,6 +180,8 @@ function Create-Ses {
 }
 
 function Delete-Ses {
+    Confirm-Destructive -Resource $SesDomain -Description "remove a identidade SES '$SesDomain': o SafeID para de enviar e-mails até verificar o domínio de novo." -Force:$Force
+
     if (Test-ConfigurationSetExists) {
         aws sesv2 delete-configuration-set --configuration-set-name $ConfigurationSet --region $AwsRegion
     }

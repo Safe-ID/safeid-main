@@ -39,7 +39,7 @@ Situação real do backend em 17/10/2026, com a evidência de cada item. Todo n�
 | 29 | Dependências atualizadas | ✅ | Dependabot; majors que exigem migração tratadas em PR próprio |
 | 30 | Contêiner | ⚠️ | Dockerfile multi-stage e migrations no entrypoint; a imagem roda como root |
 | 31 | Documentação da API | ✅ | Swagger (`SWAGGER_ENABLED=true`) e [MATRIZ_CONSUMO_API_FRONTEND.md](./MATRIZ_CONSUMO_API_FRONTEND.md) |
-| 32 | Infraestrutura como código | ⚠️ | Scripts PowerShell versionados para a AWS; nada implantado ainda |
+| 32 | Infraestrutura como código | ⚠️ | Scripts PowerShell versionados e idempotentes, da rede ao deploy (`deploy.ps1`); não é Terraform/CloudFormation e nada está implantado ainda |
 
 ## 📋 Checklists por área
 
@@ -84,6 +84,7 @@ Situação real do backend em 17/10/2026, com a evidência de cada item. Todo n�
 - [x] Pipeline de CI
 - [x] Migrations automáticas na subida do contêiner
 - [x] Scripts de provisionamento da AWS
+- [x] Deploy em um comando (`deploy.ps1`) com rollback automático do ECS
 - [ ] Ambiente de produção na AWS implantado
 - [ ] Deploy contínuo a partir da `main`
 

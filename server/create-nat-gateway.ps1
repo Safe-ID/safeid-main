@@ -1,41 +1,26 @@
-﻿param(
+﻿# NAT Gateway: dá saída para a internet (HIBP, IA, SES) às tasks nas subnets privadas.
+# Custa por hora mesmo parado; apague com -Action Delete quando o ambiente não for usado.
+#
+# Uso:
+#   .\create-nat-gateway.ps1                  # cria o NAT e a rota da subnet privada
+#   .\create-nat-gateway.ps1 -Action Delete   # remove o NAT, a rota e o Elastic IP
+param(
     [ValidateSet("Create", "Delete")]
-    [string]$Action = "Create"
+    [string]$Action = "Create",
+
+    [string]$EnvFile = ".env.production",
+    [switch]$Force
 )
 
-$ErrorActionPreference = "Stop"
-
-
 . (Join-Path $PSScriptRoot 'aws-common.ps1')
-Import-DotEnvFile -Path (Join-Path $PSScriptRoot '.env')
-
-$AwsRegion = if ($env:AWS_REGION) { $env:AWS_REGION } else { "us-east-1" }
+$aws = Initialize-AwsScript -EnvFile $EnvFile -BaseDir $PSScriptRoot
+$AwsRegion = $aws.Region
 $VpcId = Get-RequiredEnv -Name 'VPC_ID'
 $PublicSubnetId = Get-RequiredEnv -Name 'NAT_PUBLIC_SUBNET_ID'
 $PrivateSubnetId = Get-RequiredEnv -Name 'NAT_PRIVATE_SUBNET_ID'
 $NatGatewayName = if ($env:NAT_GATEWAY_NAME) { $env:NAT_GATEWAY_NAME } else { "safeid-nat-gateway" }
 $NatEipName = if ($env:NAT_EIP_NAME) { $env:NAT_EIP_NAME } else { "safeid-nat-eip" }
 $NatRouteTableName = if ($env:NAT_ROUTE_TABLE_NAME) { $env:NAT_ROUTE_TABLE_NAME } else { "safeid-private-route-table" }
-
-function Invoke-Aws {
-    param([Parameter(Mandatory = $true)][string[]]$Arguments)
-
-    $output = & aws @Arguments 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Falha ao executar: aws $($Arguments -join ' ')`n$($output -join [Environment]::NewLine)"
-    }
-
-    return $output
-}
-
-function Get-SubnetVpcId {
-    $vpcId = aws ec2 describe-subnets --subnet-ids $PublicSubnetId --query "Subnets[0].VpcId" --output text
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($vpcId) -or $vpcId -eq "None") {
-        throw "Falha ao identificar a VPC do bastion/public subnet."
-    }
-
-    return $vpcId.Trim()
-}
 
 function Get-MainRouteTableId {
     $routeTableId = aws ec2 describe-route-tables `
@@ -116,7 +101,7 @@ function Get-OrCreateEipAllocationId {
 
 function Get-OrCreateNatGatewayId {
     $natGatewayId = aws ec2 describe-nat-gateways `
-        --filter "Name=vpc-id,Values=$VpcId" "Name=tag:Name,Values=$NatGatewayName" `
+        --filter "Name=vpc-id,Values=$VpcId" "Name=tag:Name,Values=$NatGatewayName" "Name=state,Values=pending,available" `
         --query "NatGateways[0].NatGatewayId" `
         --output text 2>$null
 
@@ -155,16 +140,19 @@ function Ensure-PrivateRouting {
         [Parameter(Mandatory = $true)][string]$RouteTableId
     )
 
-    aws ec2 create-route `
-        --route-table-id $RouteTableId `
-        --destination-cidr-block 0.0.0.0/0 `
-        --nat-gateway-id $NatGatewayId 2>$null
+    # create-route falha se a rota já existe; nesse caso ela é substituída
+    $null = Invoke-AwsQuiet -Arguments @(
+        'ec2', 'create-route',
+        '--route-table-id', $RouteTableId,
+        '--destination-cidr-block', '0.0.0.0/0',
+        '--nat-gateway-id', $NatGatewayId
+    )
 
     if ($LASTEXITCODE -ne 0) {
         aws ec2 replace-route `
             --route-table-id $RouteTableId `
             --destination-cidr-block 0.0.0.0/0 `
-            --nat-gateway-id $NatGatewayId 2>$null
+            --nat-gateway-id $NatGatewayId
 
         if ($LASTEXITCODE -ne 0) {
             throw "Falha ao criar ou atualizar a rota padrão para o NAT Gateway."
@@ -186,7 +174,7 @@ function Ensure-PrivateRouting {
         if ($LASTEXITCODE -eq 0 -and $associationId -and $associationId -ne "None") {
             aws ec2 replace-route-table-association `
                 --association-id $associationId `
-                --route-table-id $RouteTableId 2>$null
+                --route-table-id $RouteTableId > $null
 
             if ($LASTEXITCODE -ne 0) {
                 throw "Falha ao atualizar a associação da subnet privada à route table do NAT."
@@ -198,7 +186,7 @@ function Ensure-PrivateRouting {
 
     aws ec2 associate-route-table `
         --route-table-id $RouteTableId `
-        --subnet-id $PrivateSubnetId 2>$null
+        --subnet-id $PrivateSubnetId > $null
 
     if ($LASTEXITCODE -ne 0) {
         throw "Falha ao associar a subnet privada à route table do NAT."
@@ -207,7 +195,7 @@ function Ensure-PrivateRouting {
 
 function Create-NatGateway {
     $existingNatGatewayId = aws ec2 describe-nat-gateways `
-        --filter "Name=vpc-id,Values=$VpcId" "Name=tag:Name,Values=$NatGatewayName" `
+        --filter "Name=vpc-id,Values=$VpcId" "Name=tag:Name,Values=$NatGatewayName" "Name=state,Values=pending,available" `
         --query "NatGateways[0].NatGatewayId" `
         --output text 2>$null
 
@@ -224,11 +212,6 @@ function Create-NatGateway {
     $routeTableId = Get-OrCreateRouteTable
     Ensure-PrivateRouting -NatGatewayId $natGatewayId -RouteTableId $routeTableId
 
-    $allocationId = aws ec2 describe-addresses `
-        --filters "Name=tag:Name,Values=$NatEipName" "Name=domain,Values=vpc" `
-        --query "Addresses[0].AllocationId" `
-        --output text
-
     $natInfo = aws ec2 describe-nat-gateways `
         --nat-gateway-ids $natGatewayId `
         --query "NatGateways[0].NatGatewayAddresses[0].PublicIp" `
@@ -243,11 +226,12 @@ function Create-NatGateway {
 
 function Delete-NatGateway {
     $natGatewayId = aws ec2 describe-nat-gateways `
-        --filter "Name=vpc-id,Values=$VpcId" "Name=tag:Name,Values=$NatGatewayName" `
+        --filter "Name=vpc-id,Values=$VpcId" "Name=tag:Name,Values=$NatGatewayName" "Name=state,Values=pending,available" `
         --query "NatGateways[0].NatGatewayId" `
         --output text 2>$null
 
     if ($natGatewayId -and $natGatewayId -ne "None") {
+        Confirm-Destructive -Resource $NatGatewayName -Description "remove o NAT Gateway: as tasks nas subnets privadas perdem o acesso à HIBP, à IA e ao SES." -Force:$Force
         $natGatewayId = $natGatewayId.Trim()
 
         $routeTableId = aws ec2 describe-route-tables `
@@ -263,20 +247,19 @@ function Delete-NatGateway {
                 --output text 2>$null
 
             if ($associationId -and $associationId -ne "None") {
-                aws ec2 replace-route-table-association `
-                    --association-id $associationId `
-                    --route-table-id $mainRouteTableId 2>$null
+                $null = Invoke-AwsQuiet -Arguments @('ec2', 'replace-route-table-association', '--association-id', $associationId.Trim(), '--route-table-id', $mainRouteTableId)
             }
 
-            aws ec2 delete-route-table --route-table-id $routeTableId 2>$null
+            $null = Invoke-AwsQuiet -Arguments @('ec2', 'delete-route-table', '--route-table-id', $routeTableId.Trim())
         }
 
-        aws ec2 delete-nat-gateway --nat-gateway-id $natGatewayId 2>$null
+        aws ec2 delete-nat-gateway --nat-gateway-id $natGatewayId > $null
         if ($LASTEXITCODE -ne 0) {
             throw "Falha ao solicitar remoção do NAT Gateway."
         }
 
-        aws ec2 wait nat-gateway-deleted --nat-gateway-ids $natGatewayId 2>$null
+        # O Elastic IP só pode ser liberado depois que o NAT some
+        aws ec2 wait nat-gateway-deleted --nat-gateway-ids $natGatewayId
     }
 
     $allocationId = aws ec2 describe-addresses `
@@ -285,7 +268,7 @@ function Delete-NatGateway {
         --output text 2>$null
 
     if ($allocationId -and $allocationId -ne "None") {
-        aws ec2 release-address --allocation-id $allocationId 2>$null
+        $null = Invoke-AwsQuiet -Arguments @('ec2', 'release-address', '--allocation-id', $allocationId.Trim())
     }
 
     Write-Host "NAT Gateway removido."
