@@ -8,3 +8,135 @@ body {
   margin: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
+/* Plano de ação para impressão / PDF (PrintablePlan.jsx): escondido na tela */
+#safeid-print-plan {
+  display: none;
+}
+
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  body {
+    background: #fff !important;
+    color: #111827 !important;
+  }
+
+  #root {
+    display: none !important;
+  }
+
+  #safeid-print-plan {
+    display: block;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11pt;
+    line-height: 1.45;
+    color: #111827;
+  }
+
+  #safeid-print-plan .print-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 2px solid #1a6fff;
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+  }
+
+  #safeid-print-plan .print-brand {
+    color: #1a6fff;
+    font-weight: 700;
+    font-size: 12pt;
+  }
+
+  #safeid-print-plan h1 {
+    font-size: 16pt;
+    margin: 2px 0 0;
+  }
+
+  #safeid-print-plan .print-meta {
+    text-align: right;
+    font-size: 9pt;
+    color: #4b5563;
+  }
+
+  #safeid-print-plan .print-summary {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  #safeid-print-plan .print-summary > div {
+    flex: 1;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 6px 10px;
+  }
+
+  #safeid-print-plan .print-summary span {
+    display: block;
+    font-size: 8pt;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  #safeid-print-plan .print-summary strong {
+    font-size: 13pt;
+  }
+
+  #safeid-print-plan h2 {
+    font-size: 12pt;
+    margin: 14px 0 6px;
+    break-after: avoid;
+  }
+
+  #safeid-print-plan .print-text {
+    white-space: pre-wrap;
+    margin: 0;
+  }
+
+  #safeid-print-plan ol {
+    margin: 0;
+    padding-left: 20px;
+    /* O preflight do Tailwind tira a numeração das listas */
+    list-style: decimal;
+  }
+
+  #safeid-print-plan li {
+    margin-bottom: 4px;
+    break-inside: avoid;
+  }
+
+  #safeid-print-plan table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10pt;
+  }
+
+  #safeid-print-plan th,
+  #safeid-print-plan td {
+    border-bottom: 1px solid #e5e7eb;
+    padding: 5px 6px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  #safeid-print-plan th {
+    color: #4b5563;
+    font-size: 9pt;
+  }
+
+  #safeid-print-plan tr {
+    break-inside: avoid;
+  }
+
+  #safeid-print-plan footer {
+    margin-top: 18px;
+    padding-top: 8px;
+    border-top: 1px solid #e5e7eb;
+    font-size: 8.5pt;
+    color: #6b7280;
+  }
+}

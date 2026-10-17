@@ -4,6 +4,7 @@ import RiskCircle from "./RiskCircle";
 import BreachCard from "./BreachCard";
 import AIPanel from "./AIPanel";
 import MonitoringSettings from "./MonitoringSettings";
+import PrintablePlan from "./PrintablePlan";
 import {
   NOTIFICATIONS_UPDATED_EVENT,
   OPEN_DASHBOARD_TAB_EVENT,
@@ -121,6 +122,18 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
     });
     return acc;
   }, {});
+
+  // Exporta o plano: a impressão do navegador salva o PDF. O título vira o nome sugerido do arquivo
+  const exportPlanPdf = () => {
+    const previousTitle = document.title;
+    document.title = `SafeID-plano-de-acao-${new Date().toISOString().slice(0, 10)}`;
+    const restore = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
+    window.print();
+  };
 
   const greetingName = profile?.email ? profile.email.split("@")[0] : "usuário";
   const totalBreaches = typeof scanSnapshot?.breachesFound === "number" ? scanSnapshot.breachesFound : breachData.length;
@@ -412,7 +425,17 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
 
           {tab === "ai" && (
             <div className="animate-fade-in">
-              <AIPanel recommendation={recommendation} mitigationSteps={mitigationSteps} urgencyLevel={urgencyLevel} updatedAt={updatedAt} classification={classification} riskScore={riskScore} />
+              <AIPanel recommendation={recommendation} mitigationSteps={mitigationSteps} urgencyLevel={urgencyLevel} updatedAt={updatedAt} classification={classification} riskScore={riskScore} onExportPdf={exportPlanPdf} />
+              <PrintablePlan
+                email={profile?.email}
+                riskScore={riskScore}
+                classification={classification}
+                urgencyLevel={urgencyLevel}
+                recommendation={recommendation}
+                mitigationSteps={mitigationSteps}
+                breaches={breachData}
+                updatedAt={updatedAt}
+              />
             </div>
           )}
 
