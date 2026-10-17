@@ -30,6 +30,9 @@ jobs:
           cache-dependency-path: client/package-lock.json
       - run: npm ci
       - run: npm run lint
+      # Testes de componente (Vitest + React Testing Library). O nome do job fica igual:
+      # ele é um dos checks obrigatórios do ruleset da main
+      - run: npm test
       - run: npm run build
 
   backend:

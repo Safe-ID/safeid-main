@@ -47,6 +47,18 @@ No backend, o `CORS_ORIGIN` precisa ser `http://localhost:3001`, senão o navega
 - `npm run build`: build de produção em `dist/`
 - `npm run preview`: serve o build localmente na porta 3001
 - `npm run lint`: verifica o código com ESLint
+- `npm test`: roda os testes de componente uma vez (o CI roda este)
+- `npm run test:watch`: roda os testes e repete a cada alteração
+
+## 🧪 Testes
+
+Os testes de componente usam [Vitest](https://vitest.dev) com [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) em jsdom. A configuração fica em `vitest.config.js`, e a preparação comum (matchers do jest-dom e limpeza entre testes) em `src/test/setup.js`. Os arquivos ficam em `src/components/__tests__/*.test.jsx`.
+
+Os testes interagem como o usuário: encontram campos pelo rótulo e botões pelo nome, e a API é simulada com `vi.mock('../../lib/api')`. Hoje cobrem:
+
+- `RiskCircle`: o rótulo de cada faixa de risco nos limites exatos (26, 51 e 76), as mesmas do `RiskEngine` do backend;
+- `Auth`: as validações do cadastro, o envio com e sem os alertas, a tela "Confirme seu email" e o login (sucesso, conta não verificada e erro);
+- `NotificationBell`: o contador e o "99+", abrir e ler uma notificação, marcar todas como lidas, fechar com Esc e o aviso ao painel quando chega notificação nova.
 
 ## 🗂️ Estrutura
 
