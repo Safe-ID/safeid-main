@@ -1,476 +1,173 @@
-# 🎨 ARQUITETURA VISUAL - Stack SafeID
+# 🎨 Arquitetura visual - SafeID
 
-## 🏗️ STACK TECHNOLÓGICO EM CAMADAS
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        CLIENT (React)                            │
-│                                                                   │
-└────────────────────────────┬────────────────────────────────────┘
-                             │ HTTP REST + Websockets
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   NestJS Framework (Node.js)                     │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  CAMADA DE APRESENTAÇÃO (API)                           │   │
-│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐       │   │
-│  │  │ Controllers│  │ Middlewares│  │  Routes   │       │   │
-│  │  │   (REST)   │  │  (Auth,    │  │ (HTTP)    │       │   │
-│  │  │            │  │ Helmet)    │  │           │       │   │
-│  │  └────────────┘  └────────────┘  └────────────┘       │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                             ▼                                    │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  CAMADA DE DOMÍNIO (Business Logic)                     │   │
-│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐       │   │
-│  │  │   Entities │  │ Repositories│ │  Use Cases │       │   │
-│  │  │  (Models)  │  │ (Interfaces)│ │(Orquestração)     │   │
-│  │  └────────────┘  └────────────┘  └────────────┘       │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                             ▼                                    │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  CAMADA DE INFRAESTRUTURA                               │   │
-│  │  ┌─────────────┐ ┌──────────┐ ┌────────────────────┐  │   │
-│  │  │  Database   │ │  Cache   │ │ HTTP Clients       │  │   │
-│  │  │ (Prisma)    │ │(Redis)   │ │ (Axios, Circuit   │  │   │
-│  │  │ PostgreSQL  │ │ BullMQ   │ │  Breaker)          │  │   │
-│  │  └─────────────┘ └──────────┘ └────────────────────┘  │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                             ▼                                    │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │  CAMADA COMPARTILHADA (Utils)                           │   │
-│  │  ┌─────────┐  ┌─────────┐  ┌──────────┐              │   │
-│  │  │Validators│ │ Crypto  │  │ Schemas  │              │   │
-│  │  │(class-v) │ │(Utils)  │  │(DTO)     │              │   │
-│  │  └─────────┘  └─────────┘  └──────────┘              │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                                                                   │
-└─────────────────────────────────────────────────────────────────┘
-                             │
-         ┌───────────────────┼───────────────────┐
-         ▼                   ▼                   ▼
-    ┌──────────┐        ┌──────────┐        ┌──────────┐
-    │PostgreSQL│        │  Redis   │        │ External │
-    │Database  │        │Cache/Q   │        │   APIs   │
-    │          │        │          │        │(HIBP,AI) │
-    └──────────┘        └──────────┘        └──────────┘
-```
-
----
-
-## 📦 ÁRVORE DE DEPENDÊNCIAS
+## 🏗️ Visão geral
 
 ```
-SafeID Backend
-│
-├── 🔧 RUNTIME & BUILD
-│   ├── Node.js 20+
-│   ├── TypeScript 5.3.3
-│   └── nest-cli 10.3.0
-│
-├── 🎨 FRAMEWORK PRINCIPAL
-│   ├── @nestjs/core 10.3.0
-│   ├── @nestjs/common 10.3.0
-│   ├── @nestjs/platform-express 10.3.0
-│   └── Express 4.18.2 (runtime)
-│
-├── 🗄️ PERSISTÊNCIA
-│   ├── Prisma 5.8.0
-│   │   ├── @prisma/client
-│   │   └── Schema (PostgreSQL)
-│   └── PostgreSQL 16+
-│
-├── 🔐 AUTENTICAÇÃO & SEGURANÇA
-│   ├── @nestjs/jwt 11.0.0
-│   ├── @nestjs/passport 10.0.0
-│   ├── passport 0.7.0
-│   │   ├── passport-jwt 4.0.1
-│   │   └── passport-local 1.0.0
-│   ├── bcryptjs 2.4.3
-│   ├── helmet 7.1.0
-│   └── express-session 1.17.3
-│
-├── ✔️ VALIDAÇÃO
-│   ├── class-validator 0.14.0
-│   └── class-transformer 0.5.1
-│
-├── 💾 CACHE & FILAS
-│   ├── ioredis 5.3.0
-│   │   └── Redis 7+
-│   └── bullmq 5.0.0
-│
-├── 📡 INTEGRAÇÃO EXTERNA
-│   ├── axios 1.6.0
-│   ├── @google/generative-ai 0.7.0
-│   └── opossum 8.1.0 (circuit breaker)
-│
-├── 📚 DOCUMENTAÇÃO
-│   ├── @nestjs/swagger 7.1.0
-│   └── swagger-ui-express 5.0.0
-│
-├── 🧪 TESTES (devDependencies)
-│   ├── jest 29.7.0
-│   ├── ts-jest 29.1.1
-│   └── @nestjs/testing 10.3.0
-│
-├── 🎨 CODE QUALITY (devDependencies)
-│   ├── eslint 8.55.0
-│   │   └── @typescript-eslint/eslint-plugin 6.13.0
-│   ├── prettier 3.1.1
-│   └── typescript 5.3.3
-│
-├── 🌍 CONFIGURATION
-│   ├── @nestjs/config 3.1.0
-│   ├── dotenv 16.3.1
-│   └── reflect-metadata 0.1.13
-│
-├── ⚙️ UTILIDADES
-│   ├── uuid 9.0.1
-│   ├── rxjs 7.8.1
-│   ├── compression 1.7.4
-│   └── @types/* (TypeScript types)
-│
-└── 🐳 DEVOPS
-    ├── Docker
-    ├── Docker Compose
-    └── GitHub Actions (.github/workflows/ci.yml)
+┌──────────────────────────────────────────────────────────────────┐
+│                 CLIENT (React 19 + Vite + Tailwind)                │
+│        painel, sino de notificações, PDF do plano de ação          │
+└──────────────────────────────┬───────────────────────────────────┘
+                               │ HTTPS REST (JSON) + JWT
+                               ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                     API NestJS (APP_ROLE=all)                      │
+│                                                                    │
+│  modules/   auth · scan · notifications · monitoring · health      │
+│     │        (controllers, services, processors das filas)         │
+│     ▼                                                              │
+│  core/      RiskEngine · AIEngine · ExecuteRiskScanUseCase         │
+│     │        (regras de negócio, sem HTTP nem Prisma)              │
+│     ▼                                                              │
+│  infra/     Prisma · Redis · BullMQ · clientes HIBP · SES          │
+│  shared/    logger JSON · criptografia · validação do .env         │
+└───────┬──────────────┬──────────────┬──────────────┬─────────────┘
+        ▼              ▼              ▼              ▼
+  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────────┐
+  │PostgreSQL│   │  Redis   │   │   HIBP   │   │ Azure AI /   │
+  │    16    │   │ cache +  │   │ API v3 + │   │ Amazon SES   │
+  │ (Prisma) │   │ filas    │   │ catálogo │   │              │
+  └──────────┘   └──────────┘   └──────────┘   └──────────────┘
 ```
 
----
-
-## 🔄 FLUXO DE DADOS
+## 🔄 Fluxo de um scan
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        USER REQUEST                              │
-│                    GET /api/scan/execute                         │
-│                    Authorization: Bearer JWT                     │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   HELMET MIDDLEWARE                              │
-│           (Proteção de Headers HTTP)                            │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   CORS MIDDLEWARE                                │
-│          (Validação de Origin)                                  │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                JWT AUTHENTICATION GUARD                          │
-│         (Passport JWT Strategy)                                 │
-│    ✓ Valida token                                               │
-│    ✓ Injeta @CurrentUser()                                      │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                  SCAN CONTROLLER                                 │
-│         @Post('execute')                                        │
-│    Recebe request validado                                      │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                             ▼
-┌─────────────────────────────────────────────────────────────────┐
-│            ExecuteRiskScanUseCase                                │
-│    (Lógica de negócio pura)                                     │
-│    1. Validar entrada                                           │
-│    2. Chamar repositórios                                       │
-│    3. Orquestrar fluxo                                          │
-└────────────────────────────┬────────────────────────────────────┘
-                 ┌───────────┼───────────┐
-                 │           │           │
-                 ▼           ▼           ▼
-    ┌──────────────────┐ ┌──────────┐ ┌──────────┐
-    │HIBP Repository   │ │ AI Engine│ │ Scan Repo│
-    │(Circuit Breaker) │ │(Gemini)  │ │(Prisma)  │
-    └────────┬─────────┘ └────┬─────┘ └────┬─────┘
-             │                │            │
-             ▼                ▼            ▼
-    ┌──────────────────┐ ┌──────────┐ ┌──────────────┐
-    │ HIBP API         │ │ Gemini   │ │ PostgreSQL   │
-    │(External)        │ │ API      │ │ (Prisma)     │
-    └────────┬─────────┘ └────┬─────┘ └──────────────┘
-             │                │            │
-             └────────────────┼────────────┘
-                              │
-                              ▼
-    ┌──────────────────────────────────────────┐
-    │  ScanResult Entity                       │
-    │  ┌────────────────────────────────────┐  │
-    │  │ {                                  │  │
-    │  │   id: UUID,                        │  │
-    │  │   userId: string,                  │  │
-    │  │   riskScore: number,               │  │
-    │  │   findings: Finding[],             │  │
-    │  │   timestamp: Date                  │  │
-    │  │ }                                  │  │
-    │  └────────────────────────────────────┘  │
-    └────────────┬─────────────────────────────┘
-                 │
-                 ▼
-    ┌──────────────────────────────────────────┐
-    │  JSON Response                           │
-    │  HTTP 200 OK                             │
-    │  {                                       │
-    │    status: 'success',                    │
-    │    data: { ScanResult }                  │
-    │  }                                       │
-    └──────────────────────────────────────────┘
+POST /api/v1/scan   (Authorization: Bearer <access token>)
+   │
+   ├─ Helmet · CORS · rate limit (5 a cada 15 min) · ValidationPipe
+   ├─ JwtAuthGuard: assinatura, validade, typ, conta existe e está verificada
+   ▼
+ScanController ──► ScanService.submitScanForUser(userId)
+   │                  usa o e-mail da CONTA, nunca um e-mail do corpo
+   ▼
+ExecuteRiskScanUseCase
+   │
+   ├─ 1. Cache Redis "scan:<hash do e-mail>"  ── HIT ──► devolve o resultado guardado
+   │
+   ├─ 2. MISS: job na fila hibp-check (sem prioridade = passa na frente do monitoramento)
+   │        HibpProcessor: limiter pelo plano HIBP · circuit breaker · 429 pausa a fila
+   │
+   ├─ 3. RiskEngine: soma dos pesos × fator de tempo → score 0-100 e classificação
+   ├─ 4. AIEngine: resumo, passos e urgência (metadados apenas; resposta padrão se falhar)
+   ├─ 5. ScanHistory no PostgreSQL (vazamentos criptografados, AES-256-GCM)
+   └─ 6. Cache por 12 h (com vazamentos) ou 24 h (sem)
+   │
+   ▼
+ScanService: atualiza o snapshot do painel e registra os vazamentos vistos (UserBreach)
+   │
+   ▼
+201 { jobId, riskScore, classification, breachesFound, recommendation, ... }
+```
+
+## 🔔 Fluxo do monitoramento contínuo
+
+```
+catalog-sync (a cada 6 h)          catalog-probe (de hora em hora)
+   GET /breaches (público)            GET /latestbreach
+        │                                   │ mudou? antecipa o sync
+        ▼                                   ▼
+   BreachCatalog atualizado ◄───────────────┘
+        │ vazamento novo e relevante (não sensível, não retirado)
+        ▼
+   monitor-sweep  ─── também toda segunda às 03h ───
+        │ um monitor-check por usuário com alertas ligados (prioridade baixa)
+        ▼
+   monitor-check (fila hibp-check)
+        │ consulta estrita à HIBP para o e-mail do usuário
+        ▼
+   MonitoringService: compara com UserBreach (o que o usuário já conhece)
+        │ só os vazamentos NOVOS
+        ├─► UserBreach + score recalculado (ScanHistory source=MONITORING)
+        ├─► Notification (sino do painel)
+        └─► fila email ──► Amazon SES (descadastro em 1 clique)
+
+   monitoring-reconcile (de hora em hora): reenvia alertas pendentes,
+   antecipa catálogo atrasado e checa usuários sem verificação há 8 dias
+```
+
+## 🔐 Segurança em camadas
+
+```
+Requisição
+   │  1. Helmet ............. cabeçalhos de segurança
+   │  2. CORS ............... só a origem do frontend
+   │  3. Rate limit ......... por IP e por rota
+   │  4. JWT Guard .......... token válido, typ correto, conta verificada no banco
+   │  5. ValidationPipe ..... whitelist, campos extras rejeitados, booleanos estritos
+   │  6. Regras de negócio .. scan só do e-mail da conta, IA sem e-mail
+   ▼
+Dados
+      7. Hash do e-mail, AES-256-GCM nos vazamentos, bcrypt nas senhas
+      8. Exclusão em cascata da conta inteira
+```
+
+## 📊 Módulos NestJS
+
+```
+AppModule
+├── ConfigModule (global, valida o .env)
+├── RateLimitModule (@nestjs/throttler)
+├── DatabaseModule ── PrismaService
+├── CacheModule ───── cliente Redis
+├── QueueModule ───── filas hibp-check, monitoring, email + clientes HIBP
+├── EmailModule ───── SES ou console
+├── AuthModule ────── AuthController, AuthService, EmailVerificationService, JwtStrategy
+├── ScanModule ────── ScanController, ScanService, ExecuteRiskScanUseCase
+├── BreachesModule ── UserBreachRepository
+├── NotificationsModule ── NotificationsController, NotificationsService, EmailProcessor
+├── MonitoringModule ───── controllers de monitoramento e de /api/health/jobs,
+│                          catálogo, varredura, agendamentos, reconciliação,
+│                          HibpProcessor e MonitoringProcessor
+└── HealthModule ──── GET /api/health
+```
+
+## 🗄️ Modelo de dados
+
+```
+User 1───N ScanHistory            (cada análise; source SIGNUP | MANUAL | MONITORING)
+User 1───N UserBreach             (vazamentos já conhecidos; base para alertar só os novos)
+User 1───N Notification           (sino + situação do e-mail de alerta)
+User 1───N EmailVerificationToken (hash do token do link)
+
+BreachCatalog                     (catálogo público da HIBP, sem ligação com usuário)
+CatalogSyncState                  (uma linha: última sincronização completa)
+```
+
+Todas as relações com `User` usam `onDelete: Cascade`.
+
+## 🔀 Padrões usados
+
+| Padrão | Onde |
+|---|---|
+| Injeção de dependência | Todo o NestJS; facilita trocar Prisma, Redis e filas por versões em memória nos testes |
+| Use case | `ExecuteRiskScanUseCase` |
+| Repository | `ScanHistoryRepository` (interface no core), `UserBreachRepository` |
+| Strategy | `JwtStrategy` (Passport); `EmailSender` com SES ou console |
+| Guard | `JwtAuthGuard`, `AdminTokenGuard` |
+| Circuit breaker | Opossum no `HibpClient` |
+| Fila e worker | BullMQ, com limiter global e prioridade |
+| Decorator | `@CurrentUser()`, `@StrictBoolean()` |
+
+## 📈 Escala
+
+Hoje: uma task Fargate de 0,5 vCPU e 1 GB rodando API e workers juntos, um RDS `db.t3.micro` e um ElastiCache `cache.t3.micro` (arquitetura alvo, ainda não implantada). O limiter da HIBP vive no Redis, então vale para todas as tasks juntas.
+
+Primeira evolução prevista: separar API e workers em duas services do ECS com a mesma imagem (`APP_ROLE=api` e `APP_ROLE=worker`). Ver [ARQUITETURA_AWS.md](./ARQUITETURA_AWS.md).
+
+## 🚀 Pipeline
+
+```
+Pull Request
+   ├── Frontend lint and build ........ lint · Vitest · build
+   ├── Backend lint, build and unit ... lint · build · Jest com cobertura mínima
+   ├── Backend integration tests ...... migrations num PostgreSQL 16 + fluxos com Prisma em memória
+   ├── Backend E2E tests .............. API completa via HTTP
+   ├── CodeQL · dependency review
+   └── Aprovação de Code Owner
+          ▼
+   Merge when ready ── fila de merge: main atual + PR ── checks de novo ── merge
 ```
 
 ---
 
-## 🔐 SEGURANÇA EM PROFUNDIDADE
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    REQUEST INCOMING                              │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                    LAYER 1: Headers
-                             ▼
-┌────────────────────────────────────────────────────────────────┐
-│ HELMET                                                          │
-│ • X-Content-Type-Options: nosniff                              │
-│ • X-Frame-Options: DENY                                        │
-│ • X-XSS-Protection: 1; mode=block                              │
-│ • Strict-Transport-Security (HSTS)                             │
-│ • Content-Security-Policy                                      │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                    LAYER 2: Origin
-                             ▼
-┌────────────────────────────────────────────────────────────────┐
-│ CORS                                                            │
-│ • Valida Origin                                                │
-│ • Verifica Methods (GET, POST, etc)                            │
-│ • Valida Headers (Authorization)                               │
-│ • Verifica Credentials                                         │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                    LAYER 3: Authentication
-                             ▼
-┌────────────────────────────────────────────────────────────────┐
-│ JWT GUARD                                                       │
-│ • Extrai token do header                                       │
-│ • Verifica assinatura                                          │
-│ • Valida expiração                                             │
-│ • Busca usuário no banco                                       │
-│ • Injeta @CurrentUser()                                        │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                    LAYER 4: Input Validation
-                             ▼
-┌────────────────────────────────────────────────────────────────┐
-│ VALIDATION PIPE                                                 │
-│ • class-validator                                              │
-│ • Whitelist (remove props extras)                              │
-│ • Transform types                                              │
-│ • Rejeita payload inválido                                     │
-│ • Retorna 400 Bad Request                                      │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                    LAYER 5: Business Logic
-                             ▼
-┌────────────────────────────────────────────────────────────────┐
-│ USE CASE                                                        │
-│ • Autorização adicional                                        │
-│ • Regras de negócio                                            │
-│ • Rate limiting (opcional)                                     │
-│ • Logging de ações                                             │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-                    LAYER 6: Data Storage
-                             ▼
-┌────────────────────────────────────────────────────────────────┐
-│ DATABASE (PostgreSQL)                                           │
-│ • Prepared statements (SQL Injection)                          │
-│ • Row-level security (futuro)                                  │
-│ • Encrypted sensitive data                                     │
-│ • Audit logs                                                   │
-└────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🧪 ESTRATÉGIA DE TESTES
-
-```
-Application Code (src/)
-│
-├─ Unit Tests (tests/unit/)
-│  ├─ Services (50% coverage)
-│  ├─ Utils (80% coverage)
-│  └─ Guards (70% coverage)
-│  └─ Tempo: ~10s / Total: 30% code
-│
-├─ Integration Tests (tests/integration/)
-│  ├─ Database interactions
-│  ├─ API endpoints
-│  └─ External service mocks (Axios + Nock)
-│  └─ Tempo: ~30s / Total: 40% code
-│
-└─ E2E Tests (tests/e2e/)
-   ├─ Auth flow
-   ├─ Full user journeys
-   └─ All modules together
-   └─ Tempo: ~60s / Total: 60% code
-
-Total Coverage Target: > 80%
-```
-
----
-
-## 📊 MÓDULOS DO NESTJS
-
-```
-AppModule (Root)
-│
-├── ConfigModule (Global)
-│   └── .env variables
-│
-├── DatabaseModule
-│   └── PrismaService
-│
-├── CacheModule
-│   └── Redis Connection
-│
-├── QueueModule
-│   └── BullMQ Setup
-│
-├── AuthModule
-│   ├── AuthController
-│   ├── AuthService
-│   ├── JwtStrategy
-│   ├── JwtAuthGuard
-│   └── UserService
-│
-├── ScanModule
-│   ├── ScanController
-│   ├── ScanService
-│   ├── ExecuteRiskScanUseCase
-│   ├── ScanRepository
-│   └── AIEngine
-│
-└── HealthModule
-    ├── HealthController
-    ├── HealthService
-    └── /health/* endpoints
-```
-
----
-
-## 🔀 PADRÕES DE DESIGN IMPLEMENTADOS
-
-```
-1. MVC (Model-View-Controller)
-   Controller → Service → Repository → Database
-
-2. Repository Pattern
-   Abstração de dados via interfaces
-
-3. Use Case Pattern
-   Lógica de negócio isolada
-
-4. Dependency Injection
-   NestJS fornecedor de dependências
-
-5. Strategy Pattern
-   JWT Strategy para Passport
-
-6. Factory Pattern
-   NestJS Module factory
-
-7. Decorator Pattern
-   @CurrentUser() @IsEmail() @Post()
-
-8. Guard Pattern
-   JwtAuthGuard para proteção
-
-9. Middleware Pattern
-   Helmet, CORS, Compression
-
-10. Circuit Breaker Pattern
-    Opossum para resilência
-```
-
----
-
-## 📈 ESCALABILIDADE HORIZONTAL
-
-```
-┌─────────────────────────────────────────────┐
-│          Load Balancer (Nginx)              │
-│         (Não implementado)                  │
-└────────────┬────────────────────────────────┘
-             │
-   ┌─────────┼─────────┐
-   ▼         ▼         ▼
-┌──────┐ ┌──────┐ ┌──────┐
-│ App1 │ │ App2 │ │ App3 │
-│:3000 │ │:3001 │ │:3002 │
-└──┬───┘ └───┬──┘ └───┬──┘
-   └─────────┼────────┘
-             │
-   ┌─────────┴──────────┐
-   ▼                    ▼
-┌──────────────┐ ┌──────────────┐
-│ PostgreSQL   │ │  Redis       │
-│ (Replica)    │ │  (Cluster)   │
-│ (Nenhum)     │ │  (Nenhum)    │
-└──────────────┘ └──────────────┘
-```
-
----
-
-## 🚀 PIPELINE CI/CD
-
-```
-Developer Push
-     │
-     ▼
-GitHub Actions (.github/workflows/ci.yml)
-     │
-     ├─ npm install
-     │
-     ├─ npm run lint
-     │  └─ ESLint check
-     │
-     ├─ npm run test
-     │  ├─ Unit tests
-     │  └─ Integration tests
-     │
-     ├─ npm run build
-     │  └─ TypeScript compilation
-     │
-     └─ Docker build & push
-        └─ Only on main branch
-```
-
----
-
-## 📋 COMPARAÇÃO: SafeID vs Alternativas
-
-```
-                   SafeID    Express   FastAPI   Rust
-Framework          NestJS    Express   FastAPI   Actix
-Language           TS        JS        Python    Rust
-Type Safety        ✓✓        ✗         △         ✓✓
-Learning Curve     Medium    Easy      Medium    Hard
-Productivity       High      Medium    High      Low
-Performance        Good      Excellent Excellent  Excellent
-Community          Large     Largest   Growing   Small
-DevOps Maturity    High      High      Growing   Growing
-Ecosystem          Rich      Richest   Rich      Growing
-
-Winner for SafeID: NestJS (Balance)
-```
-
----
-
-**Atualizado:** 12/05/2026 | **Versão:** 1.0
+**Atualizado em:** 17/10/2026

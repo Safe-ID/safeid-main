@@ -1,301 +1,129 @@
-# ✅ CHECKLIST DE BOAS PRÁTICAS E MATURIDADE
+# ✅ Checklist de boas práticas e maturidade
 
-## 📊 MATRIZ DE IMPLEMENTAÇÃO
+Situação real do backend em 17/10/2026, com a evidência de cada item. Todo número citado aqui foi medido; o que ainda não foi medido aparece como "não medido".
 
-| # | Prática | Status | Evidência | Nível |
-|---|---------|--------|-----------|-------|
-| 1 | Clean Architecture | ✅ | Pastas separadas por camadas | Avançado |
-| 2 | Repository Pattern | ✅ | Interfaces em `core/repositories/` | Avançado |
-| 3 | Use Cases | ✅ | Arquivos em `core/use-cases/` | Avançado |
-| 4 | TypeScript Strict | ✅ | `"strict": true` em tsconfig.json | Avançado |
-| 5 | Helmet Security | ✅ | Aplicado em main.ts | Avançado |
-| 6 | JWT Authentication | ✅ | Estratégia JWT + guards | Avançado |
-| 7 | Password Hashing | ✅ | bcryptjs importado | Avançado |
-| 8 | Input Validation | ✅ | class-validator em DTOs | Avançado |
-| 9 | CORS Configuration | ✅ | Configurado em main.ts | Avançado |
-| 10 | Prisma ORM | ✅ | Schema + migrations | Avançado |
-| 11 | Environment Variables | ✅ | .env e .env.example | Intermediário |
-| 12 | Error Handling | ✅ | Exception handlers | Intermediário |
-| 13 | Logging | ⚠️ | NestJS logger padrão | Intermediário |
-| 14 | Testing (Unit) | ✅ | Jest configurado | Intermediário |
-| 15 | Testing (E2E) | ✅ | Estrutura pronta | Intermediário |
-| 16 | CI/CD Pipeline | ✅ | GitHub Actions em .github/workflows/ | Avançado |
-| 17 | Docker | ✅ | Dockerfile multi-stage | Avançado |
-| 18 | Rate Limiting | ✅ | Variáveis de env prontas | Intermediário |
-| 19 | Health Checks | ✅ | Health Module implementado | Avançado |
-| 20 | Circuit Breaker | ✅ | Opossum configurado | Avançado |
-| 21 | Cache (Redis) | ✅ | ioredis + BullMQ | Intermediário |
-| 22 | Queue System | ✅ | BullMQ implementado | Intermediário |
-| 23 | API Documentation | ✅ | Swagger/OpenAPI | Avançado |
-| 24 | ESLint | ✅ | Configurado e rodando | Intermediário |
-| 25 | Prettier | ✅ | Formatação automática | Intermediário |
+**Legenda:** ✅ implementado · ⚠️ parcial · ❌ não implementado
 
-**Legenda:**
-- ✅ Implementado
-- ⚠️ Parcialmente implementado
-- ❌ Não implementado
+## 📊 Matriz de implementação
 
----
+| # | Prática | Status | Evidência |
+|---|---|---|---|
+| 1 | Arquitetura em camadas | ✅ | `core/` sem dependência de HTTP ou Prisma; `infra/`, `modules/`, `shared/` |
+| 2 | Use cases e repositórios | ✅ | `ExecuteRiskScanUseCase`, `ScanHistoryRepository` (interface), `UserBreachRepository` |
+| 3 | TypeScript strict | ✅ | `"strict": true` no `tsconfig.json` |
+| 4 | Cabeçalhos de segurança | ✅ | `helmet()` no `main.ts` |
+| 5 | Autenticação JWT | ✅ | Acesso 24 h + refresh 7 dias com `typ` separado; `JwtStrategy` confere a conta no banco |
+| 6 | Verificação de e-mail | ✅ | Token de uso único, validade de 24 h, só o hash no banco |
+| 7 | Hash de senha | ✅ | bcrypt, mínimo de 8 caracteres |
+| 8 | Validação de entrada | ✅ | ValidationPipe com whitelist e `forbidNonWhitelisted`; `@StrictBoolean()` nos consentimentos |
+| 9 | CORS restrito | ✅ | Só `CORS_ORIGIN` |
+| 10 | Rate limit | ✅ | `@nestjs/throttler` por IP, com limites por rota |
+| 11 | Dados pessoais protegidos | ✅ | Hash do e-mail, AES-256-GCM nos vazamentos, IA sem e-mail, `maskEmail` nos logs |
+| 12 | Consentimento e exclusão (LGPD) | ✅ | Aceite dos termos e dos alertas separados; descadastro em 1 clique; exclusão em cascata |
+| 13 | ORM e migrations | ✅ | Prisma, 6 migrations versionadas aplicadas por `migrate deploy` |
+| 14 | Variáveis de ambiente | ⚠️ | `.env.example` completo; a validação só **avisa** no log, não impede subir |
+| 15 | Logs estruturados | ⚠️ | Logger JSON nos módulos novos; ainda restam `console.log` em pontos antigos |
+| 16 | Health checks | ✅ | `/api/health` (503 se o banco ou o Redis falharem) e `/api/health/jobs` |
+| 17 | Circuit breaker | ✅ | Opossum na HIBP; o 429 não abre o circuito |
+| 18 | Filas e agendamentos | ✅ | BullMQ com limiter global, prioridade, retentativas, watchdog e reconciliação |
+| 19 | Shutdown gracioso | ✅ | `enableShutdownHooks`, workers fecham ao fim do job atual |
+| 20 | Testes unitários | ✅ | 349 testes, 99,05% de linhas, 90,25% de branches |
+| 21 | Testes de integração | ⚠️ | 5 testes de fluxo (scan e monitoramento) com Prisma e Redis em memória; o CI aplica as migrations num PostgreSQL real, mas nenhum teste consulta o banco de verdade |
+| 22 | Testes e2e da API | ✅ | 23 testes subindo a API |
+| 23 | Fuzz testing | ✅ | `risk.engine.fuzz.spec.ts` (fast-check) |
+| 24 | Testes de frontend | ✅ | 26 testes de componente (Vitest) |
+| 25 | Testes e2e no navegador | ❌ | Não há Playwright/Cypress |
+| 26 | Testes de carga | ❌ | Não há scripts de k6 versionados |
+| 27 | CI obrigatório | ✅ | 4 checks obrigatórios, CodeQL, dependency review |
+| 28 | Revisão de código | ✅ | PR obrigatório com template, Code Owner, fila de merge |
+| 29 | Dependências atualizadas | ✅ | Dependabot; majors que exigem migração tratadas em PR próprio |
+| 30 | Contêiner | ⚠️ | Dockerfile multi-stage e migrations no entrypoint; a imagem roda como root |
+| 31 | Documentação da API | ✅ | Swagger (`SWAGGER_ENABLED=true`) e [MATRIZ_CONSUMO_API_FRONTEND.md](./MATRIZ_CONSUMO_API_FRONTEND.md) |
+| 32 | Infraestrutura como código | ⚠️ | Scripts PowerShell versionados para a AWS; nada implantado ainda |
 
-## 🎯 NÍVEIS DE MATURIDADE
-
-### 1️⃣ INICIANTE (Foundation)
-- [ ] Node.js + Express
-- [ ] Variáveis de ambiente
-- [ ] Validação básica
-- [ ] Testes simples
-- [ ] Git versionado
-
-### 2️⃣ INTERMEDIÁRIO (Best Practices)
-- ✅ Framework (NestJS)
-- ✅ ORM (Prisma)
-- ✅ TypeScript
-- ✅ Segurança básica (Helmet, JWT)
-- ✅ Testes (Jest)
-- ✅ Linting (ESLint)
-- ✅ Docker
-
-### 3️⃣ AVANÇADO (Enterprise)
-- ✅ Clean Architecture
-- ✅ Design Patterns (Repository, Use Cases)
-- ✅ Circuit Breaker
-- ✅ Observabilidade
-- ✅ CI/CD automatizado
-- ✅ Segurança em camadas
-- ✅ Performance otimizada
-
-### 4️⃣ EXPERTISE (Não implementado ainda)
-- ❌ Event Sourcing
-- ❌ CQRS Pattern
-- ❌ Microservices
-- ❌ GraphQL
-- ❌ Websockets em escala
-- ❌ Multi-tenant architecture
-- ❌ Advanced monitoring (Prometheus + Grafana)
-
-**SafeID Status:** 🟢 AVANÇADO (Nível 3)
-
----
-
-## 📋 CHECKLIST PARA MANUTENÇÃO
+## 📋 Checklists por área
 
 ### 🔐 Segurança
+- [x] Senhas com bcrypt
+- [x] JWT com expiração e refresh token com segredo próprio
+- [x] Verificação de e-mail obrigatória
+- [x] CORS, Helmet e validação global
+- [x] Rate limit por rota
+- [x] Segredos de produção no SSM (scripts prontos)
+- [x] CodeQL e dependency review no CI
+- [ ] Revogação de refresh token no servidor
+- [ ] Rotação de segredos
+- [ ] Imagem Docker rodando sem root
 
-- [x] Senhas com hash (bcrypt)
-- [x] JWT com expiração
-- [x] CORS configurado
-- [x] Headers HTTP seguros (Helmet)
-- [x] Validação de entrada global
-- [x] Environment variables sensíveis
-- [ ] Rate limiting global
-- [ ] Logs de segurança
-- [ ] Testes de segurança (OWASP)
-- [ ] Secrets rotation
+### 🗄️ Banco de dados
+- [x] Migrations versionadas e aplicadas automaticamente
+- [x] Índices nas consultas do monitoramento
+- [x] Exclusão em cascata a partir do usuário
+- [x] Pool de conexões limitado em produção (`connection_limit=10`)
+- [x] Backups de 7 dias e snapshot antes de migration (scripts do RDS)
+- [ ] Réplica de leitura (não necessária na escala atual)
 
-### 🗄️ Banco de Dados
+### 🧪 Qualidade
+- [x] TypeScript strict, ESLint e Prettier
+- [x] Cobertura mínima no CI (80% statements, branches e lines; 85% functions)
+- [x] Testes unitários, de integração, e2e da API e fuzz
+- [x] Testes de componente no frontend
+- [ ] Testes e2e no navegador
+- [ ] Testes de carga
 
-- [x] ORM (Prisma)
-- [x] Migrations versionadas
-- [x] Relacionamentos definidos
-- [x] Índices em chaves frequentes
-- [ ] Backups automatizados
-- [ ] Replicação
-- [ ] Monitoramento de performance
-- [ ] Query optimization
-- [ ] Connection pooling tuned
-- [ ] Database audit logs
+### 📊 Observabilidade
+- [x] Health check do banco e do Redis
+- [x] Diagnóstico das filas e agendamentos (`/api/health/jobs`)
+- [x] Logs em JSON com e-mail mascarado
+- [x] Alarmes no CloudWatch (scripts prontos, não implantados)
+- [ ] Métricas de aplicação (Prometheus ou equivalente)
+- [ ] Rastreamento distribuído
 
-### 🧪 Qualidade de Código
-
-- [x] TypeScript strict mode
-- [x] ESLint configurado
-- [x] Prettier formatando
-- [x] Testes unitários
-- [x] Testes de integração
-- [ ] Testes E2E completos
-- [x] Coverage > 50%
-- [ ] Coverage > 80%
-- [ ] Code review process
-- [ ] Architecture decision records
-
-### 📊 Monitoramento
-
-- [x] Health checks
-- [x] Error tracking
-- [ ] Metrics (Prometheus)
-- [ ] Logs estruturados
-- [ ] Distributed tracing
-- [ ] Alertas em produção
-- [ ] Dashboard de observabilidade
-- [ ] SLA monitoring
-- [ ] Performance profiling
-- [ ] Uptime monitoring
-
-### 🚀 Deployment
-
-- [x] Docker containerizado
-- [x] docker-compose local
-- [ ] Kubernetes ready
-- [ ] Helm charts
-- [x] CI/CD pipeline
-- [ ] Blue-Green deployment
-- [ ] Canary deployment
-- [ ] Auto-rollback
-- [ ] Database migration automation
-- [ ] Secrets management
+### 🚀 Deploy
+- [x] Docker e docker-compose
+- [x] Pipeline de CI
+- [x] Migrations automáticas na subida do contêiner
+- [x] Scripts de provisionamento da AWS
+- [ ] Ambiente de produção na AWS implantado
+- [ ] Deploy contínuo a partir da `main`
 
 ### 📚 Documentação
+- [x] READMEs da raiz, do server e do client
+- [x] Setup, estrutura, arquitetura e AWS em `docs/Backend`
+- [x] Guia de contribuição com Git e PRs
+- [x] Swagger
+- [ ] Registro de decisões de arquitetura (ADRs)
+- [ ] Changelog da API
 
-- [x] README.md
-- [x] SETUP.md
-- [x] STRUCTURE.md
-- [x] Swagger API docs
-- [ ] Architecture Decision Records
-- [ ] Deployment guide
-- [ ] Troubleshooting guide
-- [ ] Contributing guide
-- [ ] API changelog
-- [ ] Video tutorials
+## 📈 Métricas
 
----
+| Métrica | Valor | Como medir |
+|---|---|---|
+| Cobertura de linhas (backend) | 99,05% | `npm run test:cov` |
+| Cobertura de branches (backend) | 90,25% | `npm run test:cov` |
+| Testes (unit / integração / e2e / frontend) | 349 / 5 / 23 / 26 | suítes do Jest e do Vitest |
+| Erros de lint | 0 (há avisos) | `npm run lint` |
+| Erros de tipo | 0 | `npm run build` |
+| Tempo de resposta (p95) | não medido | precisa de teste de carga com o ambiente publicado |
+| Disponibilidade | não medida | precisa do ambiente de produção e de monitoramento de uptime |
 
-## 🔄 ROADMAP DE MELHORIAS
+## 🔄 Próximos passos sugeridos
 
-### Curto Prazo (1-2 sprints)
-```
-[ ] Implementar rate limiting global
-[ ] Adicionar audit logging
-[ ] Melhorar cobertura de testes (>80%)
-[ ] Documentar API completamente
-[ ] Setup de monitoring básico
-```
+### Curto prazo
+- Republicar o MVP e configurar o envio de e-mail em produção (alertas do monitoramento).
+- Remover dependências sem uso (`express-session`, `passport-local`).
+- Trocar os `console.log` restantes pelo logger JSON.
+- Rodar a imagem Docker sem root.
 
-### Médio Prazo (3-6 sprints)
-```
-[ ] Event sourcing para operações críticas
-[ ] Implementar CQRS em módulos complexos
-[ ] Testes de performance/load
-[ ] Secrets rotation automática
-[ ] Implementar webhooks para eventos
-```
+### Médio prazo
+- Testes de carga com k6 contra o ambiente publicado.
+- Testes e2e no navegador para os fluxos de cadastro e scan.
+- Revogação de refresh token no servidor.
+- Separar API e workers em duas services quando a carga justificar.
 
-### Longo Prazo (6+ meses)
-```
-[ ] Migrar para microservices
-[ ] Implementar GraphQL
-[ ] Multi-tenant support
-[ ] Machine learning para risk assessment
-[ ] Blockchain para auditoria
-```
+### Migrações de versão
+- NestJS 10 → 12, Prisma 5 → 7, typescript-eslint 6 → 8 e Tailwind 3 → 4 (no client), cada uma em PR próprio.
 
 ---
 
-## 📊 COMPARAÇÃO COM ARQUITETURA ALTERNATIVA
-
-### SafeID Current (NestJS + Prisma + JWT)
-
-| Aspecto | SafeID | Express | FastAPI | Rust |
-|---------|--------|---------|---------|------|
-| **Curva de Aprendizado** | Média | Baixa | Média | Alta |
-| **Produtividade** | 🟢 Alta | 🟡 Média | 🟢 Alta | 🔴 Baixa |
-| **Type Safety** | 🟢 Sim | 🔴 Não | 🟡 Parcial | 🟢 Excelente |
-| **Performance** | 🟡 Boa | 🟢 Excelente | 🟢 Excelente | 🟢 Excelente |
-| **Ecosystem** | 🟢 Rico | 🟢 Rico | 🟡 Growing | 🟡 Growing |
-| **DevOps** | 🟢 Maduro | 🟢 Maduro | 🟡 Novo | 🟡 Novo |
-| **Comunidade** | 🟢 Grande | 🟢 Grande | 🟡 Médio | 🟡 Pequeno |
-| **Production Ready** | 🟢 Sim | 🟢 Sim | 🟡 Sim | 🟢 Sim |
-
-**Conclusão:** NestJS foi a escolha certa para SafeID. Equilibra produtividade, type-safety e performance.
-
----
-
-## 🎓 SKILLSET NECESSÁRIO
-
-### Para Trabalhar no SafeID
-
-#### Obrigatório 📌
-- [x] Node.js + npm/yarn
-- [x] TypeScript (nível intermediário)
-- [x] NestJS (conceitos básicos)
-- [x] PostgreSQL (queries básicas)
-- [x] REST APIs
-- [x] Git
-
-#### Recomendado 💡
-- [x] Prisma ORM
-- [x] JWT + Passport
-- [x] Docker
-- [x] GitHub Actions
-- [x] Jest testing
-- [x] Clean Architecture
-- [x] Design Patterns
-
-#### Nice-to-have 🌟
-- [ ] Redis
-- [ ] Message queues (BullMQ)
-- [ ] Kubernetes
-- [ ] GraphQL
-- [ ] Microservices
-- [ ] Cloud platforms (AWS, GCP)
-
----
-
-## 📈 MÉTRICAS DE QUALIDADE
-
-### Current State (Sprint atual)
-
-| Métrica | Valor | Target | Status |
-|---------|-------|--------|--------|
-| Test Coverage | ~60% | 80% | 🟡 Bom |
-| Build Time | ~30s | <20s | ⚠️ OK |
-| Lint Errors | 0 | 0 | ✅ Perfeito |
-| Type Errors | 0 | 0 | ✅ Perfeito |
-| Code Complexity | Baixa | Baixa | ✅ Perfeito |
-| Bundle Size | ~5MB | <10MB | ✅ Bom |
-| Response Time (p95) | <100ms | <150ms | ✅ Excelente |
-| Uptime | 99.9% | 99.9% | ✅ Bom |
-| Security Score | A | A | ✅ Excelente |
-
----
-
-## 🔗 DEPENDÊNCIAS CRÍTICAS
-
-```json
-{
-  "@nestjs/core": "10.3.0",      // Framework
-  "@prisma/client": "5.8.0",     // ORM
-  "typescript": "5.3.3",          // Language
-  "@nestjs/jwt": "11.0.0",        // Auth
-  "bcryptjs": "2.4.3",            // Security
-  "helmet": "7.1.0",              // Headers
-}
-```
-
-**Atualização recomendada:** Mensal
-**Política de dependências:** Semver com testes
-
----
-
-## 📞 CONTATOS E RECURSOS
-
-### Documentação Oficial
-- NestJS: https://docs.nestjs.com
-- Prisma: https://www.prisma.io/docs
-- TypeScript: https://www.typescriptlang.org/docs
-- Jest: https://jestjs.io/docs
-
-### Comunidades
-- NestJS Discord: https://discord.gg/G7Qnnhy
-- Stack Overflow: Tag `nestjs`
-- GitHub Discussions: nestjs/nest
-
-### Videos & Courses
-- NestJS Official Course
-- Clean Architecture in NestJS
-- Prisma Tutorials
-
----
-
-**Documento Atualizado:** 12/05/2026
-**Versão:** 1.0
-**Autor:** SafeID Team
+**Atualizado em:** 17/10/2026
