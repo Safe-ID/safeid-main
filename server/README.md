@@ -216,137 +216,27 @@ docker compose logs -f app
 
 ## ☁️ AWS Deploy
 
-> Os scripts `.ps1` do backend ficam versionados nesta pasta (`server/`). Nenhum valor da conta fica no código: IDs de VPC, subnets e security groups, senhas e e-mails vêm do `server/.env` (fora do git; os nomes estão na seção "Scripts AWS" do `.env.example`). Os scripts do frontend (`client/*-s3-cloudfront.ps1`) estão no `.gitignore` do `client`: peça para quem cuida do deploy.
+Os scripts `.ps1` desta pasta (e os dois do `client/`) são versionados e não têm nenhum ID, senha ou e-mail fixo. Eles leem só o `server/.env.production` (fora do git; modelo comentado em [.env.production.example](.env.production.example)), nunca o `.env` de desenvolvimento.
 
-A lista completa de scripts e a ordem de aplicação dos ajustes de confiabilidade e do monitoramento estão nas seções 9 e 10 de [ARQUITETURA_AWS.md](../docs/Backend/ARQUITETURA_AWS.md). Além dos scripts abaixo, há `create-database.ps1` (RDS), `create-redis.ps1` (ElastiCache), `put-ssm-secrets.ps1` (segredos no SSM), `create-ses.ps1` (e-mail) e `create-alerts.ps1` (alarmes).
-
-### Fluxo recomendado
-
-Para manter o backend privado por trás de um ponto de entrada público controlado, siga esta ordem:
-
-1. Criar o NAT Gateway e a rota privada
-2. Enviar a imagem para o ECR
-3. Enviar os segredos para o SSM (`put-ssm-secrets.ps1 -DryRun`, conferir, e rodar sem `-DryRun`)
-4. Subir o stack no ECS Fargate com ALB internet-facing
-5. Publicar o frontend em S3 + CloudFront
-6. Acessar a VPC via bastion com SSM quando precisar fazer troubleshooting
-
-O ALB usa `ALB_SUBNET_IDS` com duas subnets e as tasks usam `BACKEND_SUBNET_IDS` com a subnet privada da API. O padrão é `ALB_SCHEME=internet-facing`. Se você informar `ALB_HTTPS_CERTIFICATE_ARN`, o script cria o listener em HTTPS na porta 443.
-
-### Publicar o frontend
-
-Use o script `client/provision-s3-cloudfront.ps1` para criar o bucket S3, a distribuição CloudFront e o Origin Access Control. Depois, use `client/deploy-s3-cloudfront.ps1` para gerar o build do Vite com `VITE_API_URL` apontando para a URL pública do backend e sincronizar os arquivos para o bucket S3, com invalidação opcional do CloudFront.
-
-Pré-requisitos do frontend:
-
-- bucket S3 criado para hospedar os arquivos estáticos
-- distribuição CloudFront apontando para o bucket
-- origem do CloudFront protegida com OAC ou, no mínimo, bucket sem acesso público direto
-- domínio do frontend apontando para a distribuição CloudFront
-- `VITE_API_URL` configurado para o endpoint público do backend
-- certificado ACM em `us-east-1` se você for usar domínio próprio no CloudFront
-
-Exemplo:
+Com o AWS CLI logado e o `.env.production` preenchido, um comando na raiz do repositório publica o commit atual (segredos no SSM, imagem no ECR, ECS e frontend):
 
 ```powershell
-.\deploy-s3-cloudfront.ps1 -ApiBaseUrl https://api.seudominio.com -S3BucketName safeid-frontend-prod -CloudFrontDistributionId E1234567890ABC
+.\deploy.ps1 -DryRun   # confere tudo sem mudar nada
+.\deploy.ps1
 ```
 
-O backend usa JWT no `Authorization`, então basta liberar o domínio do frontend no `CORS_ORIGIN`.
+A preparação única da infraestrutura (rede, NAT, RDS, Redis, SES, certificados, CloudFront e alarmes), o rollback e os problemas comuns estão em [DEPLOY_PRODUCAO.md](../docs/Backend/DEPLOY_PRODUCAO.md). A arquitetura e a lista de scripts estão nas seções 9 e 10 de [ARQUITETURA_AWS.md](../docs/Backend/ARQUITETURA_AWS.md).
 
-### Criar NAT Gateway
+Comandos avulsos mais usados (nesta pasta):
 
 ```powershell
-.\create-nat-gateway.ps1 -Action Create
+.\deploy-ecs-fargate.ps1 -ImageTag <hash-do-commit>   # voltar para uma imagem anterior do ECR
+.\create-database.ps1 -Action Snapshot               # snapshot antes de uma migration
+.\connect-bastion-ssm.ps1 -Target Rds                # PostgreSQL de produção em localhost:5432
+.\connect-bastion-ssm.ps1 -Target Redis              # Redis em localhost:6379
 ```
 
-Esse passo precisa acontecer antes do deploy do ECS para que a API privada tenha saída à internet para chamadas externas.
-
-### Enviar imagem para o ECR
-
-```powershell
-.\push-ecr-image.ps1 -Action Create -AwsRegion us-east-1 -RepositoryName safeid-backend -ImageTag latest
-```
-
-Use a mesma região do `AWS_REGION` do `.env`, que é a usada pelo `deploy-ecs-fargate.ps1`.
-
-### Subir a aplicação no ECS Fargate
-
-```powershell
-.\deploy-ecs-fargate.ps1 -Action Create
-```
-
-As variáveis de configuração do [deploy-ecs-fargate.ps1](deploy-ecs-fargate.ps1) vêm do `server/.env` (ou de variáveis de ambiente definidas antes de rodar o script). Os segredos não passam pelo script: a task definition referencia os parâmetros do SSM.
-
-Para acessar externamente a VPC sem expor o serviço, use uma destas opções:
-
-- AWS Client VPN para conectar sua máquina à VPC
-- Site-to-Site VPN entre sua rede e a VPC
-- Bastion host com SSH ou SSM Session Manager e port forwarding
-- Session Manager port forwarding diretamente para uma instância de apoio na VPC
-
-Para abrir um túnel até o ALB do backend no `localhost:8080`:
-
-```powershell
-.\connect-bastion-ssm.ps1 -Target Alb -LocalPort 8080
-```
-
-Outros alvos práticos:
-
-```powershell
-.\connect-bastion-ssm.ps1 -Target Rds -LocalPort 5432
-.\connect-bastion-ssm.ps1 -Target Redis -LocalPort 6379
-```
-
-### Remover o stack para evitar cobrança
-
-```powershell
-.\deploy-ecs-fargate.ps1 -Action Delete
-.\push-ecr-image.ps1 -Action Delete -AwsRegion us-east-1 -RepositoryName safeid-backend
-```
-
-O script de ECS cria e remove o cluster, o serviço, o ALB, o target group, o log group e as roles necessárias. Também libera o acesso do ECS para o RDS e para o Redis pelos security groups informados.
-
-Para o ALB público, além do script, você precisa de:
-
-- um certificado ACM na mesma região do ALB, se quiser HTTPS no ALB
-- um DNS público apontando para o ALB ou para o CloudFront
-- uma política de segurança/WAF se quiser restringir ou inspecionar o acesso
-- CORS do backend permitindo o domínio do CloudFront
-
-### Bastion com SSM para acessar a VPC
-
-Pré-requisitos: AWS CLI configurado e Session Manager Plugin disponível na máquina.
-
-Crie o bastion sem SSH aberto e com acesso via Session Manager:
-
-```powershell
-.\create-bastion-ssm.ps1 -Action Create
-```
-
-Para remover:
-
-```powershell
-.\create-bastion-ssm.ps1 -Action Delete
-```
-
-Esse caminho mantém o backend privado na VPC e expõe apenas o acesso administrativo via Session Manager. Os exemplos de túnel para ALB, RDS e Redis estão na seção de deploy no ECS acima.
-
-### NAT Gateway para saída da API
-
-Crie a NAT Gateway e a rota privada:
-
-```powershell
-.\create-nat-gateway.ps1 -Action Create
-```
-
-Remova quando quiser cortar custo:
-
-```powershell
-.\create-nat-gateway.ps1 -Action Delete
-```
-
-Com a NAT em funcionamento, as chamadas HTTPS para o HIBP e para a IA (Azure AI Foundry) continuam saindo normalmente a partir da API na subnet privada.
+O túnel precisa do bastion (`create-bastion-ssm.ps1`) e do [Session Manager Plugin](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-working-with-install-plugin.html). Toda ação `-Action Delete` pede para digitar o nome do recurso antes de apagar.
 
 ## 🔧 Configuração
 
