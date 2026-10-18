@@ -1,47 +1,66 @@
-﻿param(
+﻿# Publica o backend no ECS Fargate atrás de um Application Load Balancer.
+# Cria o que faltar (cluster, log group, roles, security groups, ALB, target group,
+# listeners) e registra uma task definition nova com a imagem informada.
+#
+# Uso:
+#   .\deploy-ecs-fargate.ps1                     # imagem do commit atual (push-ecr-image.ps1 antes)
+#   .\deploy-ecs-fargate.ps1 -ImageTag 3f2a1b9   # outra tag já publicada no ECR (ex.: voltar versão)
+#   .\deploy-ecs-fargate.ps1 -ValidateOnly       # só confere a configuração (não cria nada)
+#   .\deploy-ecs-fargate.ps1 -Action Delete      # remove service, ALB, cluster, roles e log group
+#
+# Os segredos (DATABASE_URL, JWT, HIBP, IA...) não passam por aqui: vão para o SSM com
+# put-ssm-secrets.ps1 e o ECS os injeta na task. Se a versão nova não ficar saudável,
+# o ECS volta sozinho para a anterior (deployment circuit breaker) e o script falha.
+param(
     [ValidateSet("Create", "Delete")]
-    [string]$Action = "Create"
+    [string]$Action = "Create",
+
+    [string]$EnvFile = ".env.production",
+    [string]$ImageTag = "",
+    [switch]$ValidateOnly,
+    [switch]$Force
 )
 
-$ErrorActionPreference = "Stop"
-$env:AWS_PAGER = ""
-
 . (Join-Path $PSScriptRoot 'aws-common.ps1')
-Import-DotEnvFile -Path (Join-Path $PSScriptRoot '.env')
+$aws = Initialize-AwsScript -EnvFile $EnvFile -BaseDir $PSScriptRoot
+$SsmPrefix = Get-SsmPrefix
 
-# ===== Configuração do deploy =====
-# Ajuste estas variáveis no server/.env. Os segredos (DATABASE_URL, JWT, HIBP, IA...)
-# não passam por aqui: vão para o SSM com put-ssm-secrets.ps1 e o ECS os injeta na task.
+# ===== Configuração do deploy (server/.env.production) =====
 $AiEndpoint = if ($env:AI_ENDPOINT) { $env:AI_ENDPOINT } else { "" }
-$AwsRegion = if ($env:AWS_REGION) { $env:AWS_REGION } else { "us-east-1" }
+$AwsRegion = $aws.Region
 $ClusterName = if ($env:ECS_CLUSTER_NAME) { $env:ECS_CLUSTER_NAME } else { "safeid-cluster" }
 $ServiceName = if ($env:ECS_SERVICE_NAME) { $env:ECS_SERVICE_NAME } else { "safeid-service" }
 $TaskFamily = if ($env:ECS_TASK_FAMILY) { $env:ECS_TASK_FAMILY } else { "safeid-task" }
 $ContainerName = if ($env:ECS_CONTAINER_NAME) { $env:ECS_CONTAINER_NAME } else { "safeid-backend" }
-$ImageUri = if ($env:SAFEID_IMAGE_URI) { $env:SAFEID_IMAGE_URI } else { "" }
+# SAFEID_IMAGE_URI força uma imagem específica; sem ela, usa o ECR do projeto com a tag do commit
+$ImageUri = if ($env:SAFEID_IMAGE_URI -and -not (Test-PlaceholderValue -Value $env:SAFEID_IMAGE_URI)) { $env:SAFEID_IMAGE_URI } else { "" }
 $TaskSubnetIds = Get-RequiredEnvList -Name 'BACKEND_SUBNET_IDS'
 $AlbSubnetIds = Get-RequiredEnvList -Name 'ALB_SUBNET_IDS'
 $AlbSecurityGroupName = if ($env:ALB_SECURITY_GROUP_NAME) { $env:ALB_SECURITY_GROUP_NAME } else { "safeid-alb-sg" }
 $TaskSecurityGroupName = if ($env:TASK_SECURITY_GROUP_NAME) { $env:TASK_SECURITY_GROUP_NAME } else { "safeid-ecs-sg" }
 $DatabaseSecurityGroupId = Get-RequiredEnv -Name 'DATABASE_SECURITY_GROUP_ID'
 $RedisSecurityGroupId = Get-RequiredEnv -Name 'REDIS_SECURITY_GROUP_ID'
-$RedisHost = if ($env:REDIS_HOST) { $env:REDIS_HOST } else { "" }
 $RedisPort = if ($env:REDIS_PORT) { [int]$env:REDIS_PORT } else { 6379 }
 $AppPort = if ($env:APP_PORT) { $env:APP_PORT } else { "3000" }
 $AlbScheme = if ($env:ALB_SCHEME) { $env:ALB_SCHEME } else { "internet-facing" }
 $AlbAllowedClientCidr = if ($env:ALB_ALLOWED_CLIENT_CIDR) { $env:ALB_ALLOWED_CLIENT_CIDR } elseif ($env:ALB_ALLOWED_CLIENT_IP) { "$($env:ALB_ALLOWED_CLIENT_IP)/32" } else { "0.0.0.0/0" }
-$AlbHttpsCertificateArn = if ($env:ALB_HTTPS_CERTIFICATE_ARN) { $env:ALB_HTTPS_CERTIFICATE_ARN } else { "" }
-$AlbSslPolicy = if ($env:ALB_SSL_POLICY) { $env:ALB_SSL_POLICY } else { "ELBSecurityPolicy-2016-08" }
+# Sem certificado (ou com o valor de exemplo), o ALB fica só em HTTP
+$AlbHttpsCertificateArn = Get-EnvOrDefault -Name 'ALB_HTTPS_CERTIFICATE_ARN' -Default ''
+if (Test-PlaceholderValue -Value $AlbHttpsCertificateArn) { $AlbHttpsCertificateArn = "" }
+# TLS 1.2 e 1.3 apenas (a política de 2016 ainda aceitava TLS 1.0)
+$AlbSslPolicy = if ($env:ALB_SSL_POLICY) { $env:ALB_SSL_POLICY } else { "ELBSecurityPolicy-TLS13-1-2-2021-06" }
 $AssignPublicIp = if ($env:ASSIGN_PUBLIC_IP) { $env:ASSIGN_PUBLIC_IP } else { "ENABLED" }
 $HIBPBaseUrl = if ($env:HIBP_BASE_URL) { $env:HIBP_BASE_URL } else { "https://haveibeenpwned.com/api/v3" }
-$CorsOrigin = if ($env:CORS_ORIGIN) { $env:CORS_ORIGIN } else { "" }
 $SwaggerEnabled = if ($env:SWAGGER_ENABLED) { $env:SWAGGER_ENABLED } else { "false" }
 $SwaggerPath = if ($env:SWAGGER_PATH) { $env:SWAGGER_PATH } else { "api/docs" }
 $LogLevel = if ($env:LOG_LEVEL) { $env:LOG_LEVEL } else { "info" }
 $HealthCheckPath = "/api/health"
 $DesiredCount = if ($env:DESIRED_COUNT) { [int]$env:DESIRED_COUNT } else { 1 }
+# 0,5 vCPU / 1 GB comporta API + workers na escala atual (ARQUITETURA_AWS.md, seção 8)
+$TaskCpu = Get-EnvOrDefault -Name 'ECS_TASK_CPU' -Default '512'
+$TaskMemory = Get-EnvOrDefault -Name 'ECS_TASK_MEMORY' -Default '1024'
 
-$AwsAccountId = Get-AwsAccountId
+$AwsAccountId = $aws.AccountId
 $LogGroupName = "/ecs/$ClusterName"
 $LoadBalancerName = "$ClusterName-alb"
 $TargetGroupName = "$ClusterName-tg"
@@ -60,26 +79,11 @@ $LogRetentionDays = if ($env:LOG_RETENTION_DAYS) { [int]$env:LOG_RETENTION_DAYS 
 # Tempo entre o SIGTERM e o SIGKILL, para o shutdown gracioso fechar workers e conexões
 $ContainerStopTimeout = 120
 
-function Invoke-AwsJson {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string[]]$Arguments
-    )
-
-    & aws @Arguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "Falha ao executar: aws $($Arguments -join ' ')"
-    }
-}
-
 function Get-SubnetVpcId {
-    $vpcId = aws ec2 describe-subnets `
-        --subnet-ids $TaskSubnetIds `
-        --query "Subnets[0].VpcId" `
-        --output text
+    $vpcId = Invoke-AwsQuiet -Arguments (@('ec2', 'describe-subnets', '--subnet-ids') + $TaskSubnetIds + @('--query', 'Subnets[0].VpcId', '--output', 'text'))
 
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($vpcId) -or $vpcId -eq "None") {
-        throw "Falha ao identificar a VPC dos subnets informados."
+        throw "Não achei as subnets de BACKEND_SUBNET_IDS na região $AwsRegion. Confira os IDs em $(Get-EnvFileLabel)."
     }
 
     return $vpcId.Trim()
@@ -256,8 +260,8 @@ function Add-IngressRule {
         $arguments += @("--source-group", $Source)
     }
 
-    $stdoutPath = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName() + ".out")
-    $stderrPath = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName() + ".err")
+    $stdoutPath = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName() + ".out")
+    $stderrPath = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName() + ".err")
 
     try {
         $process = Start-Process `
@@ -317,7 +321,7 @@ function Ensure-IamExecutionRole {
     }
 
     if (-not (Test-IamRoleExists)) {
-        $trustPath = Join-Path $env:TEMP "$ExecutionRoleName-trust.json"
+        $trustPath = Join-Path ([System.IO.Path]::GetTempPath()) "$ExecutionRoleName-trust.json"
         [System.IO.File]::WriteAllText($trustPath, (ConvertTo-SafeJson $trustPolicy), [System.Text.UTF8Encoding]::new($false))
 
         aws iam create-role `
@@ -366,7 +370,7 @@ function Ensure-IamExecutionRole {
         )
     }
 
-    $ssmPolicyPath = Join-Path $env:TEMP "$ExecutionRoleName-ssm.json"
+    $ssmPolicyPath = Join-Path ([System.IO.Path]::GetTempPath()) "$ExecutionRoleName-ssm.json"
     [System.IO.File]::WriteAllText($ssmPolicyPath, (ConvertTo-SafeJson $ssmPolicy), [System.Text.UTF8Encoding]::new($false))
 
     aws iam put-role-policy `
@@ -394,7 +398,7 @@ function Ensure-IamTaskRole {
     }
 
     if (-not (Test-IamRoleExists -RoleName $TaskRoleName)) {
-        $trustPath = Join-Path $env:TEMP "$TaskRoleName-trust.json"
+        $trustPath = Join-Path ([System.IO.Path]::GetTempPath()) "$TaskRoleName-trust.json"
         [System.IO.File]::WriteAllText($trustPath, (ConvertTo-SafeJson $trustPolicy), [System.Text.UTF8Encoding]::new($false))
 
         aws iam create-role `
@@ -433,7 +437,7 @@ function Ensure-IamTaskRole {
         )
     }
 
-    $sesPolicyPath = Join-Path $env:TEMP "$TaskRoleName-ses.json"
+    $sesPolicyPath = Join-Path ([System.IO.Path]::GetTempPath()) "$TaskRoleName-ses.json"
     [System.IO.File]::WriteAllText($sesPolicyPath, (ConvertTo-SafeJson $sesPolicy), [System.Text.UTF8Encoding]::new($false))
 
     aws iam put-role-policy `
@@ -448,30 +452,46 @@ function Ensure-IamTaskRole {
     return $roleArn.Trim()
 }
 
-# Configuração não sensível do monitoramento e do e-mail. Só entram as variáveis definidas
-# no .env (as ausentes usam o padrão do código); URLs públicas são obrigatórias.
-function Get-MonitoringEnvironment {
-    $appUrl = Get-RequiredEnv -Name 'APP_URL'
-    $frontendUrl = Get-RequiredEnv -Name 'FRONTEND_URL'
-    foreach ($pair in @(@('APP_URL', $appUrl), @('FRONTEND_URL', $frontendUrl))) {
-        # Entram nos links dos e-mails: localhost quebraria a verificação e o descadastro
-        if (Test-LocalOnlyValue -Value $pair[1]) {
-            throw "$($pair[0]) aponta para um endereço local ($($pair[1])). Use a URL pública de produção."
-        }
+# Configuração não sensível da aplicação. URLs públicas são obrigatórias; as opcionais só
+# entram quando estão no arquivo de ambiente (as ausentes usam o padrão do código).
+function Get-AppEnvironment {
+    # Entram nos links dos e-mails: localhost quebraria a verificação e o descadastro
+    $appUrl = Get-PublicUrlEnv -Name 'APP_URL'
+    $frontendUrl = Get-PublicUrlEnv -Name 'FRONTEND_URL'
+
+    # Sem CORS_ORIGIN o navegador bloquearia o frontend; o padrão é o próprio FRONTEND_URL
+    $corsOrigin = Get-EnvOrDefault -Name 'CORS_ORIGIN' -Default $frontendUrl
+    if ((Test-LocalOnlyValue -Value $corsOrigin) -or (Test-PlaceholderValue -Value $corsOrigin) -or $corsOrigin -match 'yourdomain') {
+        throw "CORS_ORIGIN precisa ser a URL pública do frontend (está '$corsOrigin')."
     }
 
     $emailProvider = Get-EnvOrDefault -Name 'EMAIL_PROVIDER' -Default 'ses'
     if ($emailProvider -eq 'ses') {
-        $null = Get-RequiredEnv -Name 'EMAIL_FROM'
+        foreach ($name in @('EMAIL_FROM', 'SES_DOMAIN')) {
+            if (Test-PlaceholderValue -Value (Get-RequiredEnv -Name $name)) {
+                throw "$name ainda está com o valor de exemplo."
+            }
+        }
+    }
+    else {
+        Write-Host "Aviso: EMAIL_PROVIDER=$emailProvider. Em produção os e-mails de verificação não saem e o cadastro por e-mail não termina." -ForegroundColor Yellow
     }
 
     $environment = @(
         @{ name = "APP_URL"; value = $appUrl },
         @{ name = "FRONTEND_URL"; value = $frontendUrl },
+        @{ name = "CORS_ORIGIN"; value = $corsOrigin },
         @{ name = "EMAIL_PROVIDER"; value = $emailProvider },
         @{ name = "AWS_SES_REGION"; value = $SesRegion },
         @{ name = "SES_CONFIGURATION_SET"; value = $SesConfigurationSet }
     )
+
+    # Login com Google: precisa do ID (aqui), do segredo (SSM) e do callback público
+    $googleClientId = Get-EnvOrDefault -Name 'GOOGLE_CLIENT_ID' -Default ''
+    if (-not [string]::IsNullOrWhiteSpace($googleClientId) -and -not (Test-PlaceholderValue -Value $googleClientId)) {
+        $environment += @{ name = "GOOGLE_CLIENT_ID"; value = $googleClientId }
+        $environment += @{ name = "GOOGLE_CALLBACK_URL"; value = (Get-PublicUrlEnv -Name 'GOOGLE_CALLBACK_URL') }
+    }
 
     $optional = @(
         'EMAIL_FROM', 'EMAIL_REPLY_TO', 'SES_MAX_PER_SECOND', 'EMAIL_VERIFICATION_TTL_HOURS',
@@ -479,7 +499,8 @@ function Get-MonitoringEnvironment {
         'HIBP_CATALOG_SYNC_CRON', 'HIBP_CATALOG_PROBE_CRON', 'HIBP_PLAN_CHECK_CRON',
         'MONITORING_RECONCILE_CRON', 'MONITORING_WEEKLY_SWEEP_CRON', 'UNVERIFIED_CLEANUP_CRON',
         'UNVERIFIED_ACCOUNT_TTL_DAYS', 'HIBP_RPM_LIMIT', 'HIBP_RPM_SAFETY_FACTOR', 'HIBP_RPM_FALLBACK',
-        'HIBP_EXPECTED_LATENCY_S', 'AI_MODEL', 'AI_TIMEOUT_MS'
+        'HIBP_EXPECTED_LATENCY_S', 'AI_MODEL', 'AI_TIMEOUT_MS',
+        'JWT_EXPIRES_IN', 'REFRESH_TOKEN_EXPIRES_IN', 'RATE_LIMIT_WINDOW_MS', 'RATE_LIMIT_MAX_REQUESTS'
     )
 
     foreach ($name in $optional) {
@@ -529,7 +550,7 @@ function Ensure-Cluster {
         --output text 2>$null
 
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($clusterStatus) -or $clusterStatus -eq "None") {
-        aws ecs create-cluster --cluster-name $ClusterName
+        aws ecs create-cluster --cluster-name $ClusterName > $null
         if ($LASTEXITCODE -ne 0) {
             throw "Falha ao criar o cluster ECS '$ClusterName'."
         }
@@ -543,7 +564,7 @@ function Ensure-Cluster {
             throw "Falha ao remover o cluster ECS inativo '$ClusterName'."
         }
 
-        aws ecs create-cluster --cluster-name $ClusterName
+        aws ecs create-cluster --cluster-name $ClusterName > $null
         if ($LASTEXITCODE -ne 0) {
             throw "Falha ao recriar o cluster ECS '$ClusterName'."
         }
@@ -569,7 +590,7 @@ function Ensure-LoadBalancer {
             --subnets $AlbSubnetIds `
             --security-groups $AlbSecurityGroupId `
             --query "LoadBalancers[0].LoadBalancerArn" `
-            --output text
+            --output text > $null
 
         if ($LASTEXITCODE -ne 0) {
             throw "Falha ao criar o Application Load Balancer."
@@ -628,8 +649,8 @@ function Ensure-TargetGroup {
     )
 
     if (-not (Test-TargetGroupExists)) {
-        $stdoutPath = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName() + ".out")
-        $stderrPath = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName() + ".err")
+        $stdoutPath = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName() + ".out")
+        $stderrPath = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName() + ".err")
 
         try {
             $createProcess = Start-Process `
@@ -666,8 +687,8 @@ function Ensure-TargetGroup {
         }
     }
 
-    $stdoutPath = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName() + ".out")
-    $stderrPath = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName() + ".err")
+    $stdoutPath = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName() + ".out")
+    $stderrPath = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName() + ".err")
 
     try {
         $describeProcess = Start-Process `
@@ -691,13 +712,34 @@ function Ensure-TargetGroup {
             $stderrText = if (Test-Path $stderrPath) { Get-Content -Path $stderrPath -Raw } else { "" }
             throw "Falha ao obter o target group do ALB. Detalhe: $stderrText"
         }
-
-        return $targetGroupArn
     }
     finally {
         Remove-Item $stdoutPath -ErrorAction SilentlyContinue
         Remove-Item $stderrPath -ErrorAction SilentlyContinue
     }
+
+    # Deploy mais rápido: a task nova entra após 2 checks de 15 s (o padrão era 5 de 30 s)
+    # e a antiga sai em 30 s (o padrão era 300 s). Reaplicado a cada deploy.
+    aws elbv2 modify-target-group `
+        --target-group-arn $targetGroupArn `
+        --health-check-path $HealthCheckPath `
+        --health-check-interval-seconds 15 `
+        --healthy-threshold-count 2 `
+        --unhealthy-threshold-count 3 > $null
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Falha ao ajustar o health check do target group."
+    }
+
+    aws elbv2 modify-target-group-attributes `
+        --target-group-arn $targetGroupArn `
+        --attributes Key=deregistration_delay.timeout_seconds,Value=30 > $null
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Falha ao ajustar o tempo de retirada das tasks antigas do target group."
+    }
+
+    return $targetGroupArn
 }
 
 function Ensure-Listener {
@@ -723,8 +765,8 @@ function Ensure-Listener {
         return $listenerArn.Trim()
     }
 
-    $stdoutPath = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName() + ".out")
-    $stderrPath = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName() + ".err")
+    $stdoutPath = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName() + ".out")
+    $stderrPath = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName() + ".err")
 
     try {
         $arguments = @(
@@ -770,25 +812,6 @@ function Ensure-Listener {
     }
 }
 
-function Get-RedisHostValue {
-    if (-not [string]::IsNullOrWhiteSpace($RedisHost)) {
-        $value = $RedisHost
-    }
-    elseif (-not [string]::IsNullOrWhiteSpace($env:REDIS_HOST)) {
-        $value = $env:REDIS_HOST
-    }
-    else {
-        throw "Informe -RedisHost ou defina REDIS_HOST no ambiente."
-    }
-
-    # O .env de desenvolvimento aponta para o Redis local; isso nunca pode ir para produção
-    if (Test-LocalOnlyValue -Value $value) {
-        throw "REDIS_HOST aponta para um endereço local ($value). Use o endpoint do ElastiCache no deploy."
-    }
-
-    return $value
-}
-
 function New-TaskDefinitionJson {
     param(
         [Parameter(Mandatory = $true)]
@@ -811,19 +834,20 @@ function New-TaskDefinitionJson {
         @{ name = "REDIS_HOST"; value = $RedisHostValue },
         @{ name = "REDIS_PORT"; value = "$RedisPort" },
         @{ name = "HIBP_BASE_URL"; value = $HIBPBaseUrl },
-        @{ name = "CORS_ORIGIN"; value = $CorsOrigin },
+        # Produção nunca usa o mock da HIBP
+        @{ name = "HIBP_USE_MOCK"; value = "false" },
         @{ name = "SWAGGER_ENABLED"; value = $SwaggerEnabled },
         @{ name = "SWAGGER_PATH"; value = $SwaggerPath },
         @{ name = "LOG_LEVEL"; value = $LogLevel },
         @{ name = "AI_ENDPOINT"; value = $AiEndpoint }
-    ) + $MonitoringEnvironment
+    ) + $AppEnvironment
 
     $taskDefinition = @{
         family                  = $TaskFamily
         networkMode             = "awsvpc"
         requiresCompatibilities  = @("FARGATE")
-        cpu                     = "512"
-        memory                  = "1024"
+        cpu                     = $TaskCpu
+        memory                  = $TaskMemory
         executionRoleArn        = $ExecutionRoleArn
         taskRoleArn             = $TaskRoleArn
         containerDefinitions    = @(
@@ -877,7 +901,7 @@ function Register-TaskDefinition {
         -RedisHostValue $RedisHostValue `
         -ContainerSecrets $ContainerSecrets
 
-    $taskDefPath = Join-Path $env:TEMP "$TaskFamily-taskdef.json"
+    $taskDefPath = Join-Path ([System.IO.Path]::GetTempPath()) "$TaskFamily-taskdef.json"
     [System.IO.File]::WriteAllText($taskDefPath, $json, [System.Text.UTF8Encoding]::new($false))
 
     $taskDefinitionArn = aws ecs register-task-definition `
@@ -916,21 +940,28 @@ function Ensure-Service {
 
     $networkConfiguration = "awsvpcConfiguration={subnets=[$($TaskSubnetIds -join ',')],securityGroups=[$TaskSecurityGroupId],assignPublicIp=$AssignPublicIp}"
     $loadBalancer = "targetGroupArn=$TargetGroupArn,containerName=$ContainerName,containerPort=$AppPort"
+    # A task nova sobe ao lado da antiga (200%) e só substitui depois de saudável. Se não ficar
+    # saudável, o circuit breaker cancela o deploy e volta para a task definition anterior.
+    $deploymentConfiguration = "deploymentCircuitBreaker={enable=true,rollback=true},maximumPercent=200,minimumHealthyPercent=100"
 
     if (Test-ServiceExists) {
+        Write-Host "Atualizando o serviço ECS '$ServiceName'..."
         aws ecs update-service `
             --cluster $ClusterName `
             --service $ServiceName `
             --task-definition $TaskDefinitionArn `
             --desired-count $DesiredCount `
             --network-configuration $networkConfiguration `
-            --force-new-deployment
+            --deployment-configuration $deploymentConfiguration `
+            --health-check-grace-period-seconds 60 `
+            --force-new-deployment > $null
 
         if ($LASTEXITCODE -ne 0) {
             throw "Falha ao atualizar o serviço ECS."
         }
     }
     else {
+        Write-Host "Criando o serviço ECS '$ServiceName'..."
         aws ecs create-service `
             --cluster $ClusterName `
             --service-name $ServiceName `
@@ -939,263 +970,217 @@ function Ensure-Service {
             --launch-type FARGATE `
             --network-configuration $networkConfiguration `
             --load-balancers $loadBalancer `
-            --health-check-grace-period-seconds 60
+            --deployment-configuration $deploymentConfiguration `
+            --health-check-grace-period-seconds 60 > $null
 
         if ($LASTEXITCODE -ne 0) {
             throw "Falha ao criar o serviço ECS."
         }
     }
 
+    Write-Host "Aguardando a versão nova ficar saudável no ALB (alguns minutos)..."
     aws ecs wait services-stable `
         --cluster $ClusterName `
         --services $ServiceName
 
-    if ($LASTEXITCODE -ne 0) {
-        throw "O serviço ECS não estabilizou no tempo esperado."
+    $waitExitCode = $LASTEXITCODE
+
+    # Depois de um rollback o serviço também fica "estável", só que na versão antiga
+    $primary = aws ecs describe-services `
+        --cluster $ClusterName `
+        --services $ServiceName `
+        --query "services[0].deployments[?status=='PRIMARY'] | [0].[taskDefinition, rolloutState]" `
+        --output text
+
+    $primaryParts = @("$primary" -split '\s+' | Where-Object { $_ })
+    $logsHint = "Veja os logs: aws logs tail $LogGroupName --since 30m"
+
+    if ($primaryParts.Count -ge 1 -and $primaryParts[0] -ne $TaskDefinitionArn) {
+        throw "A versão nova não ficou saudável e o ECS voltou para a anterior ($($primaryParts[0])). $logsHint"
+    }
+
+    if ($waitExitCode -ne 0) {
+        throw "O serviço ECS não estabilizou no tempo esperado (rollout: $($primaryParts[1])). $logsHint"
     }
 }
 
 function Remove-ServiceAndCluster {
-    $serviceStatus = aws ecs describe-services `
-        --cluster $ClusterName `
-        --services $ServiceName `
-        --query "services[0].status" `
-        --output text 2>$null
+    Confirm-Destructive `
+        -Resource $ClusterName `
+        -Description "remove o serviço '$ServiceName', o ALB, o cluster '$ClusterName', as roles e os logs. O banco, o Redis e os segredos do SSM não são apagados." `
+        -Force:$Force
+
+    $serviceStatus = Invoke-AwsQuiet -Arguments @(
+        'ecs', 'describe-services',
+        '--cluster', $ClusterName,
+        '--services', $ServiceName,
+        '--query', 'services[0].status',
+        '--output', 'text'
+    )
 
     if ($LASTEXITCODE -eq 0 -and $serviceStatus -and $serviceStatus -ne "None" -and $serviceStatus -ne "INACTIVE") {
-        Write-Host "Removendo serviço ECS..."
+        Write-Host "Removendo o serviço ECS..."
 
         aws ecs delete-service `
             --cluster $ClusterName `
             --service $ServiceName `
-            --force
+            --force > $null
 
         if ($LASTEXITCODE -ne 0) {
             throw "Falha ao remover o serviço ECS."
         }
+
+        aws ecs wait services-inactive --cluster $ClusterName --services $ServiceName
     }
     else {
-        Write-Host "Serviço ECS já está inativo ou não existe. Seguindo com a remoção do restante do stack..."
+        Write-Host "Serviço ECS já está inativo ou não existe. Seguindo com o restante..."
     }
 
-    $taskDefinitions = aws ecs list-task-definitions `
-        --family-prefix $TaskFamily `
-        --sort DESC `
-        --query "taskDefinitionArns" `
-        --output text
+    $taskDefinitions = Invoke-AwsQuiet -Arguments @(
+        'ecs', 'list-task-definitions',
+        '--family-prefix', $TaskFamily,
+        '--query', 'taskDefinitionArns',
+        '--output', 'text'
+    )
 
-    if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($taskDefinitions)) {
-        foreach ($taskDefinitionArn in ($taskDefinitions -split '\s+')) {
-            if (-not [string]::IsNullOrWhiteSpace($taskDefinitionArn)) {
-                aws ecs deregister-task-definition --task-definition $taskDefinitionArn 1>$null 2>$null
-            }
+    foreach ($taskDefinitionArn in @("$taskDefinitions" -split '\s+' | Where-Object { $_ -and $_ -ne 'None' })) {
+        $null = Invoke-AwsQuiet -Arguments @('ecs', 'deregister-task-definition', '--task-definition', $taskDefinitionArn)
+    }
+
+    $lbArn = Invoke-AwsQuiet -Arguments @(
+        'elbv2', 'describe-load-balancers',
+        '--names', $LoadBalancerName,
+        '--query', 'LoadBalancers[0].LoadBalancerArn',
+        '--output', 'text'
+    )
+
+    if ($LASTEXITCODE -eq 0 -and $lbArn -and "$lbArn".Trim() -ne "None") {
+        Write-Host "Removendo o Application Load Balancer..."
+        # Apagar o ALB apaga os listeners junto
+        aws elbv2 delete-load-balancer --load-balancer-arn "$lbArn".Trim()
+        # O target group e os security groups só liberam depois que o ALB some de vez
+        aws elbv2 wait load-balancers-deleted --load-balancer-arns "$lbArn".Trim()
+    }
+
+    $tgArn = Invoke-AwsQuiet -Arguments @(
+        'elbv2', 'describe-target-groups',
+        '--names', $TargetGroupName,
+        '--query', 'TargetGroups[0].TargetGroupArn',
+        '--output', 'text'
+    )
+
+    if ($LASTEXITCODE -eq 0 -and $tgArn -and "$tgArn".Trim() -ne "None") {
+        $null = Invoke-AwsQuiet -Arguments @('elbv2', 'delete-target-group', '--target-group-arn', "$tgArn".Trim())
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Target group '$TargetGroupName' ainda em uso. Rode o Delete de novo em alguns minutos."
         }
-    }
-
-    $stdoutPath = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName() + ".out")
-    $stderrPath = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName() + ".err")
-
-    try {
-        $lbProcess = Start-Process `
-            -FilePath "aws" `
-            -ArgumentList @(
-                "elbv2", "describe-load-balancers",
-                "--names", $LoadBalancerName,
-                "--query", "LoadBalancers[0].LoadBalancerArn",
-                "--output", "text"
-            ) `
-            -NoNewWindow `
-            -Wait `
-            -PassThru `
-            -RedirectStandardOutput $stdoutPath `
-            -RedirectStandardError $stderrPath
-
-        $lbStdout = if (Test-Path $stdoutPath) { Get-Content -Path $stdoutPath -Raw } else { "" }
-        $lbArn = if ([string]::IsNullOrWhiteSpace($lbStdout)) { "" } else { $lbStdout.Trim() }
-
-        if ($lbProcess.ExitCode -ne 0) {
-            $lbArn = ""
-        }
-    }
-    finally {
-        Remove-Item $stdoutPath -ErrorAction SilentlyContinue
-        Remove-Item $stderrPath -ErrorAction SilentlyContinue
-    }
-
-    if ($lbArn -and $lbArn -ne "None") {
-        $stdoutPath = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName() + ".out")
-        $stderrPath = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName() + ".err")
-
-        try {
-            $listenerProcess = Start-Process `
-                -FilePath "aws" `
-                -ArgumentList @(
-                    "elbv2", "describe-listeners",
-                    "--load-balancer-arn", $lbArn,
-                    "--query", "Listeners[?Port==`"80`"].ListenerArn | [0]",
-                    "--output", "text"
-                ) `
-                -NoNewWindow `
-                -Wait `
-                -PassThru `
-                -RedirectStandardOutput $stdoutPath `
-                -RedirectStandardError $stderrPath
-
-            $listenerStdout = if (Test-Path $stdoutPath) { Get-Content -Path $stdoutPath -Raw } else { "" }
-            $listenerArn = if ([string]::IsNullOrWhiteSpace($listenerStdout)) { "" } else { $listenerStdout.Trim() }
-
-            if ($listenerProcess.ExitCode -eq 0 -and $listenerArn -and $listenerArn -ne "None") {
-                aws elbv2 delete-listener --listener-arn $listenerArn 2>$null
-            }
-        }
-        finally {
-            Remove-Item $stdoutPath -ErrorAction SilentlyContinue
-            Remove-Item $stderrPath -ErrorAction SilentlyContinue
-        }
-
-        aws elbv2 delete-load-balancer --load-balancer-arn $lbArn 2>$null
-    }
-
-    $stdoutPath = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName() + ".out")
-    $stderrPath = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName() + ".err")
-
-    try {
-        $tgProcess = Start-Process `
-            -FilePath "aws" `
-            -ArgumentList @(
-                "elbv2", "describe-target-groups",
-                "--names", $TargetGroupName,
-                "--query", "TargetGroups[0].TargetGroupArn",
-                "--output", "text"
-            ) `
-            -NoNewWindow `
-            -Wait `
-            -PassThru `
-            -RedirectStandardOutput $stdoutPath `
-            -RedirectStandardError $stderrPath
-
-        $tgStdout = if (Test-Path $stdoutPath) { Get-Content -Path $stdoutPath -Raw } else { "" }
-        $tgArn = if ([string]::IsNullOrWhiteSpace($tgStdout)) { "" } else { $tgStdout.Trim() }
-
-        if ($tgProcess.ExitCode -ne 0) {
-            $tgArn = ""
-        }
-    }
-    finally {
-        Remove-Item $stdoutPath -ErrorAction SilentlyContinue
-        Remove-Item $stderrPath -ErrorAction SilentlyContinue
-    }
-
-    if ($tgArn -and $tgArn -ne "None") {
-        aws elbv2 delete-target-group --target-group-arn $tgArn 2>$null
     }
 
     $vpcId = Get-SubnetVpcId
 
-    function Remove-SecurityGroupIfPresent {
-        param(
-            [Parameter(Mandatory = $true)]
-            [string]$GroupId,
+    foreach ($groupName in @($AlbSecurityGroupName, $TaskSecurityGroupName)) {
+        $groupId = aws ec2 describe-security-groups `
+            --filters "Name=group-name,Values=$groupName" "Name=vpc-id,Values=$vpcId" `
+            --query "SecurityGroups[0].GroupId" `
+            --output text
 
-            [Parameter(Mandatory = $true)]
-            [string]$GroupLabel
-        )
+        if (-not $groupId -or "$groupId".Trim() -eq "None") {
+            continue
+        }
 
-        $stdoutPath = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName() + ".out")
-        $stderrPath = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName() + ".err")
-
-        try {
-            $process = Start-Process `
-                -FilePath "aws" `
-                -ArgumentList @("ec2", "delete-security-group", "--group-id", $GroupId) `
-                -NoNewWindow `
-                -Wait `
-                -PassThru `
-                -RedirectStandardOutput $stdoutPath `
-                -RedirectStandardError $stderrPath
-
-            if ($process.ExitCode -ne 0) {
-                $stderrText = if (Test-Path $stderrPath) { Get-Content -Path $stderrPath -Raw } else { "" }
-
-                if ($stderrText -match "DependencyViolation|InvalidGroup\.InUse") {
-                    Write-Host "$GroupLabel ainda está em uso. Seguindo com a remoção do restante do stack..."
-                    return
-                }
-
-                throw "Falha ao remover o security group $GroupLabel. Detalhe: $stderrText"
+        # As interfaces de rede do ALB e das tasks levam alguns minutos para sumir
+        $removed = $false
+        for ($attempt = 1; $attempt -le 10 -and -not $removed; $attempt++) {
+            $null = Invoke-AwsQuiet -Arguments @('ec2', 'delete-security-group', '--group-id', "$groupId".Trim())
+            if ($LASTEXITCODE -eq 0) {
+                $removed = $true
+            }
+            else {
+                Start-Sleep -Seconds 30
             }
         }
-        finally {
-            Remove-Item $stdoutPath -ErrorAction SilentlyContinue
-            Remove-Item $stderrPath -ErrorAction SilentlyContinue
+
+        if (-not $removed) {
+            Write-Host "Security group '$groupName' ainda em uso. Rode o Delete de novo em alguns minutos."
         }
-    }
-
-    $albSgId = aws ec2 describe-security-groups `
-        --filters "Name=group-name,Values=$AlbSecurityGroupName" "Name=vpc-id,Values=$vpcId" `
-        --query "SecurityGroups[0].GroupId" `
-        --output text 2>$null
-
-    if ($albSgId -and $albSgId -ne "None") {
-        Remove-SecurityGroupIfPresent -GroupId $albSgId -GroupLabel $AlbSecurityGroupName
-    }
-
-    $taskSgId = aws ec2 describe-security-groups `
-        --filters "Name=group-name,Values=$TaskSecurityGroupName" "Name=vpc-id,Values=$vpcId" `
-        --query "SecurityGroups[0].GroupId" `
-        --output text 2>$null
-
-    if ($taskSgId -and $taskSgId -ne "None") {
-        Remove-SecurityGroupIfPresent -GroupId $taskSgId -GroupLabel $TaskSecurityGroupName
     }
 
     if (Test-LogGroupExists) {
-        aws logs delete-log-group --log-group-name $LogGroupName 2>$null
+        $null = Invoke-AwsQuiet -Arguments @('logs', 'delete-log-group', '--log-group-name', $LogGroupName)
     }
 
     if (Test-ClusterExists) {
-        aws ecs delete-cluster --cluster $ClusterName 2>$null
+        $null = Invoke-AwsQuiet -Arguments @('ecs', 'delete-cluster', '--cluster', $ClusterName)
     }
 
-    if (Test-IamRoleExists) {
-        aws iam detach-role-policy `
-            --role-name $ExecutionRoleName `
-            --policy-arn $ExecutionPolicyArn 2>$null
-
-        # A role só pode ser apagada depois de remover as políticas inline
-        aws iam delete-role-policy `
-            --role-name $ExecutionRoleName `
-            --policy-name $ExecutionSsmPolicyName 2>$null
-
-        aws iam delete-role --role-name $ExecutionRoleName 2>$null
-    }
-
-    if (Test-IamRoleExists -RoleName $TaskRoleName) {
-        $inlinePolicies = aws iam list-role-policies `
-            --role-name $TaskRoleName `
-            --query "PolicyNames" `
-            --output text 2>$null
-
-        foreach ($policyName in @("$inlinePolicies" -split '\s+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and $_ -ne 'None' })) {
-            aws iam delete-role-policy --role-name $TaskRoleName --policy-name $policyName 2>$null
+    foreach ($roleName in @($ExecutionRoleName, $TaskRoleName)) {
+        if (-not (Test-IamRoleExists -RoleName $roleName)) {
+            continue
         }
 
-        aws iam delete-role --role-name $TaskRoleName 2>$null
+        # A role só pode ser apagada depois de remover as políticas anexadas e as inline
+        $attached = Invoke-AwsQuiet -Arguments @('iam', 'list-attached-role-policies', '--role-name', $roleName, '--query', 'AttachedPolicies[].PolicyArn', '--output', 'text')
+        foreach ($policyArn in @("$attached" -split '\s+' | Where-Object { $_ -and $_ -ne 'None' })) {
+            $null = Invoke-AwsQuiet -Arguments @('iam', 'detach-role-policy', '--role-name', $roleName, '--policy-arn', $policyArn)
+        }
+
+        $inline = Invoke-AwsQuiet -Arguments @('iam', 'list-role-policies', '--role-name', $roleName, '--query', 'PolicyNames', '--output', 'text')
+        foreach ($policyName in @("$inline" -split '\s+' | Where-Object { $_ -and $_ -ne 'None' })) {
+            $null = Invoke-AwsQuiet -Arguments @('iam', 'delete-role-policy', '--role-name', $roleName, '--policy-name', $policyName)
+        }
+
+        $null = Invoke-AwsQuiet -Arguments @('iam', 'delete-role', '--role-name', $roleName)
     }
 
     Write-Host "Stack ECS/ALB removido."
 }
 
-function Deploy-EcsFargate {
-    if ([string]::IsNullOrWhiteSpace($ImageUri)) {
-        throw "Informe -ImageUri com a imagem publicada no ECR."
+# Imagem do deploy: SAFEID_IMAGE_URI ou o ECR do projeto com a tag pedida (padrão: commit atual)
+function Resolve-ImageUri {
+    # -ImageTag (usado pelo deploy.ps1) vence a SAFEID_IMAGE_URI, para nunca publicar uma imagem antiga por engano
+    if ([string]::IsNullOrWhiteSpace($ImageTag) -and -not [string]::IsNullOrWhiteSpace($ImageUri)) {
+        Write-Host "Usando SAFEID_IMAGE_URI do arquivo de ambiente."
+        return $ImageUri
     }
 
+    $tag = if ([string]::IsNullOrWhiteSpace($ImageTag)) { Get-DeployImageTag -RepoDir $PSScriptRoot } else { $ImageTag }
+    $repositoryName = Get-EcrRepositoryName
+
+    $digest = Invoke-AwsQuiet -Arguments @(
+        'ecr', 'describe-images',
+        '--repository-name', $repositoryName,
+        '--image-ids', "imageTag=$tag",
+        '--query', 'imageDetails[0].imageDigest',
+        '--output', 'text'
+    )
+
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($digest) -or "$digest".Trim() -eq 'None') {
+        throw "A imagem '${repositoryName}:$tag' não está no ECR. Rode .\push-ecr-image.ps1 antes (ou use o deploy.ps1 da raiz, que faz tudo)."
+    }
+
+    return "$(Get-EcrRepositoryUri -Aws $aws):$tag"
+}
+
+function Deploy-EcsFargate {
+    Validate-SubnetIds
+
+    if ($ValidateOnly) {
+        $vpcId = Get-SubnetVpcId
+        $null = Get-RedisEndpoint
+        $null = Get-AppEnvironment
+        Write-Host "Configuração do ECS conferida (VPC $vpcId, ALB '$LoadBalancerName')."
+        return
+    }
+
+    # Tudo que pode falhar por configuração é conferido antes de criar qualquer recurso
+    $script:ImageUri = Resolve-ImageUri
     $vpcId = Get-SubnetVpcId
     $vpcCidr = Get-VpcCidrBlock -VpcId $vpcId
-    $redisHostValue = Get-RedisHostValue
+    $redisHostValue = Get-RedisEndpoint
     $containerSecrets = Get-ContainerSecrets
-    $script:MonitoringEnvironment = Get-MonitoringEnvironment
+    $script:AppEnvironment = Get-AppEnvironment
+
+    Write-Host "Imagem: $ImageUri"
 
     Ensure-Cluster
     Ensure-LogGroup
@@ -1215,14 +1200,12 @@ function Deploy-EcsFargate {
 
     if ($AlbScheme -eq "internet-facing") {
         if ([string]::IsNullOrWhiteSpace($env:ALB_ALLOWED_CLIENT_CIDR) -and [string]::IsNullOrWhiteSpace($env:ALB_ALLOWED_CLIENT_IP)) {
-            Write-Host "Aviso: ALB público sem allowlist explícita. O acesso ficará aberto para 0.0.0.0/0 e a proteção deve vir de HTTPS, auth e WAF, se aplicável."
+            Write-Host "Aviso: ALB público sem allowlist explícita. O acesso fica aberto para 0.0.0.0/0; a proteção vem de HTTPS, autenticação e rate limit."
         }
 
-        if ([string]::IsNullOrWhiteSpace($AlbHttpsCertificateArn)) {
-            Add-IngressRule -GroupId $albSgId -Port 80 -Source $AlbAllowedClientCidr -SourceType cidr
-        }
-        else {
-            Add-IngressRule -GroupId $albSgId -Port 80 -Source $AlbAllowedClientCidr -SourceType cidr
+        Add-IngressRule -GroupId $albSgId -Port 80 -Source $AlbAllowedClientCidr -SourceType cidr
+
+        if (-not [string]::IsNullOrWhiteSpace($AlbHttpsCertificateArn)) {
             Add-IngressRule -GroupId $albSgId -Port 443 -Source $AlbAllowedClientCidr -SourceType cidr
         }
     }
@@ -1230,29 +1213,31 @@ function Deploy-EcsFargate {
         Add-IngressRule -GroupId $albSgId -Port 80 -Source $vpcCidr -SourceType cidr
 
         if (-not [string]::IsNullOrWhiteSpace($AlbAllowedClientCidr)) {
-            Write-Host "Aviso: ALB interno só será acessível diretamente da internet se seu IP estiver conectado à VPC (VPN/Bastion)."
+            Write-Host "Aviso: ALB interno só é acessível de dentro da VPC (VPN ou bastion)."
         }
     }
 
     Add-IngressRule -GroupId $taskSgId -Port ([int]$AppPort) -Source $albSgId
-
-    if (-not [string]::IsNullOrWhiteSpace($DatabaseSecurityGroupId)) {
-        Add-IngressRule -GroupId $DatabaseSecurityGroupId -Port 5432 -Source $taskSgId
-    }
-
-    if (-not [string]::IsNullOrWhiteSpace($RedisSecurityGroupId)) {
-        Add-IngressRule -GroupId $RedisSecurityGroupId -Port $RedisPort -Source $taskSgId
-    }
+    Add-IngressRule -GroupId $DatabaseSecurityGroupId -Port 5432 -Source $taskSgId
+    Add-IngressRule -GroupId $RedisSecurityGroupId -Port $RedisPort -Source $taskSgId
 
     $lb = Ensure-LoadBalancer -VpcId $vpcId -AlbSecurityGroupId $albSgId
     [string]$targetGroupArn = Ensure-TargetGroup -VpcId $vpcId
 
     if ($AlbScheme -eq "internet-facing" -and -not [string]::IsNullOrWhiteSpace($AlbHttpsCertificateArn)) {
-        Ensure-Listener `
+        $redirectAction = "Type=redirect,RedirectConfig={Protocol=HTTPS,Port=443,StatusCode=HTTP_301}"
+
+        $httpListenerArn = Ensure-Listener `
             -AlbArn $lb.Arn `
             -Port 80 `
             -Protocol "HTTP" `
-            -DefaultActions "Type=redirect,RedirectConfig={Protocol=HTTPS,Port=443,StatusCode=HTTP_301}" | Out-Null
+            -DefaultActions $redirectAction
+
+        # Um listener 80 criado antes do certificado ainda encaminharia HTTP puro para a API
+        aws elbv2 modify-listener --listener-arn $httpListenerArn --default-actions $redirectAction > $null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Falha ao configurar o redirecionamento de HTTP para HTTPS."
+        }
 
         Ensure-Listener `
             -AlbArn $lb.Arn `
@@ -1280,14 +1265,12 @@ function Deploy-EcsFargate {
         -TaskSecurityGroupId $taskSgId `
         -TargetGroupArn $targetGroupArn
 
-    Write-Host "ECS Fargate publicado com sucesso."
-    Write-Host "ALB DNS: $($lb.DnsName)"
-    if ($AlbScheme -eq "internet-facing" -and -not [string]::IsNullOrWhiteSpace($AlbHttpsCertificateArn)) {
-        Write-Host "URL: https://$($lb.DnsName)"
-    }
-    else {
-        Write-Host "URL: http://$($lb.DnsName)"
-    }
+    $scheme = if ($AlbScheme -eq "internet-facing" -and -not [string]::IsNullOrWhiteSpace($AlbHttpsCertificateArn)) { "https" } else { "http" }
+
+    Write-Host ""
+    Write-Host "Backend publicado: $taskDefinitionArn"
+    Write-Host "ALB:     $scheme`://$($lb.DnsName)"
+    Write-Host "APP_URL: $(Get-EnvOrDefault -Name 'APP_URL' -Default '')  (o DNS da API precisa apontar para o ALB)"
 }
 
 switch ($Action) {

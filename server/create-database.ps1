@@ -1,17 +1,29 @@
-﻿param(
+﻿# RDS PostgreSQL do SafeID (subnets privadas, sem acesso público).
+#
+# Uso:
+#   .\create-database.ps1                        # cria o banco (uma vez)
+#   .\create-database.ps1 -Action EnableBackups  # backups automáticos de 7 dias
+#   .\create-database.ps1 -Action Snapshot       # snapshot manual (antes de migrations)
+#   .\create-database.ps1 -Action Delete         # apaga o banco (com snapshot final)
+param(
     [ValidateSet("Create", "Delete", "EnableBackups", "Snapshot")]
-    [string]$Action = "Create"
+    [string]$Action = "Create",
+
+    [string]$EnvFile = ".env.production",
+    # Delete sem snapshot final: os dados somem de vez
+    [switch]$SkipFinalSnapshot,
+    [switch]$Force
 )
 
-$ErrorActionPreference = "Stop"
-
 . (Join-Path $PSScriptRoot 'aws-common.ps1')
-Import-DotEnvFile -Path (Join-Path $PSScriptRoot '.env')
+$aws = Initialize-AwsScript -EnvFile $EnvFile -BaseDir $PSScriptRoot
 
 # ===== Configurações =====
-$DB_INSTANCE_IDENTIFIER = "safeid-pg"
-$DB_INSTANCE_CLASS      = "db.t3.micro"
+$DB_INSTANCE_IDENTIFIER = Get-DbInstanceIdentifier
+$DB_INSTANCE_CLASS      = Get-EnvOrDefault -Name 'DB_INSTANCE_CLASS' -Default 'db.t3.micro'
 $DB_ENGINE              = "postgres"
+# Mesma versão principal do docker-compose e do CI; sem isso o RDS escolheria a mais nova
+$DB_ENGINE_VERSION      = Get-EnvOrDefault -Name 'DB_ENGINE_VERSION' -Default '16'
 $DB_MASTER_USERNAME     = Get-EnvOrDefault -Name 'DB_USER' -Default 'safeid_user'
 $DB_MASTER_PASSWORD     = Get-RequiredEnv -Name 'DB_PASSWORD'
 $DB_ALLOCATED_STORAGE   = 20
@@ -84,6 +96,7 @@ function Create-Database {
         --db-instance-identifier $DB_INSTANCE_IDENTIFIER `
         --db-instance-class $DB_INSTANCE_CLASS `
         --engine $DB_ENGINE `
+        --engine-version $DB_ENGINE_VERSION `
         --master-username $DB_MASTER_USERNAME `
         --master-user-password $DB_MASTER_PASSWORD `
         --allocated-storage $DB_ALLOCATED_STORAGE `
@@ -92,8 +105,9 @@ function Create-Database {
         --no-publicly-accessible `
         --backup-retention-period $DB_BACKUP_RETENTION `
         --preferred-backup-window $DB_BACKUP_WINDOW `
-        --storage-type gp2 `
-        --db-name $DB_NAME
+        --storage-type gp3 `
+        --storage-encrypted `
+        --db-name $DB_NAME > $null
 
     if ($LASTEXITCODE -ne 0) {
         throw "Falha ao criar a instância PostgreSQL."
@@ -113,19 +127,27 @@ function Create-Database {
         --output text
 
     Write-Host "PostgreSQL pronto!"
-    Write-Host "Endpoint: $endpoint"
-    Write-Host "Porta: 5432"
-    Write-Host "Banco: $DB_NAME"
-    Write-Host "Usuário: $DB_MASTER_USERNAME"
+    Write-Host "Endpoint: $endpoint (os scripts de deploy acham sozinhos; RDS_ENDPOINT é opcional)"
+    Write-Host "Banco: $DB_NAME  Usuário: $DB_MASTER_USERNAME"
 }
 
 function Delete-Database {
     if (Test-DbInstanceExists) {
+        $snapshotNote = if ($SkipFinalSnapshot) { "SEM snapshot final: os dados não poderão ser recuperados." } else { "Um snapshot final é criado antes." }
+        Confirm-Destructive -Resource $DB_INSTANCE_IDENTIFIER -Description "apaga o banco '$DB_INSTANCE_IDENTIFIER'. $snapshotNote" -Force:$Force
+
+        $snapshotArgs = if ($SkipFinalSnapshot) {
+            @('--skip-final-snapshot')
+        }
+        else {
+            @('--final-db-snapshot-identifier', "safeid-final-$(Get-Date -Format 'yyyyMMdd-HHmm')")
+        }
+
         Write-Host "Removendo instância PostgreSQL..."
         aws rds delete-db-instance `
             --db-instance-identifier $DB_INSTANCE_IDENTIFIER `
-            --skip-final-snapshot `
-            --delete-automated-backups
+            @snapshotArgs `
+            --delete-automated-backups > $null
 
         if ($LASTEXITCODE -ne 0) {
             throw "Falha ao solicitar remoção da instância PostgreSQL."

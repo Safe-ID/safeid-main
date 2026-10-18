@@ -17,6 +17,7 @@ Documentos de `docs/Backend`, do que é mais rápido de ler ao mais detalhado. T
 | 📈 [COBERTURA_TESTES_ATUAL.md](./COBERTURA_TESTES_ATUAL.md) | Medição de cobertura, limites do CI, testes por camada e fuzz testing | Desenvolvedores e revisores | 5 min |
 | ✅ [CHECKLIST_MATURIDADE.md](./CHECKLIST_MATURIDADE.md) | O que está implementado, parcial ou faltando, com evidência, e próximos passos | Tech lead e banca | 10 min |
 | ☁️ [ARQUITETURA_AWS.md](./ARQUITETURA_AWS.md) | Arquitetura alvo na AWS, segredos, scripts de provisionamento, SES, alarmes e ordem de implantação | DevOps | 20 min |
+| 🚀 [DEPLOY_PRODUCAO.md](./DEPLOY_PRODUCAO.md) | Passo a passo do deploy: preparação única, `deploy.ps1`, rollback, o que os scripts recusam e problemas comuns | Quem publica | 10 min |
 
 Fora desta pasta:
 
@@ -33,7 +34,7 @@ Fora desta pasta:
 | Mexer no frontend | MATRIZ_CONSUMO_API_FRONTEND → `client/README.md` |
 | Implementar uma feature no backend | STRUCTURE → EXEMPLOS_PRATICOS → GUIA_TESTES |
 | Preparar a banca | RESUMO_EXECUTIVO → TECNOLOGIAS_E_BOAS_PRATICAS → CHECKLIST_MATURIDADE → COBERTURA_TESTES_ATUAL |
-| Implantar na AWS | ARQUITETURA_AWS → `server/README.md` (seção AWS) |
+| Implantar na AWS | DEPLOY_PRODUCAO → ARQUITETURA_AWS |
 | Abrir um PR | GITHUB_E_FLUXO_CONTRIBUICAO |
 
 ## 🔍 Busca rápida por tópico
@@ -48,7 +49,8 @@ Fora desta pasta:
 | Banco de dados e migrations | [STRUCTURE.md](./STRUCTURE.md#banco-de-dados), [SETUP.md](./SETUP.md) |
 | Testes e cobertura | [GUIA_TESTES_E_FLUXO_IMPLEMENTACAO.md](./GUIA_TESTES_E_FLUXO_IMPLEMENTACAO.md), [COBERTURA_TESTES_ATUAL.md](./COBERTURA_TESTES_ATUAL.md) |
 | CI e regras da `main` | [GITHUB_E_FLUXO_CONTRIBUICAO.md](../GITHUB_E_FLUXO_CONTRIBUICAO.md) |
-| Segredos e variáveis de ambiente | [SETUP.md](./SETUP.md), [ARQUITETURA_AWS.md](./ARQUITETURA_AWS.md) |
+| Segredos e variáveis de ambiente | [SETUP.md](./SETUP.md), [DEPLOY_PRODUCAO.md](./DEPLOY_PRODUCAO.md#2-onde-fica-cada-configuração) |
+| Deploy e rollback | [DEPLOY_PRODUCAO.md](./DEPLOY_PRODUCAO.md#4-cada-deploy) |
 
 ## 📝 Histórico
 
@@ -57,6 +59,7 @@ Fora desta pasta:
 | 12/05/2026 | Versão inicial |
 | 16/10/2026 | Monitoramento de vazamentos: ARQUITETURA_AWS.md (SES, jobs, alarmes) e novos contratos na matriz da API |
 | 17/10/2026 | Revisão completa contra o código: STRUCTURE, SETUP, RESUMO, TECNOLOGIAS, ARQUITETURA_VISUAL, CHECKLIST, EXEMPLOS e matriz da API reescritos (descreviam outro projeto ou versões antigas); cobertura, guia de testes e AWS atualizados; links para planos internos removidos |
+| 17/10/2026 | DEPLOY_PRODUCAO.md (deploy em um comando com `deploy.ps1`); ARQUITETURA_AWS.md com os scripts novos e o `.env.production` |
 
 ---
 

@@ -122,6 +122,17 @@ npm run test:e2e              # end-to-end da API
 
 O CI roda lint, build e todos os testes do backend, além do lint e do build do frontend, em cada Pull Request.
 
+## ☁️ Deploy na AWS
+
+Com o AWS CLI logado e os arquivos `server/.env.production` e `client/.env.production` preenchidos (modelos em `.env.production.example`), um comando publica o commit atual:
+
+```powershell
+.\deploy.ps1 -DryRun   # confere tudo sem mudar nada
+.\deploy.ps1
+```
+
+A preparação única da infraestrutura e o rollback estão em [DEPLOY_PRODUCAO.md](docs/Backend/DEPLOY_PRODUCAO.md).
+
 ## Como contribuir
 
 O projeto usa Pull Requests, revisão obrigatória de outro desenvolvedor e validações automáticas no GitHub.

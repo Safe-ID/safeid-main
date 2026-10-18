@@ -1,29 +1,24 @@
-# Script para resetar PostgreSQL e Redis
-Write-Host "Resetando bancos de dados..." -ForegroundColor Cyan
+﻿# Apaga e recria o PostgreSQL e o Redis LOCAIS (docker compose), com as migrations aplicadas.
+# Uso: .\server\tests\manual\reset-databases.ps1
+$ErrorActionPreference = "Stop"
 
-# Navegar para a pasta server
-cd server
+$serverDir = Resolve-Path (Join-Path $PSScriptRoot '..\..')
+Push-Location $serverDir
+try {
+    Write-Host "Parando os containers e apagando os volumes (PostgreSQL e Redis)..." -ForegroundColor Yellow
+    docker compose down --volumes
+    if ($LASTEXITCODE -ne 0) { throw "Falha no docker compose down." }
 
-# Parar os containers
-Write-Host "`nParando containers..." -ForegroundColor Yellow
-docker compose down
+    Write-Host "Subindo PostgreSQL e Redis vazios..." -ForegroundColor Yellow
+    docker compose up -d --wait postgres redis
+    if ($LASTEXITCODE -ne 0) { throw "Falha ao subir os containers." }
 
-# Remover volumes de dados
-Write-Host "`nRemovendo volumes de dados (PostgreSQL e Redis)..." -ForegroundColor Yellow
-docker volume rm server_postgres_data server_redis_data 2>$null
+    Write-Host "Aplicando as migrations..." -ForegroundColor Yellow
+    npx prisma migrate deploy
+    if ($LASTEXITCODE -ne 0) { throw "Falha ao aplicar as migrations." }
 
-Write-Host "Volumes removidos" -ForegroundColor Green
-
-# Reiniciar os containers
-Write-Host "`nIniciando containers com volumes limpos..." -ForegroundColor Yellow
-docker compose up -d
-
-# Aguardar os containers ficarem prontos
-Write-Host "`nAguardando containers ficarem prontos..." -ForegroundColor Yellow
-Start-Sleep -Seconds 10
-
-# Executar push do Prisma para sincronizar schema
-Write-Host "`nSincronizando schema do Prisma..." -ForegroundColor Yellow
-docker compose exec -T app npm run db:push
-
-Write-Host "`nBancos de dados resetados com sucesso!" -ForegroundColor Green
+    Write-Host "Bancos resetados. Suba a API com: npm run dev" -ForegroundColor Green
+}
+finally {
+    Pop-Location
+}

@@ -1,0 +1,16 @@
+# Contexto do docker build: só o necessário para compilar a API
+node_modules
+dist
+coverage
+.jest
+logs
+*.log
+
+# Ambiente e segredos nunca entram na imagem (em produção vêm do SSM)
+.env
+.env.*
+!.env.example
+
+# Scripts de deploy e utilitários locais
+*.ps1
+tests/manual

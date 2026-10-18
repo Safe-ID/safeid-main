@@ -46,7 +46,7 @@ DNS (Domain Name System): Nosso domínio customizado (api.safeid.app.br) está c
 
 A persistência de dados é crítica. Por isso, delegamos a manutenção, backups e atualizações de patch de segurança para os serviços gerenciados (Managed Services) da AWS.
 
-Amazon RDS (Relational Database Service) c/ PostgreSQL: O RDS automatiza tarefas administrativas do banco de dados relacional (PostgreSQL). Ele é provisionado em um Subnet Group isolado nas subnets privadas. O banco opera em uma instância otimizada (db.t3.micro) com armazenamento SSD (gp2). Não há rota de internet para ele, impedindo ataques diretos externos. Os backups automáticos ficam guardados por 7 dias, com janela às 06h-07h UTC (03h-04h BRT), e um snapshot manual é feito antes de toda migration em produção (create-database.ps1 -Action Snapshot).
+Amazon RDS (Relational Database Service) c/ PostgreSQL: O RDS automatiza tarefas administrativas do banco de dados relacional (PostgreSQL). Ele é provisionado em um Subnet Group isolado nas subnets privadas. O banco (PostgreSQL 16) opera em uma instância db.t3.micro com armazenamento SSD gp3 criptografado. Não há rota de internet para ele, impedindo ataques diretos externos. Os backups automáticos ficam guardados por 7 dias, com janela às 06h-07h UTC (03h-04h BRT), e um snapshot manual é feito antes de toda migration em produção (create-database.ps1 -Action Snapshot).
 
 Amazon ElastiCache c/ Redis: O ElastiCache é um armazenamento de dados em memória totalmente gerenciado. Utilizamos o motor Redis para atuar como cache ultrarrápido, gerenciar sessões ativas dos usuários, guardar as filas do BullMQ e absorver picos de acesso, aliviando a carga no banco de dados primário (RDS). Fica, também, blindado na subnet privada. O cluster usa o parameter group safeid-redis-queues, com maxmemory-policy=noeviction, exigido pelo BullMQ: com a política padrão (volatile-lru), sob pressão de memória o Redis poderia apagar locks de jobs e travar ou duplicar execuções.
 
@@ -70,7 +70,7 @@ Execution Role (safeid-cluster-ecsTaskExecutionRole): o que o ECS precisa para s
 
 Task Role (safeid-task-role): o que o código da aplicação chama na AWS. A única permissão é a policy inline safeid-ses-send: ses:SendEmail na identidade do domínio (safeid.app.br) e no configuration set safeid-default, com a condição ses:FromAddress = *@safeid.app.br. Mesmo com a credencial da task, não dá para enviar e-mail em nome de outro domínio.
 
-Segredos no SSM Parameter Store: DATABASE_URL, JWT_SECRET, REFRESH_TOKEN_SECRET, SESSION_SECRET, HIBP_API_KEY, MONITORING_UNSUBSCRIBE_SECRET e, quando existirem, AI_API_KEY, GOOGLE_CLIENT_SECRET e ADMIN_TOKEN ficam como SecureString em /safeid/prod/<NOME> (tier standard, sem custo). A task definition só guarda a referência (bloco secrets); o ECS injeta os valores como variáveis de ambiente quando o contêiner sobe. Quem tem leitura no ECS não vê nenhum segredo.
+Segredos no SSM Parameter Store: DATABASE_URL, JWT_SECRET, REFRESH_TOKEN_SECRET, SESSION_SECRET, HIBP_API_KEY, MONITORING_UNSUBSCRIBE_SECRET, ENCRYPTION_KEY e, quando existirem, AI_API_KEY, GOOGLE_CLIENT_SECRET, ADMIN_TOKEN e EMAIL_HASH_SECRET ficam como SecureString em /safeid/prod/<NOME> (tier standard, sem custo). A task definition só guarda a referência (bloco secrets); o ECS injeta os valores como variáveis de ambiente quando o contêiner sobe. Quem tem leitura no ECS não vê nenhum segredo.
 
 6. Frontend e Distribuição de Conteúdo
 
@@ -80,7 +80,7 @@ Amazon S3 (Simple Storage Service): Serviço de armazenamento de objetos altamen
 
 Amazon CloudFront: É a Content Delivery Network (CDN) global da AWS. O CloudFront faz o "cache" das páginas do S3 em centenas de data centers ao redor do mundo. Se um usuário no Brasil e outro no Japão acessarem o SafeID, a página será entregue instantaneamente pelo servidor físico mais próximo de cada um, além de garantir suporte nativo a HTTPS para a interface.
 
-Segurança de Origem: Utilizamos um Origin Secret via cabeçalho injetado no CloudFront para que a requisição só seja aceita caso venha obrigatoriamente da nossa CDN, protegendo o acesso direto via S3 ou APIs abertas.
+Segurança de Origem: o bucket é privado (Block Public Access ligado) e só o CloudFront lê os arquivos, pelo Origin Access Control com a condição AWS:SourceArn da distribuição. A API não passa pelo CloudFront: o frontend chama o domínio da API, que aponta para o ALB.
 
 7. Integrações e Serviços Externos
 
@@ -118,29 +118,30 @@ Alternativas avaliadas e descartadas (por enquanto):
 | ElastiCache com réplica / Multi-AZ | Cerca de US$12/mês a mais por um ganho pequeno: o estado essencial fica no banco. | Se o SafeID passar a ter SLA formal. |
 | Worker numa service ECS separada (mesma imagem, APP_ROLE=worker) | A carga é baixa e uma task basta. | Primeira evolução recomendada quando a varredura passar de ~1 h, a latência p95 da API subir durante varreduras ou o plano Core 3+ da HIBP for contratado. Custo: ~US$9/mês. |
 
-9. Scripts de Provisionamento
+9. Scripts de Provisionamento e Deploy
 
-Os scripts PowerShell ficam em server/ e são versionados. Nenhum valor de ambiente fica no código: IDs de VPC, subnets e security groups, senha do banco e e-mail de alertas vêm do server/.env (fora do git; os nomes estão na seção "Scripts AWS" do .env.example). O aws-common.ps1 reúne as funções compartilhadas.
+Os scripts PowerShell ficam em server/ e client/ e são versionados. Nenhum valor de ambiente fica no código: IDs de VPC, subnets e security groups, senhas e e-mails vêm de server/.env.production e client/.env.production (fora do git; modelos comentados em .env.production.example). O .env de desenvolvimento nunca é lido por eles. O server/aws-common.ps1 reúne as funções compartilhadas: carrega o arquivo de ambiente, fixa a região de todas as chamadas, confere o login e recusa localhost e valores de exemplo.
+
+O passo a passo (preparação única e deploy) está em [DEPLOY_PRODUCAO.md](./DEPLOY_PRODUCAO.md).
 
 | Script | Para que serve |
 |---|---|
+| deploy.ps1 (raiz) | Deploy completo em um comando: confere tudo, envia os segredos, publica a imagem do commit, atualiza o ECS e o frontend. Aceita -DryRun |
+| create-network.ps1 | VPC, subnets públicas e privadas em 2 zonas, internet gateway e security groups do banco e do Redis; grava os IDs no .env.production |
 | create-nat-gateway.ps1 | NAT Gateway da subnet privada |
+| create-certificates.ps1 | Certificados do ACM da API (região do ALB) e do site (us-east-1), validados por DNS |
 | create-bastion-ssm.ps1 / connect-bastion-ssm.ps1 | Bastion via SSM para acessar RDS e Redis |
-| create-database.ps1 | RDS PostgreSQL. Ações: Create, Delete, EnableBackups, Snapshot |
+| create-database.ps1 | RDS PostgreSQL. Ações: Create, Delete (com snapshot final), EnableBackups, Snapshot |
 | create-redis.ps1 | ElastiCache Redis. Ações: Create, Delete, ApplyParameterGroup |
-| push-ecr-image.ps1 | Build e push da imagem para o ECR |
-| put-ssm-secrets.ps1 | Envia os segredos de produção para o SSM. Aceita -EnvFile e -DryRun; recusa valores com localhost e nunca imprime valores |
-| deploy-ecs-fargate.ps1 | Cluster, ALB, roles, task definition (com secrets do SSM) e service |
+| push-ecr-image.ps1 | Build (linux/amd64) e push da imagem com a tag do commit; tags imutáveis e retenção das 15 últimas |
+| put-ssm-secrets.ps1 | Envia os segredos de produção para o SSM. Aceita -DryRun; valida tamanho e formato e nunca imprime valores |
+| deploy-ecs-fargate.ps1 | Cluster, ALB, roles, task definition (com secrets do SSM) e service, com rollback automático (deployment circuit breaker). Aceita -ImageTag para voltar versão e -ValidateOnly |
 | create-alerts.ps1 | Tópico SNS, metric filters e alarmes. Ações: Create, Test, Delete |
 | create-ses.ps1 | Identidade SES do domínio, MAIL FROM, configuration set e lista de supressão; imprime os registros DNS. Ações: Create, Status, Delete |
+| client/provision-s3-cloudfront.ps1 | Bucket privado e distribuição CloudFront (reaproveita os existentes) |
+| client/deploy-s3-cloudfront.ps1 | Build do frontend com o VITE_API_URL de produção, sync no S3 e invalidação do CloudFront |
 
-Ordem para aplicar os ajustes de confiabilidade num ambiente que já existe:
-
-1. create-redis.ps1 -Action ApplyParameterGroup (conferir: CacheParameterGroup = safeid-redis-queues, in-sync)
-2. create-database.ps1 -Action EnableBackups e depois -Action Snapshot
-3. put-ssm-secrets.ps1 -DryRun, conferir a lista, e rodar sem -DryRun
-4. deploy-ecs-fargate.ps1 (task role, secrets do SSM, stopTimeout, retenção de logs)
-5. create-alerts.ps1, confirmar a assinatura pelo e-mail recebido e rodar create-alerts.ps1 -Action Test
+Toda ação Delete pede para digitar o nome do recurso antes de apagar (ou -Force).
 
 10. Monitoramento Contínuo de Vazamentos
 
@@ -168,7 +169,7 @@ Amazon SES (e-mails de verificação de conta e alertas):
 - Sandbox: a conta nova só envia para endereços verificados (200 e-mails/dia, 1/s). Antes de abrir para usuários reais é preciso pedir acesso de produção no console (SES > Account dashboard > Request production access): tipo Transactional, site https://safeid.app.br, descrevendo que os envios são verificação de conta e alertas de vazamento com consentimento explícito no cadastro, opt-out em um clique e supressão automática de bounces e reclamações. O create-ses.ps1 -Action Status mostra ProductionAccessEnabled e a cota.
 - SES_MAX_PER_SECOND (padrão 1) limita o worker de e-mail, abaixo da cota do sandbox.
 
-Variáveis da task definition: o deploy-ecs-fargate.ps1 passa EMAIL_PROVIDER (padrão ses), EMAIL_FROM, AWS_SES_REGION, SES_CONFIGURATION_SET, APP_URL e FRONTEND_URL, além das opcionais do monitoramento (crons, SCHEDULER_TZ, HIBP_RPM_*, MONITORING_*) quando estiverem no .env. O script recusa APP_URL/FRONTEND_URL com localhost, porque eles entram nos links dos e-mails.
+Variáveis da task definition: o deploy-ecs-fargate.ps1 passa EMAIL_PROVIDER (padrão ses), EMAIL_FROM, AWS_SES_REGION, SES_CONFIGURATION_SET, APP_URL e FRONTEND_URL, CORS_ORIGIN (padrão: FRONTEND_URL), GOOGLE_CLIENT_ID e GOOGLE_CALLBACK_URL quando houver login com Google, HIBP_USE_MOCK=false fixo, além das opcionais do monitoramento (crons, SCHEDULER_TZ, HIBP_RPM_*, MONITORING_*) quando estiverem no server/.env.production. O script recusa APP_URL, FRONTEND_URL e CORS_ORIGIN com localhost, porque eles entram nos links dos e-mails e no CORS.
 
 Alarmes do monitoramento (create-alerts.ps1, todos no tópico safeid-alerts). Os três primeiros vêm de metric filters sobre os logs JSON do /ecs/safeid-cluster, no namespace SafeID:
 
@@ -182,11 +183,11 @@ Alarmes do monitoramento (create-alerts.ps1, todos no tópico safeid-alerts). Os
 
 Diagnóstico: GET /api/health/jobs devolve a última sincronização do catálogo, o último probe, o plano HIBP em uso, a contagem das filas hibp-check, monitoring e email, os schedulers com o próximo disparo e os heartbeats vivos. Exige o header X-Admin-Token igual ao ADMIN_TOKEN (sem ADMIN_TOKEN a rota responde 403) e não participa do health check do ALB: fila atrasada não deve tirar a API do ar.
 
-Ordem de implantação do monitoramento (quando a conta AWS estiver disponível, depois dos passos da seção 9):
+Ordem de implantação do monitoramento num ambiente que já existia antes dele (num ambiente novo, basta seguir o DEPLOY_PRODUCAO.md):
 
 1. create-ses.ps1 -Action Create e cadastrar os registros DNS impressos no Registro.br
 2. create-ses.ps1 -Action Status até DKIM = SUCCESS e MAIL FROM = SUCCESS; pedir o acesso de produção do SES
-3. Gerar MONITORING_UNSUBSCRIBE_SECRET (openssl rand -base64 32) e ADMIN_TOKEN no .env; put-ssm-secrets.ps1 -DryRun e depois sem -DryRun
+3. Gerar MONITORING_UNSUBSCRIBE_SECRET (openssl rand -base64 32) e ADMIN_TOKEN no server/.env.production; put-ssm-secrets.ps1 -DryRun e depois sem -DryRun
 4. Snapshot do banco (create-database.ps1 -Action Snapshot); a migration roda na subida do contêiner
 5. deploy-ecs-fargate.ps1 (policy do SES na task role e variáveis novas)
 6. Rodar o backfill dos vazamentos já conhecidos (npm run backfill:user-breaches) pelo bastion, antes de liberar o primeiro sweep, para que ninguém receba alerta de vazamento antigo
