@@ -518,17 +518,21 @@ function Get-ContainerSecrets {
     $allNames = @($SsmRequiredSecrets + $SsmOptionalSecrets)
     $parameterNames = @($allNames | ForEach-Object { "$SsmPrefix/$_" })
 
-    # Só os nomes: o valor (cifrado) não é pedido nem impresso
-    $found = aws ssm get-parameters `
-        --names $parameterNames `
-        --query "Parameters[].Name" `
-        --output text
+    # Só os nomes: o valor (cifrado) não é pedido nem impresso. O GetParameters aceita até 10 nomes por chamada.
+    $existing = @()
+    for ($start = 0; $start -lt $parameterNames.Count; $start += 10) {
+        $batch = @($parameterNames[$start..([Math]::Min($start + 9, $parameterNames.Count - 1))])
+        $found = aws ssm get-parameters `
+            --names $batch `
+            --query "Parameters[].Name" `
+            --output text
 
-    if ($LASTEXITCODE -ne 0) {
-        throw "Falha ao consultar os segredos no SSM."
+        if ($LASTEXITCODE -ne 0) {
+            throw "Falha ao consultar os segredos no SSM."
+        }
+
+        $existing += @("$found" -split '\s+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
     }
-
-    $existing = @("$found" -split '\s+' | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
 
     $missing = @($SsmRequiredSecrets | Where-Object { $existing -notcontains "$SsmPrefix/$_" })
     if ($missing.Count -gt 0) {

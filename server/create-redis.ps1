@@ -120,6 +120,21 @@ function Ensure-ParameterGroup {
 }
 
 function Ensure-SubnetGroup {
+    # Um subnet group de uma VPC antiga (apagada ou recriada pelo create-network.ps1) faria a criação falhar
+    if (Test-RedisSubnetGroupExists) {
+        $groupVpc = "$(aws elasticache describe-cache-subnet-groups --cache-subnet-group-name $CACHE_SUBNET_GROUP_NAME --query 'CacheSubnetGroups[0].VpcId' --output text)".Trim()
+        # Com uma subnet só, a lista vira uma string: @() garante o primeiro ID, não a primeira letra
+        $firstSubnet = @($SUBNET_IDS)[0]
+        $subnetVpc = "$(aws ec2 describe-subnets --subnet-ids $firstSubnet --query 'Subnets[0].VpcId' --output text)".Trim()
+        if ($groupVpc -ne $subnetVpc) {
+            Write-Host "Redis Subnet Group é de outra VPC ($groupVpc). Recriando na VPC $subnetVpc..."
+            aws elasticache delete-cache-subnet-group --cache-subnet-group-name $CACHE_SUBNET_GROUP_NAME
+            if ($LASTEXITCODE -ne 0) {
+                throw "Falha ao remover o Redis Subnet Group antigo (ainda em uso por algum cluster?)."
+            }
+        }
+    }
+
     if (-not (Test-RedisSubnetGroupExists)) {
         Write-Host "Redis Subnet Group não encontrado. Criando..."
         aws elasticache create-cache-subnet-group `

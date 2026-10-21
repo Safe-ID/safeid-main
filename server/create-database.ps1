@@ -27,9 +27,9 @@ $DB_ENGINE_VERSION      = Get-EnvOrDefault -Name 'DB_ENGINE_VERSION' -Default '1
 $DB_MASTER_USERNAME     = Get-EnvOrDefault -Name 'DB_USER' -Default 'safeid_user'
 $DB_MASTER_PASSWORD     = Get-RequiredEnv -Name 'DB_PASSWORD'
 $DB_ALLOCATED_STORAGE   = 20
-# Backups automáticos de 7 dias: o banco guarda estado que não se recupera da HIBP
+# Backups automáticos (padrão 7 dias): o banco guarda estado que não se recupera da HIBP
 # (vazamentos conhecidos, notificações, consentimento). Gratuito até o tamanho do storage.
-$DB_BACKUP_RETENTION    = 7
+$DB_BACKUP_RETENTION    = [int](Get-EnvOrDefault -Name 'DB_BACKUP_RETENTION_DAYS' -Default '7')  # plano free da AWS: no máximo 1
 # 06:00-07:00 UTC = 03h-04h BRT, fora dos horários de varredura do monitoramento
 $DB_BACKUP_WINDOW       = "06:00-07:00"
 $DB_SUBNET_GROUP_NAME   = "safeid-db-subnet-group"
@@ -136,12 +136,13 @@ function Delete-Database {
         $snapshotNote = if ($SkipFinalSnapshot) { "SEM snapshot final: os dados não poderão ser recuperados." } else { "Um snapshot final é criado antes." }
         Confirm-Destructive -Resource $DB_INSTANCE_IDENTIFIER -Description "apaga o banco '$DB_INSTANCE_IDENTIFIER'. $snapshotNote" -Force:$Force
 
-        $snapshotArgs = if ($SkipFinalSnapshot) {
-            @('--skip-final-snapshot')
-        }
-        else {
-            @('--final-db-snapshot-identifier', "safeid-final-$(Get-Date -Format 'yyyyMMdd-HHmm')")
-        }
+        # @(...) por fora: com um item só, o if devolveria uma string e o @ a espalharia letra por letra
+        $snapshotArgs = @(if ($SkipFinalSnapshot) {
+                '--skip-final-snapshot'
+            }
+            else {
+                '--final-db-snapshot-identifier', "safeid-final-$(Get-Date -Format 'yyyyMMdd-HHmm')"
+            })
 
         Write-Host "Removendo instância PostgreSQL..."
         aws rds delete-db-instance `

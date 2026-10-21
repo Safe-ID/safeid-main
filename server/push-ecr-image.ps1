@@ -92,16 +92,30 @@ function Ensure-EcrRepository {
     }
 }
 
+# Configuração do Docker só para este push. Com credenciais do "aws login", o token do ECR passa
+# de 2,5 mil caracteres e não cabe no cofre do Windows (wincred); aqui ele fica num arquivo
+# temporário, apagado no final.
+$DockerConfigDir = Join-Path ([System.IO.Path]::GetTempPath()) "safeid-docker-$([guid]::NewGuid().ToString('N'))"
+
 function Connect-EcrRegistry {
     $password = aws ecr get-login-password
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($password)) {
         throw "Falha ao obter a credencial de login do ECR."
     }
 
-    $password | docker login --username AWS --password-stdin $Registry > $null
-    if ($LASTEXITCODE -ne 0) {
-        throw "Falha ao autenticar o Docker no ECR."
-    }
+    # Mesmo formato que o docker login gravaria, mas sem passar pelo cofre do Windows nem pelo pipe
+    # do PowerShell 5.1 (que altera o texto e faz o ECR responder 400)
+    $auth = [Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("AWS:$("$password".Trim())"))
+    $config = @{ auths = @{ $Registry = @{ auth = $auth } } } | ConvertTo-Json -Depth 5 -Compress
+
+    New-Item -ItemType Directory -Path $DockerConfigDir -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $DockerConfigDir 'config.json'), $config, [System.Text.UTF8Encoding]::new($false))
+    $env:DOCKER_CONFIG = $DockerConfigDir
+}
+
+function Disconnect-EcrRegistry {
+    Remove-Item Env:DOCKER_CONFIG -ErrorAction SilentlyContinue
+    Remove-Item $DockerConfigDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 function Push-Image {
@@ -120,7 +134,18 @@ function Push-Image {
     }
 
     Connect-EcrRegistry
+    try {
+        Build-AndPush -RemoteImage $remoteImage
+    }
+    finally {
+        Disconnect-EcrRegistry
+    }
+}
 
+function Build-AndPush {
+    param([Parameter(Mandatory = $true)][string]$RemoteImage)
+
+    $remoteImage = $RemoteImage
     Write-Host "Gerando a imagem $remoteImage..."
     # Fargate roda em x86_64: sem --platform, um build num Mac com chip Apple geraria arm64
     docker build --platform linux/amd64 -t $remoteImage $PSScriptRoot
