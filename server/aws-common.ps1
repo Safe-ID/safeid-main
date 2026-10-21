@@ -146,6 +146,13 @@ function Initialize-AwsScript {
 
     $accountId = Get-AwsAccountId
 
+    # Trava contra publicar na conta errada (ex.: perfil padrão do CLI logado em outra conta)
+    $expectedAccount = $env:AWS_ACCOUNT_ID
+    if (-not [string]::IsNullOrWhiteSpace($expectedAccount) -and $expectedAccount.Trim() -ne $accountId) {
+        $profileLabel = if ($env:AWS_PROFILE) { "perfil '$($env:AWS_PROFILE)'" } else { 'perfil padrão' }
+        throw "O AWS CLI ($profileLabel) está logado na conta final $($accountId.Substring($accountId.Length - 4)), mas AWS_ACCOUNT_ID pede a final $($expectedAccount.Trim().Substring($expectedAccount.Trim().Length - 4)). Rode: aws login --profile $($env:AWS_PROFILE)"
+    }
+
     return @{
         Region    = $region
         AccountId = $accountId
