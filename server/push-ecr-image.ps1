@@ -98,25 +98,19 @@ function Ensure-EcrRepository {
 $DockerConfigDir = Join-Path ([System.IO.Path]::GetTempPath()) "safeid-docker-$([guid]::NewGuid().ToString('N'))"
 
 function Connect-EcrRegistry {
-    New-Item -ItemType Directory -Path $DockerConfigDir -Force | Out-Null
-    [System.IO.File]::WriteAllText((Join-Path $DockerConfigDir 'config.json'), '{"auths":{}}', [System.Text.UTF8Encoding]::new($false))
-    $env:DOCKER_CONFIG = $DockerConfigDir
-
-    $passwordFile = Join-Path $DockerConfigDir 'ecr-password.txt'
     $password = aws ecr get-login-password
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($password)) {
         throw "Falha ao obter a credencial de login do ECR."
     }
 
-    # Por arquivo, não por pipe: o pipe do PowerShell 5.1 altera o texto e o ECR responde 400
-    [System.IO.File]::WriteAllText($passwordFile, "$password".Trim(), [System.Text.UTF8Encoding]::new($false))
-    cmd /c "docker login --username AWS --password-stdin $Registry < `"$passwordFile`"" > $null
-    $loginExitCode = $LASTEXITCODE
-    Remove-Item $passwordFile -Force -ErrorAction SilentlyContinue
+    # Mesmo formato que o docker login gravaria, mas sem passar pelo cofre do Windows nem pelo pipe
+    # do PowerShell 5.1 (que altera o texto e faz o ECR responder 400)
+    $auth = [Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("AWS:$("$password".Trim())"))
+    $config = @{ auths = @{ $Registry = @{ auth = $auth } } } | ConvertTo-Json -Depth 5 -Compress
 
-    if ($loginExitCode -ne 0) {
-        throw "Falha ao autenticar o Docker no ECR."
-    }
+    New-Item -ItemType Directory -Path $DockerConfigDir -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $DockerConfigDir 'config.json'), $config, [System.Text.UTF8Encoding]::new($false))
+    $env:DOCKER_CONFIG = $DockerConfigDir
 }
 
 function Disconnect-EcrRegistry {
