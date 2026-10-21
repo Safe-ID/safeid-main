@@ -183,6 +183,12 @@ export class AuthService {
       email: googleUser.email.toLowerCase(),
     });
 
+    // Conta que nunca teve scan (nova ou vinda de um cadastro por senha não verificado):
+    // roda o scan inicial, como o link de verificação faz no cadastro por email
+    if (!user.scanSnapshotUpdatedAt) {
+      await this.runInitialScan(user.id, user.email);
+    }
+
     const tokens = this.generateTokens(user.id, user.email);
     const redirectUrl = new URL(frontendUrl);
     redirectUrl.hash = new URLSearchParams({
@@ -324,13 +330,7 @@ export class AuthService {
    */
   async verifyEmail(token: string): Promise<AuthResponseDto> {
     const user = await this.emailVerification.consumeToken(token);
-
-    try {
-      await this.scanService.submitScan(user.id, { email: user.email }, 'SIGNUP');
-    } catch (error) {
-      console.error('[AuthService] Initial scan failed:', error);
-      await this.scanService.persistFallbackSnapshot(user.id, user.email);
-    }
+    await this.runInitialScan(user.id, user.email);
 
     const tokens = this.generateTokens(user.id, user.email);
     const profile = await this.getUserProfile(user.id);
@@ -340,6 +340,19 @@ export class AuthService {
       refresh_token: tokens.refresh_token,
       user: profile,
     };
+  }
+
+  /**
+   * Scan da entrada na conta (verificação do email ou primeiro login pelo Google).
+   * Se a HIBP ou a IA falharem, grava um resultado padrão para o painel não ficar vazio.
+   */
+  private async runInitialScan(userId: number, email: string): Promise<void> {
+    try {
+      await this.scanService.submitScan(userId, { email }, 'SIGNUP');
+    } catch (error) {
+      console.error('[AuthService] Initial scan failed:', error);
+      await this.scanService.persistFallbackSnapshot(userId, email);
+    }
   }
 
   /**

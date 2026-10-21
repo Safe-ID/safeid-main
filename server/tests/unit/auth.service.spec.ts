@@ -507,6 +507,44 @@ describe('AuthService', () => {
           termsAcceptedAt: expect.any(Date),
         }),
       });
+      // Conta nova pelo Google entra no painel já com o scan inicial, como no cadastro por email
+      expect(scanServiceMock.submitScan).toHaveBeenCalledWith(44, { email: 'google-user@example.com' }, 'SIGNUP');
+    });
+
+    it('does not scan again when a Google user who already has a scan signs in', async () => {
+      const state = (service as any).createGoogleOAuthState();
+      (axios.post as any).mockResolvedValue({ data: { access_token: 'google-access-token' } });
+      (axios.get as any).mockResolvedValue({
+        data: { sub: 'google-user-77', email: 'returning@example.com', email_verified: true },
+      });
+      prismaMock.user.findUnique.mockResolvedValueOnce({
+        id: 77,
+        email: 'returning@example.com',
+        googleId: 'google-user-77',
+        emailVerifiedAt: verifiedAt,
+        scanSnapshotUpdatedAt: new Date('2026-10-01T00:00:00.000Z'),
+      });
+
+      await service.handleGoogleCallback('test-code', state);
+
+      expect(scanServiceMock.submitScan).not.toHaveBeenCalled();
+    });
+
+    it('stores the fallback snapshot when the first Google scan fails', async () => {
+      const state = (service as any).createGoogleOAuthState();
+      (axios.post as any).mockResolvedValue({ data: { access_token: 'google-access-token' } });
+      (axios.get as any).mockResolvedValue({
+        data: { sub: 'google-user-45', email: 'fail@example.com', email_verified: true },
+      });
+      prismaMock.user.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+      prismaMock.user.create.mockResolvedValue({ id: 45, email: 'fail@example.com', googleId: 'google-user-45' });
+      scanServiceMock.submitScan.mockRejectedValue(new Error('hibp down'));
+      jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+      const redirectUrl = await service.handleGoogleCallback('test-code', state);
+
+      expect(redirectUrl).toContain('access_token=token-45-access');
+      expect(scanServiceMock.persistFallbackSnapshot).toHaveBeenCalledWith(45, 'fail@example.com');
     });
 
     it('returns a verified Google user unchanged and marks an unverified one as verified', async () => {
