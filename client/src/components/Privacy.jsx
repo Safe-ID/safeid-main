@@ -1,3 +1,4 @@
+// O mesmo texto está em PRIVACY.md (link usado na tela de consentimento do Google): ao alterar um, atualize o outro
 const SECTIONS = [
   {
     title: "1. Quem somos",
