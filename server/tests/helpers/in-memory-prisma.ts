@@ -1,6 +1,6 @@
 /**
  * Prisma em memória para testes de fluxo sem PostgreSQL. Cobre o subconjunto que o
- * monitoramento usa: filtros (igualdade, null, not, gt/gte/lt/lte, in, OR/AND),
+ * monitoramento usa: filtros (igualdade, null, not, gt/gte/lt/lte, in, OR/AND, caminho em JSON),
  * chaves únicas (lança P2002), orderBy, take, select, @updatedAt e `user: { connect }`.
  */
 
@@ -31,6 +31,14 @@ function equals(a: unknown, b: unknown): boolean {
 }
 
 function matchesCondition(value: unknown, condition: unknown): boolean {
+  // Filtro de campo JSON do Prisma: { path: ['isVerified'], equals: false }
+  if (isPlainObject(condition) && Array.isArray((condition as Row).path)) {
+    const nested = ((condition as Row).path as string[]).reduce<unknown>(
+      (current, key) => (isPlainObject(current) ? (current as Row)[key] : undefined),
+      value,
+    );
+    return equals(nested, (condition as Row).equals);
+  }
   if (isPlainObject(condition) && Object.keys(condition).some(key => OPERATOR_KEYS.has(key))) {
     return Object.entries(condition).every(([op, operand]) => {
       const left = toComparable(value) as any;

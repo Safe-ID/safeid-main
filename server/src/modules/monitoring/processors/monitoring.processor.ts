@@ -9,12 +9,14 @@ import {
   JOB_MONITOR_PROCESS,
   JOB_MONITOR_SWEEP,
   JOB_MONITORING_RECONCILE,
+  JOB_RETRY_INITIAL_SCAN,
   QUEUE_MONITORING,
 } from '../../../infra/queue/queue.constants';
 import { HibpPlanService } from '../../../infra/http/hibp-plan.service';
 import { EmailVerificationService } from '../../auth/email-verification.service';
 import { MonitoringService } from '../services/monitoring.service';
 import { MonitoringReconcileService } from '../services/monitoring-reconcile.service';
+import { ScanService } from '../../scan/services/scan.service';
 import { createBullConnection } from '../../../infra/queue/redis-connection';
 import { runsWorkers } from '../../../shared/config/app-role';
 import { log } from '../../../shared/utils/logger';
@@ -25,7 +27,7 @@ const MONITORING_CONCURRENCY = 2;
 
 /**
  * Worker da fila monitoring: catálogo, varredura, reprocessamento das checagens,
- * limpeza de contas não verificadas, plano HIBP e reconciliação.
+ * limpeza de contas não verificadas, plano HIBP, reconciliação e nova tentativa de scans que falharam.
  */
 @Injectable()
 export class MonitoringProcessor implements OnModuleInit, OnModuleDestroy {
@@ -38,6 +40,7 @@ export class MonitoringProcessor implements OnModuleInit, OnModuleDestroy {
     private readonly reconcile: MonitoringReconcileService,
     private readonly emailVerification: EmailVerificationService,
     private readonly hibpPlan: HibpPlanService,
+    private readonly scanService: ScanService,
   ) {}
 
   onModuleInit(): void {
@@ -96,6 +99,8 @@ export class MonitoringProcessor implements OnModuleInit, OnModuleDestroy {
         return this.hibpPlan.refresh();
       case JOB_MONITORING_RECONCILE:
         return this.reconcile.run();
+      case JOB_RETRY_INITIAL_SCAN:
+        return this.scanService.retryInitialScan(Number(job.data?.userId));
       default:
         throw new Error(`Unknown job '${job.name}' in queue ${QUEUE_MONITORING}`);
     }

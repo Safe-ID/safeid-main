@@ -93,8 +93,8 @@ export default function ScoreHistoryChart({ refreshKey }) {
       {!error && history === null && <p className="text-safe-muted text-sm m-0">Carregando histórico...</p>}
       {!error && history !== null && points.length < 2 && (
         <p className="text-safe-muted text-sm m-0">
-          O gráfico aparece a partir da segunda análise. Use "Verificar novamente" ou mantenha os alertas ligados
-          para o SafeID registrar a evolução do seu risco.
+          O gráfico aparece a partir da segunda análise. Com os alertas ligados, o SafeID faz uma nova análise
+          sempre que seu email aparece em um vazamento novo.
         </p>
       )}
 

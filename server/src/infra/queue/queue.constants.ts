@@ -15,6 +15,8 @@ export const JOB_MONITOR_PROCESS = 'monitor-process';
 export const JOB_CLEANUP_UNVERIFIED = 'cleanup-unverified';
 export const JOB_HIBP_PLAN_CHECK = 'hibp-plan-check';
 export const JOB_MONITORING_RECONCILE = 'monitoring-reconcile';
+// Refaz o scan de quem ficou sem resultado (HIBP ou IA fora do ar no cadastro)
+export const JOB_RETRY_INITIAL_SCAN = 'retry-initial-scan';
 
 // Jobs da fila email
 export const JOB_SEND_VERIFICATION_EMAIL = 'send-verification-email';

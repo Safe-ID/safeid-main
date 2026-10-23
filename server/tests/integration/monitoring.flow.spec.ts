@@ -108,6 +108,7 @@ describe('Monitoring flow (in-memory)', () => {
       { run: async () => ({}) } as any,
       { cleanupUnverified: async () => ({}) } as any,
       plan as any,
+      scanService,
     );
 
     const verifiedAt = new Date('2026-09-01T00:00:00Z');

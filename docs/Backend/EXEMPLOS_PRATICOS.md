@@ -4,20 +4,18 @@ Cada exemplo é um trecho do código atual do `server/`, com o caminho do arquiv
 
 ## 1. Camadas: do controller ao use case
 
-O controller só recebe a requisição e chama o serviço. Repare que o e-mail vem da conta logada, nunca do corpo:
+O controller só recebe a requisição e chama o serviço; o usuário vem do token, nunca de um parâmetro:
 
 ```typescript
 // src/modules/scan/scan.controller.ts
+// Não há rota para o usuário disparar um scan: ele roda no cadastro, quando surge um
+// vazamento novo (monitoramento) e de novo, sozinho, se o do cadastro falhar
 @Controller('api/v1/scan')
 @UseGuards(JwtAuthGuard)
 export class ScanController {
-  @Post()
-  @Throttle(RATE_LIMITS.scan)
-  @HttpCode(HttpStatus.CREATED)
-  async submitScan(@CurrentUser('sub') userId: number): Promise<ScanResultDto> {
-    // O email vem da conta logada, nunca do corpo da requisição,
-    // para ninguém consultar os vazamentos de outra pessoa
-    return this.scanService.submitScanForUser(userId);
+  @Get('history')
+  async getHistory(@CurrentUser('sub') userId: number): Promise<ScanHistoryDto[]> {
+    return this.scanService.getUserHistory(userId);
   }
 }
 ```
@@ -115,7 +113,6 @@ A renovação (`AuthService.refreshTokens`) confere o token com o `REFRESH_TOKEN
 export const RATE_LIMITS = {
   login: { default: { limit: 5, ttl: MINUTE } },
   signup: { default: { limit: 5, ttl: 15 * MINUTE } },
-  scan: { default: { limit: 5, ttl: 15 * MINUTE } },
   verifyEmail: { default: { limit: 10, ttl: 15 * MINUTE } },
   resendVerification: { default: { limit: 5, ttl: 15 * MINUTE } },
   refresh: { default: { limit: 20, ttl: 15 * MINUTE } },
@@ -123,7 +120,7 @@ export const RATE_LIMITS = {
 };
 ```
 
-Cada rota aplica o seu limite com `@Throttle(RATE_LIMITS.scan)`, por exemplo. O limite geral (100 a cada 15 min) vem de `RATE_LIMIT_MAX_REQUESTS`.
+Cada rota aplica o seu limite com `@Throttle(RATE_LIMITS.login)`, por exemplo. O limite geral (100 a cada 15 min) vem de `RATE_LIMIT_MAX_REQUESTS`.
 
 ## 6. Circuit breaker na HIBP
 

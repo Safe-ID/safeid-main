@@ -184,13 +184,6 @@ export async function fetchScanDetail(jobId) {
   return request(`/api/v1/scan/${jobId}`, { method: "GET" });
 }
 
-export async function createScan(email) {
-  return request("/api/v1/scan", {
-    method: "POST",
-    body: JSON.stringify({ email }),
-  });
-}
-
 export async function deleteAccount() {
   return request("/api/v1/auth/me", {
     method: "DELETE",

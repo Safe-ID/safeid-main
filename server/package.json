@@ -24,7 +24,6 @@
     "test:integration": "jest --config jest.integration.config.js",
     "test:e2e": "jest --config jest.e2e.config.js",
     "test:auth:manual": "node tests/manual/auth-flow.js",
-    "test:hibp:manual": "node tests/manual/hibp-scan.js",
     "test:setup:user": "node tests/manual/setup-test-user.js",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",

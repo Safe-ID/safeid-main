@@ -26,7 +26,8 @@ describe('MonitoringProcessor', () => {
   let reconcile: any;
   let emailVerification: any;
   let hibpPlan: any;
-  const build = () => new MonitoringProcessor(catalogMonitor, monitoring, reconcile, emailVerification, hibpPlan);
+  let scanService: any;
+  const build = () => new MonitoringProcessor(catalogMonitor, monitoring, reconcile, emailVerification, hibpPlan, scanService);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -43,6 +44,7 @@ describe('MonitoringProcessor', () => {
     reconcile = { run: jest.fn(async () => ({ pendingEmails: 0 })) };
     emailVerification = { cleanupUnverified: jest.fn(async () => ({ users: 1, tokens: 2 })) };
     hibpPlan = { refresh: jest.fn(async () => ({ rpm: 10 })) };
+    scanService = { retryInitialScan: jest.fn(async () => ({ status: 'scanned' })) };
   });
 
   afterEach(() => {
@@ -105,7 +107,7 @@ describe('MonitoringProcessor', () => {
     expect(connection.quit).toHaveBeenCalledTimes(1);
   });
 
-  it('routes sweep, process, cleanup, plan check and reconcile jobs', async () => {
+  it('routes sweep, process, cleanup, plan check, reconcile and scan retry jobs', async () => {
     const processor = build();
 
     await processor.process({ name: 'monitor-sweep', data: { reason: 'CATALOG_CHANGE', breachNames: ['X'] } } as any);
@@ -118,6 +120,7 @@ describe('MonitoringProcessor', () => {
     await processor.process({ name: 'cleanup-unverified', data: {} } as any);
     await processor.process({ name: 'hibp-plan-check', data: {} } as any);
     await processor.process({ name: 'monitoring-reconcile', data: {} } as any);
+    await processor.process({ name: 'retry-initial-scan', data: { userId: '12' } } as any);
 
     expect(monitoring.runSweep).toHaveBeenNthCalledWith(1, 'CATALOG_CHANGE');
     expect(monitoring.runSweep).toHaveBeenNthCalledWith(2, 'WEEKLY');
@@ -126,5 +129,6 @@ describe('MonitoringProcessor', () => {
     expect(emailVerification.cleanupUnverified).toHaveBeenCalledTimes(1);
     expect(hibpPlan.refresh).toHaveBeenCalledTimes(1);
     expect(reconcile.run).toHaveBeenCalledTimes(1);
+    expect(scanService.retryInitialScan).toHaveBeenCalledWith(12);
   });
 });

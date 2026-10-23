@@ -6,6 +6,7 @@ import {
   EMAIL_QUEUE,
   HIBP_QUEUE,
   JOB_CATALOG_SYNC,
+  JOB_RETRY_INITIAL_SCAN,
   JOB_SEND_NEW_BREACH_ALERT,
   MONITORING_QUEUE,
 } from '../../../infra/queue/queue.constants';
@@ -23,11 +24,16 @@ const CATALOG_SYNC_MAX_AGE_MS = 7 * HOUR_MS;
 const USER_CHECK_MAX_AGE_MS = 8 * DAY_MS;
 const NEW_USER_GRACE_MS = HOUR_MS;
 const BATCH_LIMIT = 1000;
+// Espera o scan do cadastro terminar antes de considerar que ele falhou
+const FAILED_SCAN_GRACE_MS = 15 * MINUTE_MS;
+// Cada nova tentativa consulta a HIBP e a IA: poucas por hora, sem disputar a cota com o monitoramento
+const FAILED_SCAN_BATCH = 20;
 
 export interface ReconcileReport {
   pendingEmails: number;
   catalogOverdue: boolean;
   overdueUsers: number;
+  failedScans: number;
   hibpQueueWaiting: number;
   monitoringQueueFailed: number;
 }
@@ -56,6 +62,7 @@ export class MonitoringReconcileService {
     const pendingEmails = await this.requeuePendingEmails(now);
     const catalogOverdue = await this.checkCatalogSync(now);
     const overdueUsers = await this.requeueOverdueUsers(now);
+    const failedScans = await this.retryFailedScans(now);
 
     const hibpCounts = await this.hibpQueue.getJobCounts('waiting', 'prioritized', 'delayed');
     const monitoringCounts = await this.monitoringQueue.getJobCounts('failed');
@@ -64,6 +71,7 @@ export class MonitoringReconcileService {
       pendingEmails,
       catalogOverdue,
       overdueUsers,
+      failedScans,
       hibpQueueWaiting: (hibpCounts.waiting ?? 0) + (hibpCounts.prioritized ?? 0) + (hibpCounts.delayed ?? 0),
       monitoringQueueFailed: monitoringCounts.failed ?? 0,
     };
@@ -147,6 +155,46 @@ export class MonitoringReconcileService {
       await this.monitoring.enqueueCheck(user.id, 'RECONCILE');
     }
 
+    return users.length;
+  }
+
+  /**
+   * 4. Contas verificadas sem resultado válido: o scan do cadastro falhou (resultado padrão,
+   * isVerified false) ou nunca rodou. Não depende dos alertas: o scan foi aceito no cadastro.
+   * O jobId por hora evita duplicar; o que falhar de novo volta na próxima hora.
+   */
+  private async retryFailedScans(now: Date): Promise<number> {
+    const plan = await this.hibpPlan.getPlan();
+    if (!plan.authOk) {
+      return 0;
+    }
+
+    const cutoff = new Date(now.getTime() - FAILED_SCAN_GRACE_MS);
+    const users = await this.prisma.user.findMany({
+      where: {
+        emailVerifiedAt: { not: null },
+        OR: [
+          { scanSnapshotUpdatedAt: null, emailVerifiedAt: { lt: cutoff } },
+          { scanSnapshotUpdatedAt: { lt: cutoff }, scanSnapshot: { path: ['isVerified'], equals: false } },
+        ],
+      },
+      orderBy: { id: 'asc' },
+      select: { id: true },
+      take: FAILED_SCAN_BATCH,
+    });
+
+    const hourKey = formatHourKey(now);
+    for (const user of users) {
+      await this.monitoringQueue.add(
+        JOB_RETRY_INITIAL_SCAN,
+        { userId: user.id },
+        { jobId: `retry-scan-${user.id}-${hourKey}`, removeOnComplete: true, removeOnFail: { age: 24 * 3600 } },
+      );
+    }
+
+    if (users.length > 0) {
+      log('info', 'MonitoringReconcile', 'scan.retry_enqueued', { users: users.length });
+    }
     return users.length;
   }
 }
