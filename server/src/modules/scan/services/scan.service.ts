@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { PrismaService } from '../../../infra/database/prisma.service';
@@ -86,19 +86,24 @@ export class ScanService {
   }
 
   /**
-   * Inicia análise usando o email cadastrado na conta do usuário
+   * Nova tentativa do scan de quem ficou sem resultado válido (a reconciliação chama de hora
+   * em hora). Pula a conta que já tem resultado: outra execução pode ter resolvido antes.
+   * Se a HIBP ou a IA falharem de novo, o erro sobe e a próxima hora tenta outra vez.
    */
-  async submitScanForUser(userId: number): Promise<ScanResultDto> {
+  async retryInitialScan(userId: number): Promise<{ status: 'scanned' | 'skipped' }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { email: true },
+      select: { email: true, emailVerifiedAt: true, scanSnapshot: true },
     });
 
-    if (!user) {
-      throw new NotFoundException('Usuário não encontrado');
+    const snapshot = user?.scanSnapshot as { isVerified?: boolean } | null | undefined;
+    if (!user || !user.emailVerifiedAt || (snapshot && snapshot.isVerified !== false)) {
+      return { status: 'skipped' };
     }
 
-    return this.submitScan(userId, { email: user.email });
+    await this.submitScan(userId, { email: user.email }, 'SIGNUP');
+    log('info', 'ScanService', 'scan.retry_succeeded', { userId });
+    return { status: 'scanned' };
   }
 
   async persistFallbackSnapshot(userId: number, email: string): Promise<void> {

@@ -30,7 +30,7 @@ Exemplo prático:
 
 - Se a regra de risco diz que um vazamento recente deve aumentar o score, isso vai em teste unitário.
 - Se a aplicação consegue salvar o scan no Prisma e atualizar o snapshot do usuário, isso vai em teste de integração.
-- Se a rota POST /api/v1/scan responde corretamente com autenticação e retorno esperado, isso vai em teste E2E.
+- Se a rota GET /api/v1/scan/history responde corretamente com autenticação e retorno esperado, isso vai em teste E2E.
 
 ---
 
@@ -128,7 +128,7 @@ Use quando:
 Exemplo:
 
 - signup e login;
-- request para /api/v1/scan;
+- histórico de scans em /api/v1/scan/history;
 - health check da aplicação.
 
 ---

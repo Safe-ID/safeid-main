@@ -63,6 +63,44 @@ describe('SafeID logado', () => {
   })
 })
 
+describe('painel sem verificação manual', () => {
+  beforeEach(() => {
+    vi.mocked(getToken).mockReturnValue('token')
+  })
+
+  it('não oferece botão para refazer o scan', async () => {
+    vi.mocked(fetchMe).mockResolvedValue({ ...profile, monitoringEnabled: true })
+    render(<SafeID />)
+
+    expect(await screen.findByText('1 vazamento detectado')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /verificar novamente/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/alertas estão desligados/i)).not.toBeInTheDocument()
+  })
+
+  it('avisa que o resultado não se atualiza quando os alertas estão desligados', async () => {
+    vi.mocked(fetchMe).mockResolvedValue({ ...profile, monitoringEnabled: false })
+    render(<SafeID />)
+
+    expect(await screen.findByText('Seus alertas estão desligados.')).toBeInTheDocument()
+    expect(screen.getByText(/resultado de 23\/10\/2026/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Ligar alertas' })).toHaveAttribute('href', '#alertas')
+  })
+
+  it('explica que o scan que falhou é refeito sozinho', async () => {
+    vi.mocked(fetchMe).mockResolvedValue({
+      ...profile,
+      monitoringEnabled: false,
+      scanSnapshot: { riskScore: 0, classification: 'LOW', breachesFound: 0, breachData: null, isVerified: false },
+    })
+    render(<SafeID />)
+
+    expect(await screen.findByText('Não conseguimos verificar o seu email agora')).toBeInTheDocument()
+    expect(screen.getByText(/tenta de novo sozinho a cada hora/)).toBeInTheDocument()
+    // O aviso de alertas desligados só faz sentido com um resultado válido
+    expect(screen.queryByText('Seus alertas estão desligados.')).not.toBeInTheDocument()
+  })
+})
+
 describe('textos do painel', () => {
   it('traduz a classificação do RiskEngine', () => {
     expect(classificationLabel('LOW')).toBe('Baixo')

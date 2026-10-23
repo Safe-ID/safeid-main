@@ -6,7 +6,7 @@ function formatDateTime(value) {
 }
 
 /** Liga/desliga os alertas de vazamento e mostra a última verificação automática */
-export default function MonitoringSettings() {
+export default function MonitoringSettings({ onChange }) {
   const [status, setStatus] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -24,7 +24,9 @@ export default function MonitoringSettings() {
     try {
       setSaving(true);
       setError("");
-      setStatus(await updateMonitoringPreferences(!status.enabled));
+      const updated = await updateMonitoringPreferences(!status.enabled);
+      setStatus(updated);
+      onChange?.(updated);
     } catch (err) {
       setError(err.message || "Não foi possível salvar a preferência.");
     } finally {
@@ -36,7 +38,7 @@ export default function MonitoringSettings() {
   const lastCheck = formatDateTime(status?.lastMonitoredAt);
 
   return (
-    <section aria-labelledby="monitoring-settings-title" className="bg-safe-card border border-safe-border rounded-2xl p-5 sm:p-6 mt-6">
+    <section id="alertas" aria-labelledby="monitoring-settings-title" className="bg-safe-card border border-safe-border rounded-2xl p-5 sm:p-6 mt-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 id="monitoring-settings-title" className="text-safe-text font-semibold text-base m-0">

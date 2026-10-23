@@ -9,7 +9,6 @@ import ScoreHistoryChart from "./ScoreHistoryChart";
 import {
   NOTIFICATIONS_UPDATED_EVENT,
   OPEN_DASHBOARD_TAB_EVENT,
-  createScan,
   deleteAccount,
   fetchMe,
 } from "../lib/api";
@@ -33,7 +32,6 @@ export default function Dashboard({ user, onDeleteAccount }) {
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
   const [deleting, setDeleting] = useState(false);
-  const [scanning, setScanning] = useState(false);
   const [tab, setTab] = useState("overview");
   const [pct, setPct] = useState(0);
 
@@ -157,20 +155,24 @@ export default function Dashboard({ user, onDeleteAccount }) {
   };
   const statusBadge = STATUS_BADGES[scanStatus];
 
-  const handleRescan = async () => {
-    try {
-      setScanning(true);
-      setActionError("");
-      // O backend sempre usa o email da conta logada
-      await createScan(profile?.email);
-      const me = await fetchMe();
-      setProfile(me);
-    } catch (err) {
-      setActionError(err.message || "Não foi possível fazer um novo scan.");
-    } finally {
-      setScanning(false);
-    }
-  };
+  // Sem resultado válido, o backend tenta o scan de novo sozinho de hora em hora:
+  // o painel confere a cada 2 minutos para mostrar o resultado assim que ele chegar
+  const waitingForScan = scanStatus === "pending" || scanStatus === "unverified";
+  useEffect(() => {
+    if (loading || error || !waitingForScan) return undefined;
+    const timer = setInterval(async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        setProfile(await fetchMe());
+      } catch {
+        // Tenta de novo no próximo ciclo
+      }
+    }, 2 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, [loading, error, waitingForScan]);
+
+  const alertsOff = profile?.monitoringEnabled === false;
+  const lastResultDate = updatedAt ? new Date(updatedAt).toLocaleDateString("pt-BR") : null;
 
   const handleDeleteAccount = async () => {
     const confirmed = window.confirm("Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.");
@@ -211,14 +213,6 @@ export default function Dashboard({ user, onDeleteAccount }) {
               <span className={`w-2 h-2 rounded-full inline-block ${statusBadge.dot}`} />
               <span className="text-sm font-semibold">{statusBadge.label}</span>
             </div>
-            <button
-              onClick={handleRescan}
-              disabled={scanning || loading}
-              className="bg-gradient-to-br from-safe-primary to-safe-primaryD border-none rounded-xl text-white py-2 px-4 text-sm font-semibold cursor-pointer transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-70 flex items-center gap-2"
-            >
-              {scanning && <span className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin" />}
-              {scanning ? "Verificando..." : "Verificar novamente"}
-            </button>
             <button
               onClick={handleDeleteAccount}
               disabled={deleting}
@@ -274,9 +268,14 @@ export default function Dashboard({ user, onDeleteAccount }) {
               <div className="w-10 h-10 rounded-xl bg-safe-warn/10 flex items-center justify-center text-xl text-safe-warn shrink-0">!</div>
               <div className="min-w-0">
                 <div className="text-safe-warn font-semibold text-base">
-                  {scanStatus === "pending" ? "Ainda não verificamos o seu email" : "Não conseguimos verificar o seu email agora"}
+                  {scanStatus === "pending" ? "Estamos analisando o seu email" : "Não conseguimos verificar o seu email agora"}
                 </div>
-                <div className="text-safe-muted text-sm mt-1">Clique em "Verificar novamente" para consultar os vazamentos. Até lá, o score abaixo não vale como resultado.</div>
+                <div className="text-safe-muted text-sm mt-1">
+                  {scanStatus === "pending"
+                    ? "O resultado aparece aqui em alguns minutos."
+                    : "As bases de vazamentos não responderam. O SafeID tenta de novo sozinho a cada hora, e o resultado aparece aqui assim que der certo."}
+                  {" "}Até lá, o score abaixo não vale como resultado.
+                </div>
               </div>
             </div>
           )}
@@ -290,6 +289,23 @@ export default function Dashboard({ user, onDeleteAccount }) {
                 </div>
                 <div className="text-[#7A3030] text-sm mt-1">Seus dados circulam em repositórios de ameaças. Ação imediata recomendada.</div>
               </div>
+            </div>
+          )}
+
+          {/* Sem os alertas, ninguém atualiza o resultado: ele fica como estava na data abaixo */}
+          {alertsOff && (scanStatus === "clean" || scanStatus === "breached") && (
+            <div role="status" className="bg-safe-card border border-safe-borderL rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-6">
+              <div className="flex-1 min-w-0 text-safe-muted text-sm leading-relaxed">
+                <span className="text-safe-text font-semibold">Seus alertas estão desligados.</span>{" "}
+                Este é o resultado {lastResultDate ? `de ${lastResultDate}` : "da última análise"} e ele não é atualizado sozinho.
+                Ligue os alertas para o SafeID verificar seu email de novo e avisar quando ele aparecer em um vazamento novo.
+              </div>
+              <a
+                href="#alertas"
+                className="shrink-0 self-start sm:self-auto bg-safe-primary/10 border border-safe-primary/30 text-safe-secondary rounded-lg py-2 px-3.5 text-xs font-semibold no-underline hover:bg-safe-primary/20 transition-colors"
+              >
+                Ligar alertas
+              </a>
             </div>
           )}
 
@@ -442,7 +458,8 @@ export default function Dashboard({ user, onDeleteAccount }) {
             </div>
           )}
 
-          <MonitoringSettings />
+          {/* Ligar os alertas agenda uma checagem imediata no backend */}
+          <MonitoringSettings onChange={(status) => setProfile((current) => ({ ...current, monitoringEnabled: status.enabled }))} />
         </>
       )}
     </div>

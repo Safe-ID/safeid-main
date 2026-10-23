@@ -18,14 +18,7 @@ describe('Scan API E2E', () => {
     process.env.REFRESH_TOKEN_SECRET = 'test-refresh-secret';
 
     scanServiceMock = {
-      submitScanForUser: jest.fn(async () => ({
-        jobId: 'scan-job-123',
-        riskScore: 42,
-        classification: 'MODERATE',
-        breachesFound: 1,
-        recommendation: 'Change your password and enable 2FA.',
-        isVerified: true,
-      })),
+      retryInitialScan: jest.fn(),
       getUserHistory: jest.fn(async () => [
         {
           id: 'scan-job-123',
@@ -85,29 +78,17 @@ describe('Scan API E2E', () => {
     }
   });
 
-  it('submits a scan through POST /api/v1/scan using only the account email', async () => {
+  it('does not expose POST /api/v1/scan: scans run only at signup and in monitoring', async () => {
     const response = await fetch(`${baseUrl}/api/v1/scan`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      // Um email diferente no corpo é ignorado
       body: JSON.stringify({ email: 'someone-else@example.com' }),
     });
 
-    expect(response.status).toBe(201);
-
-    const body = (await response.json()) as any;
-    expect(body).toMatchObject({
-      jobId: 'scan-job-123',
-      riskScore: 42,
-      classification: 'MODERATE',
-      breachesFound: 1,
-      recommendation: 'Change your password and enable 2FA.',
-      isVerified: true,
-    });
-
-    expect(scanServiceMock.submitScanForUser).toHaveBeenCalledWith(7);
+    expect(response.status).toBe(404);
+    expect(scanServiceMock.retryInitialScan).not.toHaveBeenCalled();
   });
 
   it('returns scan history through GET /api/v1/scan/history', async () => {

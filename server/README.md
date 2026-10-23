@@ -94,7 +94,6 @@ Para criar uma migration nova depois de alterar o `schema.prisma`, use `npm run 
 - `npm run test:integration` - Testes de integração
 - `npm run test:e2e` - Testes end-to-end
 - `npm run test:auth:manual` - Fluxo manual de signup/login/me
-- `npm run test:hibp:manual` - Fluxo manual com emails de teste da HIBP
 - `npm run test:setup:user` - Cria o usuário de apoio para testes manuais
 
 ### Banco de dados
@@ -179,7 +178,6 @@ O `RiskEngine` soma os pesos das Data Classes expostas em cada vazamento e multi
 | `GET` | `/api/v1/auth/google/callback` | não | Retorno do Google, redireciona para o front com os tokens |
 | `GET` | `/api/v1/auth/me` | JWT | Perfil e último resultado de scan |
 | `DELETE` | `/api/v1/auth/me` | JWT | Exclui a conta |
-| `POST` | `/api/v1/scan` | JWT | Roda um novo scan do email da conta |
 | `GET` | `/api/v1/scan/history` | JWT | Histórico de scans do usuário |
 | `GET` | `/api/v1/scan/:jobId` | JWT | Detalhe de um scan |
 | `GET` | `/api/v1/notifications` | JWT | Notificações do sino, paginadas por cursor |
@@ -294,15 +292,15 @@ curl -X POST "http://localhost:3000/api/v1/auth/verify-email" ^
   -d "{\"token\":\"<verify_token do link>\"}"
 ```
 
-Para rodar um scan novo depois, com o token do `verify-email` ou do login:
+O `verify-email` já roda o scan inicial e devolve os tokens. Para ver o histórico com o token:
 
 ```powershell
-curl -X POST "http://localhost:3000/api/v1/scan" ^
+curl "http://localhost:3000/api/v1/scan/history" ^
   -H "accept: application/json" ^
   -H "Authorization: Bearer <access_token>"
 ```
 
-A resposta traz `riskScore`, `classification` e `breachesFound`. No log da API, o worker registra eventos JSON como `hibp.worker_started` na subida e `hibp.auth_failed` ou `hibp.rate_limited` em caso de problema com a HIBP.
+Cada item traz `riskScore`, `classification`, `breachesFound` e `source`. Não há rota para disparar um scan: ele roda no cadastro, no monitoramento e, se falhar, de novo pela reconciliação. No log da API, o worker registra eventos JSON como `hibp.worker_started` na subida e `hibp.auth_failed` ou `hibp.rate_limited` em caso de problema com a HIBP.
 
 ## 🧪 Testes
 

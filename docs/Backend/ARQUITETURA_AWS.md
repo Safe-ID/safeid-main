@@ -156,7 +156,7 @@ Fluxo dos jobs (horários em America/Sao_Paulo, configuráveis pelas variáveis 
 | catalog-probe | de hora em hora (min 5) | Consulta /latestbreach; se surgiu um vazamento novo, antecipa o catalog-sync |
 | monitor-sweep | após um sync com novidades e toda segunda às 03h00 | Enfileira um monitor-check por usuário monitorado, com prioridade baixa para não atrasar os scans manuais |
 | monitor-check | sob demanda | Consulta a HIBP para um usuário, grava os vazamentos novos e cria a notificação e o e-mail |
-| monitoring-reconcile | de hora em hora (min 20) | Reconstrói pelo banco o que se perdeu no Redis: e-mails de alerta pendentes, catalog-sync atrasado (mais de 7 h) e usuários sem checagem há mais de 8 dias |
+| monitoring-reconcile | de hora em hora (min 20) | Reconstrói pelo banco o que se perdeu no Redis: e-mails de alerta pendentes, catalog-sync atrasado (mais de 7 h) e usuários sem checagem há mais de 8 dias. Também refaz, até 20 por hora, o scan de quem ficou sem resultado válido (HIBP ou IA fora do ar no cadastro) |
 | cleanup-unverified | 04h30 | Apaga contas que não confirmaram o e-mail em UNVERIFIED_ACCOUNT_TTL_DAYS |
 
 Os agendamentos são Job Schedulers do BullMQ: ficam no Redis e não duplicam se houver mais de uma task. Cada task com workers grava um heartbeat (worker:heartbeat:<host>, TTL 90 s), e um watchdog recria os schedulers se sumirem.

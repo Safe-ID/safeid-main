@@ -22,7 +22,6 @@ Referência do contrato entre o frontend (`client/`) e a API (`server/`): qual t
 | Login (`Auth.jsx`) | `POST /api/v1/auth/login`, `GET /api/v1/auth/google` | `login` (Google é um redirecionamento) |
 | Link de verificação (`Safe_ID.jsx`, `?verify_token=`) | `POST /api/v1/auth/verify-email` | `verifyEmail` |
 | Abertura do app / painel (`Safe_ID.jsx`, `Dashboard.jsx`) | `GET /api/v1/auth/me` | `fetchMe` |
-| Verificar novamente (`Dashboard.jsx`) | `POST /api/v1/scan` | `createScan` |
 | Evolução do risco (`ScoreHistoryChart.jsx`) | `GET /api/v1/scan/history` | `fetchScanHistory` |
 | Plano de ação e PDF (`AIPanel.jsx`, `PrintablePlan.jsx`) | dados de `auth/me` (`scanSnapshot`) | — |
 | Excluir conta (`Dashboard.jsx`) | `DELETE /api/v1/auth/me` | `deleteAccount` |
@@ -60,11 +59,10 @@ Todas exigem Bearer.
 
 | Endpoint | Método | Resposta |
 |---|---|---|
-| `/api/v1/scan` | `POST` | `201 { jobId, riskScore, classification, breachesFound, recommendation, mitigationSteps, urgencyLevel, isVerified }` |
 | `/api/v1/scan/history` | `GET` | Últimas 50 análises, da mais nova para a mais antiga: `[{ id, riskScore, classification, breachesFound, source, createdAt }]` |
 | `/api/v1/scan/:jobId` | `GET` | Detalhe de uma análise do próprio usuário, com `breachData` descriptografado |
 
-- **O scan usa sempre o e-mail da conta logada.** O `createScan(email)` do cliente envia o e-mail, mas a API ignora o corpo, para ninguém consultar o e-mail de outra pessoa.
+- **Não há rota para o usuário disparar um scan.** Ele roda sozinho no cadastro (verificação do e-mail ou primeiro login pelo Google), quando o monitoramento acha um vazamento novo e, se o do cadastro falhar, de novo a cada hora pela reconciliação. Sempre com o e-mail da conta. Com os alertas desligados, o resultado fica parado, e o painel avisa
 - `classification`: `LOW`, `MODERATE`, `HIGH` ou `CRITICAL` (faixas 0–25, 26–50, 51–75, 76–100).
 - `source` no histórico: `SIGNUP` (cadastro), `MANUAL` (o usuário pediu) ou `MONITORING` (recálculo após um vazamento novo). Uma consulta respondida pelo cache não gera análise nova.
 - Limite: 5 scans a cada 15 min por IP.
@@ -113,7 +111,7 @@ O frontend mostra o aviso de `?monitoring=disabled|invalid` na página inicial e
 | Rota | Limite |
 |---|---|
 | Login | 5 por minuto |
-| Cadastro, scan, reenvio da verificação | 5 a cada 15 min |
+| Cadastro, reenvio da verificação | 5 a cada 15 min |
 | Confirmação do e-mail | 10 a cada 15 min |
 | Refresh, descadastro | 20 a cada 15 min |
 | Demais | 100 a cada 15 min |

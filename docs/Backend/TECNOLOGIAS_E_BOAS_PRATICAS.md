@@ -106,7 +106,7 @@ Por IP real, com limites próprios nas rotas sensíveis:
 | Rota | Limite |
 |---|---|
 | Login | 5 por minuto |
-| Cadastro, scan, reenvio da verificação | 5 a cada 15 min |
+| Cadastro, reenvio da verificação | 5 a cada 15 min |
 | Confirmação do e-mail | 10 a cada 15 min |
 | Refresh | 20 a cada 15 min |
 | Descadastro dos alertas | 20 a cada 15 min |

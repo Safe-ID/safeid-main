@@ -53,20 +53,19 @@ describe('controller and guard unit coverage', () => {
     expect(response.redirect).toHaveBeenCalledWith(302, 'https://example.com/callback');
   });
 
-  it('scan controller delegates to the scan service for submit, history and detail', async () => {
+  it('scan controller delegates history and detail to the scan service', async () => {
     const service = {
-      submitScanForUser: jest.fn(async () => ({ jobId: 'job-1', riskScore: 5, classification: 'LOW' })),
       getUserHistory: jest.fn(async () => [{ id: 'job-1', riskScore: 5, classification: 'LOW' }]),
       getScanDetail: jest.fn(async () => ({ jobId: 'job-1', riskScore: 10, classification: 'MODERATE' })),
     } as any;
 
     const controller = new ScanController(service);
 
-    await expect(controller.submitScan(12)).resolves.toMatchObject({ jobId: 'job-1' });
     await expect(controller.getHistory(12)).resolves.toEqual([{ id: 'job-1', riskScore: 5, classification: 'LOW' }]);
     await expect(controller.getScanDetail(12, 'job-1')).resolves.toMatchObject({ jobId: 'job-1' });
 
-    expect(service.submitScanForUser).toHaveBeenCalledWith(12);
+    // O scan só roda no cadastro e no monitoramento: não há rota para o usuário disparar
+    expect((controller as any).submitScan).toBeUndefined();
     expect(service.getUserHistory).toHaveBeenCalledWith(12);
     expect(service.getScanDetail).toHaveBeenCalledWith(12, 'job-1');
   });

@@ -51,12 +51,21 @@ describe('MonitoringReconcileService', () => {
   });
 
   it('does nothing when everything is up to date', async () => {
-    await prisma.user.create({ data: { email: 'a@example.com', emailVerifiedAt: daysAgo(30), lastMonitoredAt: daysAgo(2) } });
+    await prisma.user.create({
+      data: {
+        email: 'a@example.com',
+        emailVerifiedAt: daysAgo(30),
+        lastMonitoredAt: daysAgo(2),
+        scanSnapshot: { isVerified: true },
+        scanSnapshotUpdatedAt: daysAgo(30),
+      },
+    });
 
     await expect(service.run(now)).resolves.toEqual({
       pendingEmails: 0,
       catalogOverdue: false,
       overdueUsers: 0,
+      failedScans: 0,
       hibpQueueWaiting: 0,
       monitoringQueueFailed: 0,
     });
@@ -82,6 +91,54 @@ describe('MonitoringReconcileService', () => {
         opts: expect.objectContaining({ jobId: `email-notif-${stuck.id}` }),
       }),
     ]);
+  });
+
+  it('retries the scan of verified accounts whose signup scan failed or never ran', async () => {
+    const failed = await prisma.user.create({
+      data: {
+        email: 'failed@example.com',
+        emailVerifiedAt: daysAgo(2),
+        lastMonitoredAt: daysAgo(1),
+        scanSnapshot: { isVerified: false },
+        scanSnapshotUpdatedAt: minutesAgo(60),
+      },
+    });
+    const never = await prisma.user.create({
+      data: { email: 'never@example.com', emailVerifiedAt: minutesAgo(30), lastMonitoredAt: minutesAgo(10), scanSnapshotUpdatedAt: null },
+    });
+    // Alertas desligados não impedem a nova tentativa: o scan foi aceito no cadastro
+    const alertsOff = await prisma.user.create({
+      data: {
+        email: 'off@example.com',
+        emailVerifiedAt: daysAgo(3),
+        monitoringEnabled: false,
+        scanSnapshot: { isVerified: false },
+        scanSnapshotUpdatedAt: minutesAgo(120),
+      },
+    });
+    // Não entram: resultado válido, fallback recente (o scan pode estar em andamento),
+    // conta recém-verificada e conta não verificada
+    await prisma.user.create({ data: { email: 'ok@example.com', emailVerifiedAt: daysAgo(2), lastMonitoredAt: daysAgo(1), scanSnapshot: { isVerified: true }, scanSnapshotUpdatedAt: minutesAgo(60) } });
+    await prisma.user.create({ data: { email: 'recent@example.com', emailVerifiedAt: minutesAgo(10), lastMonitoredAt: minutesAgo(5), scanSnapshot: { isVerified: false }, scanSnapshotUpdatedAt: minutesAgo(5) } });
+    await prisma.user.create({ data: { email: 'fresh@example.com', emailVerifiedAt: minutesAgo(5), lastMonitoredAt: minutesAgo(5), scanSnapshotUpdatedAt: null } });
+    await prisma.user.create({ data: { email: 'unverified@example.com', emailVerifiedAt: null, scanSnapshotUpdatedAt: null } });
+
+    const report = await service.run(now);
+
+    expect(report.failedScans).toBe(3);
+    const retries = monitoringQueue.jobs.filter(job => job.name === 'retry-initial-scan');
+    expect(retries.map(job => job.data.userId).sort()).toEqual([failed.id, never.id, alertsOff.id].sort());
+    expect(retries[0].opts).toMatchObject({ jobId: expect.stringMatching(/^retry-scan-\d+-/) });
+  });
+
+  it('does not retry scans while the HIBP key is rejected', async () => {
+    plan.getPlan.mockResolvedValue({ authOk: false });
+    await prisma.user.create({
+      data: { email: 'failed@example.com', emailVerifiedAt: daysAgo(2), scanSnapshot: { isVerified: false }, scanSnapshotUpdatedAt: minutesAgo(60) },
+    });
+
+    await expect(service.run(now)).resolves.toMatchObject({ failedScans: 0 });
+    expect(monitoringQueue.jobs.filter(job => job.name === 'retry-initial-scan')).toHaveLength(0);
   });
 
   it('alerts and triggers a catalog sync when the last sync is older than 7 hours (or missing)', async () => {

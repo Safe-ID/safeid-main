@@ -34,7 +34,7 @@ server/
 │   │   ├── health/                # GET /api/health (PostgreSQL e Redis)
 │   │   ├── monitoring/            # Catálogo HIBP, varredura, agendamentos, opt-out, /api/health/jobs
 │   │   ├── notifications/         # Notificações do sino e worker de e-mail
-│   │   └── scan/                  # POST /api/v1/scan, histórico e detalhe
+│   │   └── scan/                  # Scan (sem rota de disparo), histórico e detalhe
 │   │
 │   ├── shared/                    # Utilitários sem dependência de módulo
 │   │   ├── config/                # Validação do .env, APP_ROLE, URLs públicas
@@ -77,7 +77,7 @@ server/
 | Módulo | Rotas | Responsabilidade |
 |---|---|---|
 | `auth` | `/api/v1/auth/*` | Cadastro com verificação de e-mail, login, renovação de sessão, Google OAuth, perfil e exclusão da conta |
-| `scan` | `/api/v1/scan/*` | Consulta de vazamentos do e-mail da própria conta, histórico e detalhe |
+| `scan` | `/api/v1/scan/*` | Histórico e detalhe das análises da própria conta; o scan roda no cadastro, no monitoramento e na reconciliação |
 | `notifications` | `/api/v1/notifications/*` | Sino do painel e envio dos e-mails (verificação e alerta) |
 | `monitoring` | `/api/v1/monitoring/*`, `/api/health/jobs` | Catálogo de vazamentos, varredura dos usuários, agendamentos, preferências e descadastro |
 | `breaches` | (interno) | Base de vazamentos que cada usuário já conhece, para alertar só os novos |

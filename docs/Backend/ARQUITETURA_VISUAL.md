@@ -32,13 +32,14 @@
 ## 🔄 Fluxo de um scan
 
 ```
-POST /api/v1/scan   (Authorization: Bearer <access token>)
+Gatilhos (não há rota para o usuário disparar um scan):
+   ├─ Cadastro: POST /api/v1/auth/verify-email ou primeiro login pelo Google
+   ├─ Monitoramento: vazamento novo no catálogo da HIBP → recálculo do score
+   └─ Reconciliação (de hora em hora): refaz o scan de quem ficou sem resultado válido
    │
-   ├─ Helmet · CORS · rate limit (5 a cada 15 min) · ValidationPipe
-   ├─ JwtAuthGuard: assinatura, validade, typ, conta existe e está verificada
    ▼
-ScanController ──► ScanService.submitScanForUser(userId)
-   │                  usa o e-mail da CONTA, nunca um e-mail do corpo
+ScanService.submitScan(userId, e-mail da CONTA)
+   │
    ▼
 ExecuteRiskScanUseCase
    │

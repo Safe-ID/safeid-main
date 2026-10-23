@@ -38,19 +38,62 @@ describe('ScanService', () => {
     };
   });
 
-  it('scans only the email registered on the account', async () => {
-    const submitSpy = jest.spyOn(service, 'submitScan').mockResolvedValue({ jobId: 'job-own' } as any);
-    prismaMock.user.findUnique.mockResolvedValue({ email: 'owner@example.com' });
+  describe('retryInitialScan', () => {
+    const verifiedAt = new Date('2026-10-20T10:00:00.000Z');
 
-    await expect(service.submitScanForUser(5)).resolves.toMatchObject({ jobId: 'job-own' });
-    expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
-      where: { id: 5 },
-      select: { email: true },
+    it('scans again the account email when the signup scan failed', async () => {
+      const submitSpy = jest.spyOn(service, 'submitScan').mockResolvedValue({ jobId: 'job-own' } as any);
+      prismaMock.user.findUnique.mockResolvedValue({
+        email: 'owner@example.com',
+        emailVerifiedAt: verifiedAt,
+        scanSnapshot: { isVerified: false },
+      });
+
+      await expect(service.retryInitialScan(5)).resolves.toEqual({ status: 'scanned' });
+      expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 5 },
+        select: { email: true, emailVerifiedAt: true, scanSnapshot: true },
+      });
+      expect(submitSpy).toHaveBeenCalledWith(5, { email: 'owner@example.com' }, 'SIGNUP');
     });
-    expect(submitSpy).toHaveBeenCalledWith(5, { email: 'owner@example.com' });
 
-    prismaMock.user.findUnique.mockResolvedValue(null);
-    await expect(service.submitScanForUser(999)).rejects.toThrow('Usuário não encontrado');
+    it('scans an account that never got a result', async () => {
+      const submitSpy = jest.spyOn(service, 'submitScan').mockResolvedValue({ jobId: 'job-new' } as any);
+      prismaMock.user.findUnique.mockResolvedValue({ email: 'new@example.com', emailVerifiedAt: verifiedAt, scanSnapshot: null });
+
+      await expect(service.retryInitialScan(6)).resolves.toEqual({ status: 'scanned' });
+      expect(submitSpy).toHaveBeenCalledWith(6, { email: 'new@example.com' }, 'SIGNUP');
+    });
+
+    it('skips accounts that already have a valid result, are unverified or no longer exist', async () => {
+      const submitSpy = jest.spyOn(service, 'submitScan');
+
+      prismaMock.user.findUnique.mockResolvedValueOnce({
+        email: 'ok@example.com',
+        emailVerifiedAt: verifiedAt,
+        scanSnapshot: { isVerified: true },
+      });
+      await expect(service.retryInitialScan(7)).resolves.toEqual({ status: 'skipped' });
+
+      prismaMock.user.findUnique.mockResolvedValueOnce({ email: 'pending@example.com', emailVerifiedAt: null, scanSnapshot: null });
+      await expect(service.retryInitialScan(8)).resolves.toEqual({ status: 'skipped' });
+
+      prismaMock.user.findUnique.mockResolvedValueOnce(null);
+      await expect(service.retryInitialScan(999)).resolves.toEqual({ status: 'skipped' });
+
+      expect(submitSpy).not.toHaveBeenCalled();
+    });
+
+    it('lets the error bubble up so the next reconcile retries', async () => {
+      jest.spyOn(service, 'submitScan').mockRejectedValue(new Error('hibp down'));
+      prismaMock.user.findUnique.mockResolvedValue({
+        email: 'owner@example.com',
+        emailVerifiedAt: verifiedAt,
+        scanSnapshot: { isVerified: false },
+      });
+
+      await expect(service.retryInitialScan(5)).rejects.toThrow('hibp down');
+    });
   });
 
   it('executes a scan and persists the user snapshot', async () => {
