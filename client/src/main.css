@@ -112,6 +112,7 @@ body {
 
   #safeid-print-plan .print-meta {
     text-align: right;
+    overflow-wrap: anywhere;
     font-size: 8.5pt;
     color: #4b5563;
   }

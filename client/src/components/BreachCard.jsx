@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { W, translateDataClass, severityFromWeight } from "./safeidData";
+import { W, translateDataClass, severityFromWeight, plural } from "./safeidData";
 
 function resolveLogoPath(logoPath) {
   if (!logoPath || typeof logoPath !== "string") return "";
@@ -26,7 +26,7 @@ export default function BreachCard({ item, idx }) {
   const subtitle = isBreachData
     ? `${breachDate ? new Date(breachDate).toLocaleDateString("pt-BR", { month: "short", year: "numeric" }) : "Sem data"}${item?.PwnCount || item?.pwnCount ? ` · ${(item.PwnCount || item.pwnCount).toLocaleString("pt-BR")} contas` : ""}`
     : isHistory
-      ? `${item.breachesFound} vazamentos · ${item.classification}`
+      ? `${plural(item.breachesFound, "vazamento")} · ${item.classification}`
       : `${new Date(item.date).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })} · ${(item.count / 1e6).toFixed(0)}M contas`;
 
   // Fallbacks de cor customizada nativa para a logo default quando não há imagem
@@ -98,7 +98,7 @@ export default function BreachCard({ item, idx }) {
             }) : isHistory ? [
               `Risk ${item.riskScore}/100`,
               item.classification,
-              `${item.breachesFound} vazamentos`,
+              plural(item.breachesFound, "vazamento"),
               item.isVerified ? "Verificado" : "Não verificado",
             ].filter(Boolean).map(detail => (
               <span key={detail} className="bg-safe-secondary/10 border border-safe-secondary/30 text-safe-secondary text-[11px] font-medium px-2.5 py-1 rounded-full">

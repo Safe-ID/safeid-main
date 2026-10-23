@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal, flushSync } from "react-dom";
-import { ENETSEC, W, translateDataClass } from "./safeidData";
+import { CLASSIFICATION_LABELS, ENETSEC, W, translateDataClass } from "./safeidData";
 
-const CLASSIFICATION_LABELS = { LOW: "Baixo", MODERATE: "Médio", HIGH: "Alto", CRITICAL: "Crítico" };
 const URGENCY_LABELS = { HIGH: "Alta", MEDIUM: "Média", LOW: "Baixa" };
 // Mesmas faixas do RiskEngine; a cor é só reforço, o texto sempre diz o nível
 const LEVEL_CLASS = { LOW: "level-low", MODERATE: "level-moderate", HIGH: "level-high", CRITICAL: "level-critical" };

@@ -51,7 +51,9 @@ export default function SafeID() {
   };
 
   const goTo = (p) => {
-    if (p === "landing") setUser(null);
+    // Logado, a logo leva ao painel: voltar para a página inicial apagava o usuário da tela
+    // sem apagar o token, um "logout pela metade"
+    if (p === "landing" && user) p = "dashboard";
     setNotice("");
     setLandingNotice(null);
     setPage(p);
@@ -181,11 +183,12 @@ export default function SafeID() {
         {!booting && page === "register" && <Auth mode="register" onSuccess={(u) => onAuth(u)} onSwitch={() => setPage("login")} onGoToLogin={() => setPage("login")} onOpenPrivacy={openPrivacy} />}
         {!booting && page === "login" && <Auth mode="login" notice={notice} onSuccess={(u) => onAuth(u)} onSwitch={() => { setNotice(""); setPage("register"); }} onOpenPrivacy={openPrivacy} />}
         {!booting && page === "privacy" && <Privacy onBack={() => setPage(privacyReturn)} />}
-        {!booting && page === "dashboard" && isAuthenticated && <Dashboard user={user} onSignOut={onOut} onDeleteAccount={onAccountDeleted} />}
+        {!booting && page === "dashboard" && isAuthenticated && <Dashboard user={user} onDeleteAccount={onAccountDeleted} />}
       </main>
 
-      {!booting && page !== "dashboard" && (
-        <footer className="border-t border-safe-border py-5 px-8 flex items-center justify-between text-safe-dim text-xs">
+      {/* No painel também: é o caminho da pessoa logada até a Política de Privacidade (LGPD) */}
+      {!booting && (
+        <footer className="border-t border-safe-border py-5 px-6 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-safe-dim text-xs text-center">
           <div><span className="text-safe-secondary font-bold">SafeID</span> · IFSP São Paulo · TADS 2026</div>
           <div className="flex gap-5">
             {['Privacidade', 'LGPD'].map(l => (

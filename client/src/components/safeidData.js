@@ -224,6 +224,18 @@ export function translateDataClass(value) {
   return DATA_CLASS_TRANSLATIONS[value] || value;
 }
 
+// Faixas do RiskEngine em português (a API devolve LOW, MODERATE, HIGH, CRITICAL)
+export const CLASSIFICATION_LABELS = { LOW: "Baixo", MODERATE: "Médio", HIGH: "Alto", CRITICAL: "Crítico" };
+
+export function classificationLabel(value) {
+  return CLASSIFICATION_LABELS[value] || value;
+}
+
+/** "1 vazamento", "3 vazamentos" */
+export function plural(count, singular, pluralForm = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : pluralForm}`;
+}
+
 export function score(bs) {
   if (!bs.length) return 0;
   let t = 0;

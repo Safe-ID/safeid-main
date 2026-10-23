@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { W, translateDataClass, severityFromWeight } from "./safeidData";
+import { W, translateDataClass, severityFromWeight, classificationLabel, plural } from "./safeidData";
 import RiskCircle from "./RiskCircle";
 import BreachCard from "./BreachCard";
 import AIPanel from "./AIPanel";
@@ -27,7 +27,7 @@ function getLogoInitial(item) {
   return label.trim().charAt(0).toUpperCase() || "V";
 }
 
-export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
+export default function Dashboard({ user, onDeleteAccount }) {
   const [profile, setProfile] = useState(user);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -96,6 +96,7 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
   const scanSnapshot = profile?.scanSnapshot || null;
   const riskScore = typeof scanSnapshot?.riskScore === "number" ? scanSnapshot.riskScore : 0;
   const classification = scanSnapshot?.classification || "N/D";
+  const classificationText = classificationLabel(classification);
   const recommendation = scanSnapshot?.recommendation || "";
   const mitigationSteps = Array.isArray(scanSnapshot?.mitigationSteps) ? scanSnapshot.mitigationSteps : [];
   const urgencyLevel = scanSnapshot?.urgencyLevel || null;
@@ -151,7 +152,7 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
   const STATUS_BADGES = {
     pending: { label: "Ainda não verificado", className: "bg-safe-card border-safe-borderL text-safe-muted", dot: "bg-safe-muted" },
     unverified: { label: "Verificação pendente", className: "bg-safe-warn/15 border-safe-warn/40 text-safe-warn", dot: "bg-safe-warn" },
-    breached: { label: `${totalBreaches} vazamentos detectados`, className: "bg-safe-danger/15 border-safe-danger/40 text-safe-danger", dot: "bg-safe-danger" },
+    breached: { label: `${plural(totalBreaches, "vazamento")} ${totalBreaches === 1 ? "detectado" : "detectados"}`, className: "bg-safe-danger/15 border-safe-danger/40 text-safe-danger", dot: "bg-safe-danger" },
     clean: { label: "Nenhum vazamento encontrado", className: "bg-safe-accent/15 border-safe-accent/40 text-safe-accent", dot: "bg-safe-accent" },
   };
   const statusBadge = STATUS_BADGES[scanStatus];
@@ -193,14 +194,14 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
     <div className="w-full max-w-4xl mx-auto pt-10 px-6 pb-20">
       <div className="mb-8 animate-slide-up">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between flex-wrap gap-4">
-          <div>
+          <div className="min-w-0 max-w-full">
             <p className="text-safe-dim text-sm mb-1 capitalize">
               {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
             </p>
-            <h1 className="text-safe-text text-3xl font-bold tracking-tight font-[system-ui,sans-serif]">
+            <h1 className="text-safe-text text-2xl sm:text-3xl font-bold tracking-tight font-[system-ui,sans-serif] [overflow-wrap:anywhere]">
               Olá, {greetingName} 👋
             </h1>
-            <p className="text-safe-muted text-base mt-1">
+            <p className="text-safe-muted text-base mt-1 [overflow-wrap:anywhere]">
               Monitorando: <span className="text-safe-secondary">{profile?.email}</span>
             </p>
           </div>
@@ -225,9 +226,6 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
             >
               {deleting ? "Excluindo..." : "Excluir conta"}
             </button>
-            <button onClick={onSignOut} className="bg-transparent border border-safe-border rounded-xl text-safe-dim py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-hover">
-              Sair
-            </button>
           </div>
         </div>
       </div>
@@ -241,7 +239,7 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
           <div className="h-1.5 bg-safe-border rounded-full overflow-hidden">
             <div className="h-full bg-gradient-to-r from-safe-primary to-safe-secondary rounded-full transition-all duration-150 ease-out" style={{ width: `${pct}%` }} />
           </div>
-          <p className="text-safe-dim text-xs mt-3">Consultando auth/me e scan/history</p>
+          <p className="text-safe-dim text-xs mt-3">Buscando o resultado mais recente da sua análise</p>
         </div>
       )}
 
@@ -264,8 +262,8 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
           {scanStatus === "clean" && (
             <div className="bg-safe-accent/5 border border-safe-accent/30 rounded-2xl p-5 flex items-center gap-4 mb-6 animate-slide-up">
               <div className="w-10 h-10 rounded-xl bg-safe-accent/10 flex items-center justify-center text-xl text-safe-accent shrink-0">✓</div>
-              <div>
-                <div className="text-safe-accent font-semibold text-base">Nenhum vazamento encontrado para {profile?.email}</div>
+              <div className="min-w-0">
+                <div className="text-safe-accent font-semibold text-base [overflow-wrap:anywhere]">Nenhum vazamento encontrado para {profile?.email}</div>
                 <div className="text-safe-muted text-sm mt-1">Seu email não aparece nas bases de vazamentos consultadas. Continue usando senhas únicas e a verificação em duas etapas.</div>
               </div>
             </div>
@@ -274,7 +272,7 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
           {(scanStatus === "pending" || scanStatus === "unverified") && (
             <div className="bg-safe-warn/5 border border-safe-warn/30 rounded-2xl p-5 flex items-center gap-4 mb-6 animate-slide-up">
               <div className="w-10 h-10 rounded-xl bg-safe-warn/10 flex items-center justify-center text-xl text-safe-warn shrink-0">!</div>
-              <div>
+              <div className="min-w-0">
                 <div className="text-safe-warn font-semibold text-base">
                   {scanStatus === "pending" ? "Ainda não verificamos o seu email" : "Não conseguimos verificar o seu email agora"}
                 </div>
@@ -286,8 +284,10 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
           {scanStatus === "breached" && (
             <div className="bg-gradient-to-br from-[#180808] to-[#200A0A] border border-safe-danger/40 rounded-2xl p-5 flex items-center gap-4 mb-6 animate-slide-up">
               <div className="w-10 h-10 rounded-xl bg-safe-danger/10 flex items-center justify-center text-xl shrink-0">⚠</div>
-              <div>
-                <div className="text-safe-danger font-semibold text-base">{totalBreaches} vazamentos encontrados para {profile?.email}</div>
+              <div className="min-w-0">
+                <div className="text-safe-danger font-semibold text-base [overflow-wrap:anywhere]">
+                  {plural(totalBreaches, "vazamento")} {totalBreaches === 1 ? "encontrado" : "encontrados"} para {profile?.email}
+                </div>
                 <div className="text-[#7A3030] text-sm mt-1">Seus dados circulam em repositórios de ameaças. Ação imediata recomendada.</div>
               </div>
             </div>
@@ -322,7 +322,7 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
                 <div className="flex flex-col gap-3">
                   {[
                     { label: "Risco atual", value: `${riskScore}/100`, colorClass: "text-safe-danger", icon: "🔑" },
-                    { label: "Classificação", value: classification, colorClass: "text-safe-warn", icon: "💳" },
+                    { label: "Classificação", value: classificationText, colorClass: "text-safe-warn", icon: "💳" },
                     { label: "Vazamentos detectados", value: `${totalBreaches || 0}`, colorClass: "text-safe-secondary", icon: "👤" },
                     { label: "Última atualização", value: updatedAt ? new Date(updatedAt).toLocaleDateString("pt-BR") : "Sem dados", colorClass: "text-safe-muted", icon: "📅" },
                   ].map(s => (
@@ -404,7 +404,7 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
                                 </span>
                               );
                             })}
-                            {pwnCount && <span className="bg-safe-secondary/10 border border-safe-secondary/20 text-safe-secondary text-[10px] py-[2px] px-[8px] rounded-full">{pwnCount.toLocaleString("pt-BR")} contas</span>}
+                            {pwnCount > 0 && <span className="bg-safe-secondary/10 border border-safe-secondary/20 text-safe-secondary text-[10px] py-[2px] px-[8px] rounded-full">{pwnCount.toLocaleString("pt-BR")} contas</span>}
                             <span className="bg-safe-dim/10 border border-safe-dim/20 text-safe-dim text-[10px] py-[2px] px-[8px] rounded-full">{item?.IsVerified ? "Verificado" : "Não verificado"}</span>
                           </div>
                         </div>
@@ -428,7 +428,7 @@ export default function Dashboard({ user, onSignOut, onDeleteAccount }) {
 
           {tab === "ai" && (
             <div className="animate-fade-in">
-              <AIPanel recommendation={recommendation} mitigationSteps={mitigationSteps} urgencyLevel={urgencyLevel} updatedAt={updatedAt} classification={classification} riskScore={riskScore} onExportPdf={exportPlanPdf} />
+              <AIPanel recommendation={recommendation} mitigationSteps={mitigationSteps} urgencyLevel={urgencyLevel} updatedAt={updatedAt} classification={classificationText} riskScore={riskScore} onExportPdf={exportPlanPdf} />
               <PrintablePlan
                 email={profile?.email}
                 riskScore={riskScore}
