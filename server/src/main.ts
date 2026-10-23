@@ -7,6 +7,7 @@ import session from 'express-session';
 import { AppModule } from './app.module';
 import { getAppRole, servesHttp } from './shared/config/app-role';
 import { log } from './shared/utils/logger';
+import { applyServerTimeouts } from './shared/http/server-timeouts';
 
 async function bootstrap() {
   // APP_ROLE=worker: só workers e agendamentos, sem abrir porta HTTP
@@ -86,6 +87,9 @@ async function bootstrap() {
 
   // Global error handling middleware can be added here
   // Global interceptors can be added here
+
+  // Keep-alive maior que o idle timeout do ALB: evita 502 em conexões reaproveitadas
+  applyServerTimeouts(app.getHttpServer());
 
   await app.listen(port, () => {
     console.log(`🚀 SafeID Backend iniciado em http://localhost:${port}`);

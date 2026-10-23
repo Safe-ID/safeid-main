@@ -205,11 +205,13 @@ describe('bootstrap and module wiring coverage', () => {
   it('initializes the Nest app with default middleware and bootstrap sequence', async () => {
     jest.resetModules();
 
+    const httpServer = { keepAliveTimeout: 5_000, headersTimeout: 60_000 };
     const app = {
       enableShutdownHooks: jest.fn(),
       use: jest.fn(),
       enableCors: jest.fn(),
       useGlobalPipes: jest.fn(),
+      getHttpServer: jest.fn(() => httpServer),
       listen: jest.fn((_port: number | string, callback?: () => void) => {
         if (callback) callback();
         return Promise.resolve(undefined);
@@ -263,6 +265,9 @@ describe('bootstrap and module wiring coverage', () => {
     expect(app.enableShutdownHooks).toHaveBeenCalledTimes(1);
     expect(app.listen).toHaveBeenCalled();
     expect(app.use).toHaveBeenCalled();
+    // Keep-alive acima do idle timeout de 60 s do ALB, para não haver 502 em conexões reaproveitadas
+    expect(httpServer.keepAliveTimeout).toBeGreaterThan(60_000);
+    expect(httpServer.headersTimeout).toBeGreaterThan(httpServer.keepAliveTimeout);
   });
 
   it('starts only the application context when APP_ROLE=worker', async () => {
@@ -293,11 +298,13 @@ describe('bootstrap and module wiring coverage', () => {
     jest.resetModules();
     process.env.SWAGGER_ENABLED = 'true';
 
+    const httpServer = { keepAliveTimeout: 5_000, headersTimeout: 60_000 };
     const app = {
       enableShutdownHooks: jest.fn(),
       use: jest.fn(),
       enableCors: jest.fn(),
       useGlobalPipes: jest.fn(),
+      getHttpServer: jest.fn(() => httpServer),
       listen: jest.fn((_port: number | string, callback?: () => void) => {
         if (callback) callback();
         return Promise.resolve(undefined);
