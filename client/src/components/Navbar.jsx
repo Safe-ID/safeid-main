@@ -9,10 +9,10 @@ export default function Navbar({ user, onSignOut, onNav }) {
       <div
         role="link"
         tabIndex={0}
-        aria-label="SafeID, ir para a página inicial"
+        aria-label={user ? "SafeID, ir para o painel" : "SafeID, ir para a página inicial"}
         onClick={() => onNav("landing")}
         onKeyDown={(e) => e.key === "Enter" && onNav("landing")}
-        className="flex items-center gap-3 cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-safe-secondary"
+        className="flex items-center gap-3 shrink-0 cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-safe-secondary"
       >
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-safe-primary to-safe-secondary flex items-center justify-center">
           <svg width="15" height="15" viewBox="0 0 16 16" fill="white">
@@ -24,7 +24,7 @@ export default function Navbar({ user, onSignOut, onNav }) {
         </span>
       </div>
 
-      <div className="flex gap-3 items-center">
+      <div className="flex gap-3 items-center min-w-0">
         {!user ? (
           <>
             <button onClick={() => onNav("login")} className="bg-transparent border border-safe-borderL rounded-lg text-safe-muted py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-hover">
@@ -37,13 +37,13 @@ export default function Navbar({ user, onSignOut, onNav }) {
         ) : (
           <>
             <NotificationBell />
-            <div className="hidden sm:flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-safe-primary to-safe-secondary flex items-center justify-center text-xs font-bold text-white">
+            <div className="hidden sm:flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-safe-primary to-safe-secondary flex items-center justify-center text-xs font-bold text-white">
                 {initial}
               </div>
-              <span className="text-safe-muted text-sm">{displayName}</span>
+              <span className="text-safe-muted text-sm truncate max-w-[220px]" title={displayName}>{displayName}</span>
             </div>
-            <button onClick={onSignOut} className="bg-transparent border border-safe-border rounded-lg text-safe-dim py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-hover hover:text-safe-muted">
+            <button onClick={onSignOut} className="shrink-0 bg-transparent border border-safe-border rounded-lg text-safe-dim py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-hover hover:text-safe-muted">
               Sair
             </button>
           </>

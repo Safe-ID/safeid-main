@@ -196,28 +196,31 @@ export default function ScoreHistoryChart({ refreshKey }) {
 
           <details className="mt-3">
             <summary className="text-safe-secondary text-[12px] cursor-pointer">Ver como tabela</summary>
-            <table className="w-full mt-2 text-[12px] text-left border-collapse">
-              <thead>
-                <tr className="text-safe-dim">
-                  <th className="py-1 pr-3 font-semibold">Data</th>
-                  <th className="py-1 pr-3 font-semibold">Score</th>
-                  <th className="py-1 pr-3 font-semibold">Classificação</th>
-                  <th className="py-1 pr-3 font-semibold">Vazamentos</th>
-                  <th className="py-1 font-semibold">Origem</th>
-                </tr>
-              </thead>
-              <tbody className="text-safe-muted">
-                {[...points].reverse().map((p, i) => (
-                  <tr key={p.id || i} className="border-t border-safe-border">
-                    <td className="py-1 pr-3">{formatDateTime(p.createdAt)}</td>
-                    <td className="py-1 pr-3 text-safe-text">{p.riskScore}</td>
-                    <td className="py-1 pr-3">{CLASSIFICATION_LABELS[p.classification] || p.classification}</td>
-                    <td className="py-1 pr-3">{p.breachesFound}</td>
-                    <td className="py-1">{SOURCE_LABELS[p.source] || "Análise"}</td>
+            {/* 5 colunas não cabem num celular: a tabela rola dentro do card */}
+            <div className="overflow-x-auto mt-2">
+              <table className="w-full min-w-[420px] text-[12px] text-left border-collapse">
+                <thead>
+                  <tr className="text-safe-dim">
+                    <th className="py-1 pr-3 font-semibold">Data</th>
+                    <th className="py-1 pr-3 font-semibold">Score</th>
+                    <th className="py-1 pr-3 font-semibold">Classificação</th>
+                    <th className="py-1 pr-3 font-semibold">Vazamentos</th>
+                    <th className="py-1 font-semibold">Origem</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="text-safe-muted">
+                  {[...points].reverse().map((p, i) => (
+                    <tr key={p.id || i} className="border-t border-safe-border">
+                      <td className="py-1 pr-3">{formatDateTime(p.createdAt)}</td>
+                      <td className="py-1 pr-3 text-safe-text">{p.riskScore}</td>
+                      <td className="py-1 pr-3">{CLASSIFICATION_LABELS[p.classification] || p.classification}</td>
+                      <td className="py-1 pr-3">{p.breachesFound}</td>
+                      <td className="py-1">{SOURCE_LABELS[p.source] || "Análise"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </details>
         </>
       )}
