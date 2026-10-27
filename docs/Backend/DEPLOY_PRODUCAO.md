@@ -145,7 +145,7 @@ Os scripts param antes de criar ou mudar recursos quando a configuração está 
 
 ## 7) Custos e desligamento
 
-O NAT Gateway (cerca de US$ 32/mês) e o ALB cobram por hora, mesmo sem uso. Para desligar o ambiente, rode os `Delete` na ordem inversa:
+O NAT Gateway (cerca de US$ 32/mês), o ALB, o Fargate, o RDS e o Redis cobram por hora, mesmo sem uso: com o NAT, o ambiente custa cerca de US$ 3,50 por dia; sem ele, cerca de US$ 2,45. Para desligar o ambiente, rode os `Delete` na ordem inversa:
 
 1. `deploy-ecs-fargate.ps1 -Action Delete`;
 2. `create-alerts.ps1 -Action Delete`;
@@ -157,6 +157,25 @@ O NAT Gateway (cerca de US$ 32/mês) e o ALB cobram por hora, mesmo sem uso. Par
 
 O SES, os certificados e o bucket do frontend não cobram parados.
 
+### Modo economia: sem NAT Gateway
+
+O NAT é o maior custo fixo do ambiente (cerca de US$ 1 por dia, um terço do total). Sem ele, as tasks rodam na subnet pública com IP próprio e saem direto para a HIBP, a IA e o SES. Elas continuam inalcançáveis pela internet, porque o security group delas só aceita o ALB na porta 3000. O banco e o Redis seguem nas subnets privadas.
+
+**Desligar o NAT** (o ambiente está assim desde 27/10/2026, para poupar o crédito do plano free):
+
+1. No `server/.env.production`: `BACKEND_SUBNET_IDS` = o valor de `NAT_PUBLIC_SUBNET_ID` e `ASSIGN_PUBLIC_IP=ENABLED`.
+2. `.\server\deploy-ecs-fargate.ps1`: a task nova sobe na subnet pública (se não ficar saudável, o ECS volta para a anterior).
+3. `.\server\create-nat-gateway.ps1 -Action Delete -Force`.
+
+**Religar o NAT** (antes de uma apresentação, para o ambiente ficar igual ao desenho da arquitetura; cerca de 15 minutos):
+
+1. `.\server\create-nat-gateway.ps1` (2 a 3 minutos).
+2. No `server/.env.production`: `BACKEND_SUBNET_IDS` = o valor de `NAT_PRIVATE_SUBNET_ID` e `ASSIGN_PUBLIC_IP=DISABLED`.
+3. `.\server\deploy-ecs-fargate.ps1` (5 a 10 minutos).
+4. Conferir `https://api.safeid.app.br/api/health`.
+
+O NAT novo ganha outro IP fixo. Nada depende dele: a HIBP, a IA e o SES não usam lista de IPs liberados.
+
 ---
 
-**Atualizado em:** 17/10/2026
+**Atualizado em:** 27/10/2026
