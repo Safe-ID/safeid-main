@@ -69,11 +69,12 @@ describe('Rate limit E2E', () => {
     expect(body.message).toContain('Muitas requisições');
   });
 
-  it('counts each client separately when the API is behind a proxy', async () => {
+  it('counts each client separately pelo IP que o proxy acrescenta no fim', async () => {
+    // O último item do X-Forwarded-For é o que o ALB escreve; é ele que distingue o cliente.
     const attemptFrom = (clientIp: string) =>
       fetch(`${baseUrl}/api/v1/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': `${clientIp}, 10.0.0.1` },
+        headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': `10.0.0.1, ${clientIp}` },
         body: JSON.stringify({ email: 'user@example.com', password: 'wrong-password' }),
       });
 
@@ -83,5 +84,22 @@ describe('Rate limit E2E', () => {
 
     expect((await attemptFrom('203.0.113.10')).status).toBe(429);
     expect((await attemptFrom('198.51.100.20')).status).toBe(401);
+  });
+
+  it('não deixa o cliente escapar do limite forjando o X-Forwarded-For (S07)', async () => {
+    // O IP real (último) é sempre o mesmo; variar o item forjado da esquerda não cria buckets novos.
+    const attempt = (forjado: string) =>
+      fetch(`${baseUrl}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': `${forjado}, 10.0.0.9` },
+        body: JSON.stringify({ email: 'victim@example.com', password: 'wrong-password' }),
+      });
+
+    const codes: number[] = [];
+    for (let i = 0; i < 8; i++) {
+      codes.push((await attempt(`203.0.113.${i}`)).status);
+    }
+
+    expect(codes.filter((c) => c === 429).length).toBeGreaterThan(0);
   });
 });
