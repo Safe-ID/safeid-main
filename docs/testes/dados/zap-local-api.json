@@ -1,0 +1,504 @@
+{
+ "@programName": "ZAP",
+ "@version": "2.17.0",
+ "@generated": "Tue, 3 Nov 2026 19:03:22",
+ "created": "2026-11-03T19:03:22.784568495Z",
+ "insights": [
+  {
+   "level": "Low",
+   "reason": "Warning",
+   "site": "",
+   "key": "insight.log.warn",
+   "description": "ZAP warnings logged - see the zap.log file for details",
+   "statistic": "1"
+  },
+  {
+   "level": "Low",
+   "reason": "Exceeded High",
+   "site": "https://accounts.google.com",
+   "key": "insight.response.slow",
+   "description": "Percentage of slow responses",
+   "statistic": "99"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "",
+   "key": "insight.network.failure",
+   "description": "Percentage of network failures",
+   "statistic": "1"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "http://host.docker.internal:3100",
+   "key": "insight.code.2xx",
+   "description": "Percentage of responses with status code 2xx",
+   "statistic": "37"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "http://host.docker.internal:3100",
+   "key": "insight.code.3xx",
+   "description": "Percentage of responses with status code 3xx",
+   "statistic": "8"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "http://host.docker.internal:3100",
+   "key": "insight.code.4xx",
+   "description": "Percentage of responses with status code 4xx",
+   "statistic": "54"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "http://host.docker.internal:3100",
+   "key": "insight.endpoint.ctype.application/json",
+   "description": "Percentage of endpoints with content type application/json",
+   "statistic": "83"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "http://host.docker.internal:3100",
+   "key": "insight.endpoint.ctype.text/plain",
+   "description": "Percentage of endpoints with content type text/plain",
+   "statistic": "8"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "http://host.docker.internal:3100",
+   "key": "insight.endpoint.method.GET",
+   "description": "Percentage of endpoints with method GET",
+   "statistic": "50"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "http://host.docker.internal:3100",
+   "key": "insight.endpoint.method.PATCH",
+   "description": "Percentage of endpoints with method PATCH",
+   "statistic": "12"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "http://host.docker.internal:3100",
+   "key": "insight.endpoint.method.POST",
+   "description": "Percentage of endpoints with method POST",
+   "statistic": "37"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "http://host.docker.internal:3100",
+   "key": "insight.endpoint.total",
+   "description": "Count of total endpoints",
+   "statistic": "24"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "https://accounts.google.com",
+   "key": "insight.code.2xx",
+   "description": "Percentage of responses with status code 2xx",
+   "statistic": "40"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "https://accounts.google.com",
+   "key": "insight.code.3xx",
+   "description": "Percentage of responses with status code 3xx",
+   "statistic": "48"
+  },
+  {
+   "level": "Info",
+   "reason": "Exceeded Low",
+   "site": "https://accounts.google.com",
+   "key": "insight.code.4xx",
+   "description": "Percentage of responses with status code 4xx",
+   "statistic": "11"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "https://accounts.google.com",
+   "key": "insight.endpoint.ctype.application/binary",
+   "description": "Percentage of endpoints with content type application/binary",
+   "statistic": "4"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "https://accounts.google.com",
+   "key": "insight.endpoint.ctype.text/html",
+   "description": "Percentage of endpoints with content type text/html",
+   "statistic": "95"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "https://accounts.google.com",
+   "key": "insight.endpoint.method.GET",
+   "description": "Percentage of endpoints with method GET",
+   "statistic": "100"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "https://accounts.google.com",
+   "key": "insight.endpoint.total",
+   "description": "Count of total endpoints",
+   "statistic": "44"
+  }
+ ],
+ "site": [
+  {
+   "@name": "http://host.docker.internal:3100",
+   "@host": "host.docker.internal",
+   "@port": "3100",
+   "@ssl": "false",
+   "alerts": [
+    {
+     "pluginid": "10096",
+     "alertRef": "10096",
+     "alert": "Timestamp Disclosure - Unix",
+     "name": "Timestamp Disclosure - Unix",
+     "riskcode": "1",
+     "confidence": "1",
+     "riskdesc": "Low (Low)",
+     "desc": "<p>A timestamp was disclosed by the application/web server. - Unix</p>",
+     "instances": [
+      {
+       "id": "18",
+       "uri": "http://host.docker.internal:3100/api/v1/auth/me",
+       "nodeName": "http://host.docker.internal:3100/api/v1/auth/me",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "1793732045",
+       "otherinfo": "1793732045, which evaluates to: 2026-11-03 18:54:05."
+      },
+      {
+       "id": "41",
+       "uri": "http://host.docker.internal:3100/api/v1/auth/me/export",
+       "nodeName": "http://host.docker.internal:3100/api/v1/auth/me/export",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "1793732045",
+       "otherinfo": "1793732045, which evaluates to: 2026-11-03 18:54:05."
+      }
+     ],
+     "count": "2",
+     "systemic": false,
+     "solution": "<p>Manually confirm that the timestamp data is not sensitive, and that the data cannot be aggregated to disclose exploitable patterns.</p>",
+     "otherinfo": "<p>1793732045, which evaluates to: 2026-11-03 18:54:05.</p>",
+     "reference": "<p>https://cwe.mitre.org/data/definitions/200.html</p>",
+     "cweid": "497",
+     "wascid": "13",
+     "sourceid": "26"
+    },
+    {
+     "pluginid": "100001",
+     "alertRef": "100001",
+     "alert": "Unexpected Content-Type was returned",
+     "name": "Unexpected Content-Type was returned",
+     "riskcode": "1",
+     "confidence": "3",
+     "riskdesc": "Low (High)",
+     "desc": "<p>A Content-Type of text/html was returned by the server.</p><p>This is not one of the types expected to be returned by an API.</p><p>Raised by the 'Alert on Unexpected Content Types' script</p>",
+     "instances": [
+      {
+       "id": "10",
+       "uri": "http://host.docker.internal:3100/api/v1/auth/google",
+       "nodeName": "http://host.docker.internal:3100/api/v1/auth/google",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "text/html",
+       "otherinfo": ""
+      }
+     ],
+     "count": "1",
+     "systemic": false,
+     "solution": "",
+     "otherinfo": "",
+     "reference": "",
+     "cweid": "-1",
+     "wascid": "-1",
+     "sourceid": "13"
+    },
+    {
+     "pluginid": "100000",
+     "alertRef": "100000-1",
+     "alert": "A Client Error response code was returned by the server",
+     "name": "A Client Error response code was returned by the server",
+     "riskcode": "0",
+     "confidence": "3",
+     "riskdesc": "Informational (High)",
+     "desc": "<p>A response code of 401 was returned by the server.</p><p>This may indicate that the application is failing to handle unexpected input correctly.</p><p>Raised by the 'Alert on HTTP Response Code Error' script</p>",
+     "instances": [
+      {
+       "id": "14",
+       "uri": "http://host.docker.internal:3100/api/health/jobs",
+       "nodeName": "http://host.docker.internal:3100/api/health/jobs",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "401",
+       "otherinfo": ""
+      },
+      {
+       "id": "11",
+       "uri": "http://host.docker.internal:3100/api/v1/auth/google/callback?code=code&state=Oklahoma",
+       "nodeName": "http://host.docker.internal:3100/api/v1/auth/google/callback (code,state)",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "401",
+       "otherinfo": ""
+      },
+      {
+       "id": "12",
+       "uri": "http://host.docker.internal:3100/api/v1/monitoring/preferences",
+       "nodeName": "http://host.docker.internal:3100/api/v1/monitoring/preferences ()({})",
+       "method": "PATCH",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "15",
+       "uri": "http://host.docker.internal:3100/api/v1/notifications/1.2/read",
+       "nodeName": "http://host.docker.internal:3100/api/v1/notifications/1.2/read",
+       "method": "PATCH",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "7",
+       "uri": "http://host.docker.internal:3100/api/v1/auth/change-password",
+       "nodeName": "http://host.docker.internal:3100/api/v1/auth/change-password ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "5",
+       "uri": "http://host.docker.internal:3100/api/v1/auth/forgot-password",
+       "nodeName": "http://host.docker.internal:3100/api/v1/auth/forgot-password ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "3",
+       "uri": "http://host.docker.internal:3100/api/v1/auth/login",
+       "nodeName": "http://host.docker.internal:3100/api/v1/auth/login ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "4",
+       "uri": "http://host.docker.internal:3100/api/v1/auth/refresh",
+       "nodeName": "http://host.docker.internal:3100/api/v1/auth/refresh ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "2",
+       "uri": "http://host.docker.internal:3100/api/v1/auth/resend-verification",
+       "nodeName": "http://host.docker.internal:3100/api/v1/auth/resend-verification ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "6",
+       "uri": "http://host.docker.internal:3100/api/v1/auth/reset-password",
+       "nodeName": "http://host.docker.internal:3100/api/v1/auth/reset-password ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "0",
+       "uri": "http://host.docker.internal:3100/api/v1/auth/signup",
+       "nodeName": "http://host.docker.internal:3100/api/v1/auth/signup ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "1",
+       "uri": "http://host.docker.internal:3100/api/v1/auth/verify-email",
+       "nodeName": "http://host.docker.internal:3100/api/v1/auth/verify-email ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "13",
+       "uri": "http://host.docker.internal:3100/api/v1/monitoring/unsubscribe?token=token",
+       "nodeName": "http://host.docker.internal:3100/api/v1/monitoring/unsubscribe (token)",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      }
+     ],
+     "count": "13",
+     "systemic": false,
+     "solution": "",
+     "otherinfo": "",
+     "reference": "",
+     "cweid": "388",
+     "wascid": "20",
+     "sourceid": "37"
+    },
+    {
+     "pluginid": "10024",
+     "alertRef": "10024",
+     "alert": "Information Disclosure - Sensitive Information in URL",
+     "name": "Information Disclosure - Sensitive Information in URL",
+     "riskcode": "0",
+     "confidence": "2",
+     "riskdesc": "Informational (Medium)",
+     "desc": "<p>The request appeared to contain sensitive information leaked in the URL. This can violate PCI and most organizational compliance policies. You can configure the list of strings for this check to add or remove values specific to your environment.</p>",
+     "instances": [
+      {
+       "id": "43",
+       "uri": "http://host.docker.internal:3100/api/v1/monitoring/unsubscribe?token=token",
+       "nodeName": "http://host.docker.internal:3100/api/v1/monitoring/unsubscribe (token)",
+       "method": "GET",
+       "param": "token",
+       "attack": "",
+       "evidence": "token",
+       "otherinfo": "The URL contains potentially sensitive information. The following string was found via the pattern: token\ntoken"
+      },
+      {
+       "id": "46",
+       "uri": "http://host.docker.internal:3100/api/v1/monitoring/unsubscribe?token=token",
+       "nodeName": "http://host.docker.internal:3100/api/v1/monitoring/unsubscribe (token)",
+       "method": "POST",
+       "param": "token",
+       "attack": "",
+       "evidence": "token",
+       "otherinfo": "The URL contains potentially sensitive information. The following string was found via the pattern: token\ntoken"
+      }
+     ],
+     "count": "2",
+     "systemic": false,
+     "solution": "<p>Do not pass sensitive information in URIs.</p>",
+     "otherinfo": "<p>The URL contains potentially sensitive information. The following string was found via the pattern: token</p><p>token</p>",
+     "reference": "",
+     "cweid": "598",
+     "wascid": "13",
+     "sourceid": "35"
+    },
+    {
+     "pluginid": "10049",
+     "alertRef": "10049-1",
+     "alert": "Non-Storable Content",
+     "name": "Non-Storable Content",
+     "riskcode": "0",
+     "confidence": "2",
+     "riskdesc": "Informational (Medium)",
+     "desc": "<p>The response contents are not storable by caching components such as proxy servers. If the response does not contain sensitive, personal or user-specific information, it may benefit from being stored and cached, to improve performance.</p>",
+     "instances": [
+      {
+       "id": "23",
+       "uri": "http://host.docker.internal:3100/api/health/jobs",
+       "nodeName": "http://host.docker.internal:3100/api/health/jobs",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "authorization:",
+       "otherinfo": ""
+      },
+      {
+       "id": "19",
+       "uri": "http://host.docker.internal:3100/api/v1/auth/me",
+       "nodeName": "http://host.docker.internal:3100/api/v1/auth/me",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "authorization:",
+       "otherinfo": ""
+      },
+      {
+       "id": "33",
+       "uri": "http://host.docker.internal:3100/api/v1/monitoring/status",
+       "nodeName": "http://host.docker.internal:3100/api/v1/monitoring/status",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "authorization:",
+       "otherinfo": ""
+      },
+      {
+       "id": "24",
+       "uri": "http://host.docker.internal:3100/api/v1/auth/refresh",
+       "nodeName": "http://host.docker.internal:3100/api/v1/auth/refresh ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "authorization:",
+       "otherinfo": ""
+      },
+      {
+       "id": "20",
+       "uri": "http://host.docker.internal:3100/api/v1/auth/resend-verification",
+       "nodeName": "http://host.docker.internal:3100/api/v1/auth/resend-verification ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "authorization:",
+       "otherinfo": ""
+      }
+     ],
+     "count": "5",
+     "systemic": true,
+     "solution": "<p>The content may be marked as storable by ensuring that the following conditions are satisfied:</p><p>The request method must be understood by the cache and defined as being cacheable (\"GET\", \"HEAD\", and \"POST\" are currently defined as cacheable)</p><p>The response status code must be understood by the cache (one of the 1XX, 2XX, 3XX, 4XX, or 5XX response classes are generally understood)</p><p>The \"no-store\" cache directive must not appear in the request or response header fields</p><p>For caching by \"shared\" caches such as \"proxy\" caches, the \"private\" response directive must not appear in the response</p><p>For caching by \"shared\" caches such as \"proxy\" caches, the \"Authorization\" header field must not appear in the request, unless the response explicitly allows it (using one of the \"must-revalidate\", \"public\", or \"s-maxage\" Cache-Control response directives)</p><p>In addition to the conditions above, at least one of the following conditions must also be satisfied by the response:</p><p>It must contain an \"Expires\" header field</p><p>It must contain a \"max-age\" response directive</p><p>For \"shared\" caches such as \"proxy\" caches, it must contain a \"s-maxage\" response directive</p><p>It must contain a \"Cache Control Extension\" that allows it to be cached</p><p>It must have a status code that is defined as cacheable by default (200, 203, 204, 206, 300, 301, 404, 405, 410, 414, 501).</p>",
+     "otherinfo": "",
+     "reference": "<p>https://datatracker.ietf.org/doc/html/rfc7234</p><p>https://datatracker.ietf.org/doc/html/rfc7231</p><p>https://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html</p>",
+     "cweid": "524",
+     "wascid": "13",
+     "sourceid": "37"
+    }
+   ]
+  }
+ ],
+ "sequences": [],
+ "fora_do_escopo_removido": [
+  "https://accounts.google.com"
+ ]
+}
