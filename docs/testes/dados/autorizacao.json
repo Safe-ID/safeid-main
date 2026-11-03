@@ -1,0 +1,68 @@
+[
+ {
+  "categoria": "Autorização",
+  "verificacao": "o dono lê a própria análise",
+  "ok": true,
+  "detalhe": "3ae2a638-b734-44e3-b271-afc7e92270fe"
+ },
+ {
+  "categoria": "Autorização",
+  "verificacao": "outro usuário não lê a análise pelo jobId",
+  "ok": true,
+  "detalhe": "HTTP 200, corpo vazio"
+ },
+ {
+  "categoria": "Autorização",
+  "verificacao": "o histórico de outro usuário não aparece",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Autorização",
+  "verificacao": "outro usuário não marca a notificação alheia",
+  "ok": true,
+  "detalhe": "404"
+ },
+ {
+  "categoria": "Autorização",
+  "verificacao": "a notificação alheia segue não lida",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Autorização",
+  "verificacao": "o dono marca a própria notificação",
+  "ok": true,
+  "detalhe": "204"
+ },
+ {
+  "categoria": "Autorização",
+  "verificacao": "o refresh token não vale como acesso",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Autorização",
+  "verificacao": "o token de acesso não vale como refresh",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Autorização",
+  "verificacao": "a exportação traz só a própria conta",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Autorização",
+  "verificacao": "a exclusão só apaga a conta do token",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Autorização",
+  "verificacao": "token de conta apagada deixa de valer",
+  "ok": true,
+  "detalhe": ""
+ }
+]

@@ -1,0 +1,63 @@
+{
+ "janela": [
+  "2026-11-03T18:01:00Z",
+  "2026-11-03T18:37:00Z"
+ ],
+ "metricas": [
+  {
+   "metrica": "ALB: requisições (soma)",
+   "valor": 170407.0,
+   "pontos": 36
+  },
+  {
+   "metrica": "ALB: tempo de resposta do alvo, máx. (s)",
+   "valor": 0.52,
+   "pontos": 36
+  },
+  {
+   "metrica": "ALB: tempo de resposta do alvo, média (s)",
+   "valor": 0.005,
+   "pontos": 36
+  },
+  {
+   "metrica": "ALB: erros 5xx do alvo (soma)",
+   "valor": 0,
+   "pontos": 0
+  },
+  {
+   "metrica": "ALB: erros 5xx do ALB (soma)",
+   "valor": 0,
+   "pontos": 0
+  },
+  {
+   "metrica": "Fargate: CPU, máx. (%)",
+   "valor": 73.105,
+   "pontos": 36
+  },
+  {
+   "metrica": "Fargate: memória, máx. (%)",
+   "valor": 8.105,
+   "pontos": 36
+  },
+  {
+   "metrica": "RDS: CPU, máx. (%)",
+   "valor": 7.15,
+   "pontos": 36
+  },
+  {
+   "metrica": "RDS: conexões, máx.",
+   "valor": 10.0,
+   "pontos": 36
+  },
+  {
+   "metrica": "RDS: créditos de CPU, mín.",
+   "valor": 288.0,
+   "pontos": 7
+  },
+  {
+   "metrica": "Redis: CPU do motor, máx. (%)",
+   "valor": 1.35,
+   "pontos": 36
+  }
+ ]
+}

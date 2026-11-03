@@ -1,0 +1,12 @@
+{
+  "name": "safeid-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Testes de ponta a ponta do SafeID no navegador",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}

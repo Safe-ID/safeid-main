@@ -1,0 +1,302 @@
+[
+ {
+  "categoria": "Transporte",
+  "verificacao": "www.safeid.app.br: certificado válido",
+  "ok": true,
+  "detalhe": "TLSv1.3"
+ },
+ {
+  "categoria": "Transporte",
+  "verificacao": "www.safeid.app.br: HTTP redireciona para HTTPS",
+  "ok": true,
+  "detalhe": "301"
+ },
+ {
+  "categoria": "Transporte",
+  "verificacao": "www.safeid.app.br: recusa TLS 1.1",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Transporte",
+  "verificacao": "api.safeid.app.br: certificado válido",
+  "ok": true,
+  "detalhe": "TLSv1.3"
+ },
+ {
+  "categoria": "Transporte",
+  "verificacao": "api.safeid.app.br: HTTP redireciona para HTTPS",
+  "ok": true,
+  "detalhe": "301"
+ },
+ {
+  "categoria": "Transporte",
+  "verificacao": "api.safeid.app.br: recusa TLS 1.1",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Cabeçalhos",
+  "verificacao": "site: strict-transport-security",
+  "ok": true,
+  "detalhe": "max-age=31536000; includeSubDomains"
+ },
+ {
+  "categoria": "Cabeçalhos",
+  "verificacao": "site: content-security-policy",
+  "ok": true,
+  "detalhe": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline"
+ },
+ {
+  "categoria": "Cabeçalhos",
+  "verificacao": "site: x-frame-options",
+  "ok": true,
+  "detalhe": "DENY"
+ },
+ {
+  "categoria": "Cabeçalhos",
+  "verificacao": "site: x-content-type-options",
+  "ok": true,
+  "detalhe": "nosniff"
+ },
+ {
+  "categoria": "Cabeçalhos",
+  "verificacao": "site: referrer-policy",
+  "ok": true,
+  "detalhe": "strict-origin-when-cross-origin"
+ },
+ {
+  "categoria": "Cabeçalhos",
+  "verificacao": "site: permissions-policy",
+  "ok": true,
+  "detalhe": "camera=(), microphone=(), geolocation=()"
+ },
+ {
+  "categoria": "Cabeçalhos",
+  "verificacao": "site: CSP sem unsafe-inline em script-src",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Cabeçalhos",
+  "verificacao": "site: CSP impede enquadramento",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Cabeçalhos",
+  "verificacao": "API: strict-transport-security",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Cabeçalhos",
+  "verificacao": "API: content-security-policy",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Cabeçalhos",
+  "verificacao": "API: x-content-type-options",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Cabeçalhos",
+  "verificacao": "API: não expõe X-Powered-By",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "CORS",
+  "verificacao": "API não libera origem estranha",
+  "ok": true,
+  "detalhe": "https://www.safeid.app.br"
+ },
+ {
+  "categoria": "Autenticação",
+  "verificacao": "GET /api/v1/auth/me exige login",
+  "ok": true,
+  "detalhe": "401"
+ },
+ {
+  "categoria": "Autenticação",
+  "verificacao": "GET /api/v1/auth/me/export exige login",
+  "ok": true,
+  "detalhe": "401"
+ },
+ {
+  "categoria": "Autenticação",
+  "verificacao": "DELETE /api/v1/auth/me exige login",
+  "ok": true,
+  "detalhe": "401"
+ },
+ {
+  "categoria": "Autenticação",
+  "verificacao": "POST /api/v1/auth/change-password exige login",
+  "ok": true,
+  "detalhe": "401"
+ },
+ {
+  "categoria": "Autenticação",
+  "verificacao": "GET /api/v1/scan/history exige login",
+  "ok": true,
+  "detalhe": "401"
+ },
+ {
+  "categoria": "Autenticação",
+  "verificacao": "GET /api/v1/scan/1 exige login",
+  "ok": true,
+  "detalhe": "401"
+ },
+ {
+  "categoria": "Autenticação",
+  "verificacao": "GET /api/v1/notifications exige login",
+  "ok": true,
+  "detalhe": "401"
+ },
+ {
+  "categoria": "Autenticação",
+  "verificacao": "GET /api/v1/monitoring/status exige login",
+  "ok": true,
+  "detalhe": "401"
+ },
+ {
+  "categoria": "Autenticação",
+  "verificacao": "JWT forjado (alg none) é recusado",
+  "ok": true,
+  "detalhe": "401"
+ },
+ {
+  "categoria": "Autenticação",
+  "verificacao": "JWT forjado (assinatura falsa) é recusado",
+  "ok": true,
+  "detalhe": "401"
+ },
+ {
+  "categoria": "Autenticação",
+  "verificacao": "/api/health/jobs exige token de administrador",
+  "ok": true,
+  "detalhe": "401"
+ },
+ {
+  "categoria": "Autenticação",
+  "verificacao": "/api/health/jobs recusa token errado",
+  "ok": true,
+  "detalhe": "401"
+ },
+ {
+  "categoria": "Entrada",
+  "verificacao": "login com injeção SQL é recusado",
+  "ok": true,
+  "detalhe": "400"
+ },
+ {
+  "categoria": "Entrada",
+  "verificacao": "erro de injeção SQL não vaza detalhes internos",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Entrada",
+  "verificacao": "login com objeto NoSQL é recusado",
+  "ok": true,
+  "detalhe": "400"
+ },
+ {
+  "categoria": "Entrada",
+  "verificacao": "erro de objeto NoSQL não vaza detalhes internos",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Entrada",
+  "verificacao": "campo extra no cadastro é recusado",
+  "ok": true,
+  "detalhe": "400"
+ },
+ {
+  "categoria": "Entrada",
+  "verificacao": "token de senha inexistente é recusado",
+  "ok": true,
+  "detalhe": "400"
+ },
+ {
+  "categoria": "Entrada",
+  "verificacao": "descadastro com token forjado não altera nada",
+  "ok": true,
+  "detalhe": "https://www.safeid.app.br/?monitoring=invalid"
+ },
+ {
+  "categoria": "Exposição",
+  "verificacao": "Swagger fora do ar em produção",
+  "ok": true,
+  "detalhe": "404"
+ },
+ {
+  "categoria": "Exposição",
+  "verificacao": "site não expõe /.env",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Exposição",
+  "verificacao": "API não expõe /.env",
+  "ok": true,
+  "detalhe": "404"
+ },
+ {
+  "categoria": "Exposição",
+  "verificacao": "site não expõe /.git/config",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Exposição",
+  "verificacao": "API não expõe /.git/config",
+  "ok": true,
+  "detalhe": "404"
+ },
+ {
+  "categoria": "Exposição",
+  "verificacao": "site não expõe /server/.env.production",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Exposição",
+  "verificacao": "API não expõe /server/.env.production",
+  "ok": true,
+  "detalhe": "404"
+ },
+ {
+  "categoria": "Exposição",
+  "verificacao": "site não expõe /package.json",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Exposição",
+  "verificacao": "API não expõe /package.json",
+  "ok": true,
+  "detalhe": "404"
+ },
+ {
+  "categoria": "Enumeração",
+  "verificacao": "resposta do reenvio não revela se a conta existe",
+  "ok": true,
+  "detalhe": ""
+ },
+ {
+  "categoria": "Limite de tentativas",
+  "verificacao": "login bloqueia com 429 após o limite",
+  "ok": true,
+  "detalhe": "[401, 401, 401, 429, 429, 429, 429]"
+ },
+ {
+  "categoria": "Limite de tentativas",
+  "verificacao": "senha errada não revela a conta (401)",
+  "ok": true,
+  "detalhe": "401"
+ }
+]
