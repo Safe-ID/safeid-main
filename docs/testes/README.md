@@ -1,11 +1,11 @@
 # Relatórios de teste
 
-Campanha de 03/11/2026, sobre o commit `a778b8b` da `main`.
+Campanha de 03/11/2026, sobre o commit `f9677df` da `main` (produção ainda roda a imagem anterior ao PR #123).
 
 | Relatório | Resultado |
 |---|---|
 | [Alerta real por e-mail](relatorio-alerta-email.pdf) | Aprovado, em produção |
-| [Segurança (pentest)](relatorio-pentest.pdf) | Sem falha explorável encontrada; há achado alto em aberto nas dependências |
+| [Segurança (pentest)](relatorio-pentest.pdf) | Sem achado alto ou crítico em aberto; achado médio S07 recomendado corrigir |
 | [Carga com k6](relatorio-carga-k6.pdf) | Metas medidas atingidas; parte da Tabela 2 não é mensurável |
 | [E2E com Playwright](relatorio-e2e-playwright.pdf) | Aprovado, em cópia local |
 
