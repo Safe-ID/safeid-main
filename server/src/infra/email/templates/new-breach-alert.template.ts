@@ -1,5 +1,5 @@
 import { translateDataClass } from '../../../shared/utils/data-classes';
-import { escapeHtml, renderButton, renderLayout, renderMuted, renderParagraph, RenderedEmail } from './layout';
+import { escapeHtml, legalFooterText, renderButton, renderLayout, renderMuted, renderParagraph, RenderedEmail } from './layout';
 
 export interface BreachAlertItem {
   title: string;
@@ -84,6 +84,8 @@ export function buildNewBreachAlert(input: NewBreachAlertInput): RenderedEmail {
     'O SafeID nunca pede sua senha por e-mail.',
     '',
     `Para desativar os alertas: ${input.unsubscribeUrl}`,
+    '',
+    legalFooterText(),
   ].join('\n');
 
   return { subject, html, text };

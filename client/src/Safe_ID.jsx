@@ -4,6 +4,8 @@ import Landing from "./components/Landing";
 import Auth from "./components/Auth";
 import Dashboard from "./components/Dashboard";
 import Privacy from "./components/Privacy";
+import Terms from "./components/Terms";
+import { LEGAL_PATHS } from "./lib/legal";
 import { SESSION_EXPIRED_EVENT, clearToken, fetchMe, getToken, setAuthTokens, setToken, verifyEmail } from "./lib/api";
 
 const MONITORING_NOTICES = {
@@ -34,32 +36,62 @@ function takeQueryParam(name) {
   return value;
 }
 
+/** "privacy" ou "terms" quando o endereço é de um texto legal; null nos outros casos */
+function legalPageFromPath() {
+  const path = window.location.pathname.replace(/\/+$/, "");
+  return Object.keys(LEGAL_PATHS).find((key) => LEGAL_PATHS[key] === path) ?? null;
+}
+
+const isLegalPage = (value) => value in LEGAL_PATHS;
+
+/** Ao sair de um texto legal por outro caminho, o endereço volta para a raiz */
+function resetLegalPath() {
+  if (legalPageFromPath()) window.history.replaceState({}, document.title, "/");
+}
+
 export default function SafeID() {
-  const [page, setPage] = useState("landing");
+  const [page, setPage] = useState(() => legalPageFromPath() ?? "landing");
   const [user, setUser] = useState(null);
   const [booting, setBooting] = useState(true);
   const [notice, setNotice] = useState("");
   // Aviso da página inicial (ex.: alertas desativados pelo link do email)
   const [landingNotice, setLandingNotice] = useState(null);
-  // Página de onde a pessoa abriu a Política de Privacidade, para o botão Voltar
-  const [privacyReturn, setPrivacyReturn] = useState("landing");
+  // Página de onde a pessoa abriu um texto legal, para o botão Voltar
+  const [legalReturn, setLegalReturn] = useState("landing");
+  const legalExit = user ? "dashboard" : legalReturn;
 
-  const openPrivacy = () => {
-    setPrivacyReturn(page === "privacy" ? privacyReturn : page);
-    setPage("privacy");
+  const openLegal = (target) => {
+    if (!isLegalPage(page)) setLegalReturn(page);
+    window.history.pushState({}, document.title, LEGAL_PATHS[target]);
+    setPage(target);
     window.scrollTo(0, 0);
   };
+
+  const closeLegal = () => {
+    window.history.pushState({}, document.title, "/");
+    setPage(legalExit);
+    window.scrollTo(0, 0);
+  };
+
+  // Botões voltar e avançar do navegador entre os textos legais e o resto do site
+  useEffect(() => {
+    const onPopState = () => setPage(legalPageFromPath() ?? legalExit);
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [legalExit]);
 
   const goTo = (p) => {
     // Logado, a logo leva ao painel: voltar para a página inicial apagava o usuário da tela
     // sem apagar o token, um "logout pela metade"
     if (p === "landing" && user) p = "dashboard";
+    resetLegalPath();
     setNotice("");
     setLandingNotice(null);
     setPage(p);
   };
   const onAuth = (u, token) => {
     if (token) setToken(token);
+    resetLegalPath();
     setNotice("");
     setUser(u);
     setPage("dashboard");
@@ -67,6 +99,7 @@ export default function SafeID() {
 
   useEffect(() => {
     const onSessionExpired = () => {
+      resetLegalPath();
       setUser(null);
       setNotice("Sua sessão expirou. Entre novamente para continuar.");
       setPage("login");
@@ -76,7 +109,7 @@ export default function SafeID() {
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
   }, []);
   const onAccountDeleted = () => { clearToken(); setUser(null); setPage("landing"); };
-  const onOut = () => { clearToken(); setUser(null); setPage("landing"); };
+  const onOut = () => { clearToken(); resetLegalPath(); setUser(null); setPage("landing"); };
 
   useEffect(() => {
     let active = true;
@@ -129,13 +162,14 @@ export default function SafeID() {
         const profile = await fetchMe();
         if (!active) return;
         setUser(profile);
-        setPage("dashboard");
+        // Quem abriu /privacidade ou /termos logado continua na página que pediu
+        setPage((current) => (isLegalPage(current) ? current : "dashboard"));
       } catch {
         clearToken();
         if (active) {
           setUser(null);
           // Se o token venceu, o aviso de sessão expirada já levou para o login
-          setPage((current) => (current === "login" ? current : "landing"));
+          setPage((current) => (current === "login" || isLegalPage(current) ? current : "landing"));
         }
       } finally {
         if (active) setBooting(false);
@@ -180,9 +214,10 @@ export default function SafeID() {
           </div>
         )}
         {!booting && page === "landing" && <Landing onNav={goTo} />}
-        {!booting && page === "register" && <Auth mode="register" onSuccess={(u) => onAuth(u)} onSwitch={() => setPage("login")} onGoToLogin={() => setPage("login")} onOpenPrivacy={openPrivacy} />}
-        {!booting && page === "login" && <Auth mode="login" notice={notice} onSuccess={(u) => onAuth(u)} onSwitch={() => { setNotice(""); setPage("register"); }} onOpenPrivacy={openPrivacy} />}
-        {!booting && page === "privacy" && <Privacy onBack={() => setPage(privacyReturn)} />}
+        {!booting && page === "register" && <Auth mode="register" onSuccess={(u) => onAuth(u)} onSwitch={() => setPage("login")} onGoToLogin={() => setPage("login")} />}
+        {!booting && page === "login" && <Auth mode="login" notice={notice} onSuccess={(u) => onAuth(u)} onSwitch={() => { setNotice(""); setPage("register"); }} />}
+        {!booting && page === "privacy" && <Privacy onBack={closeLegal} />}
+        {!booting && page === "terms" && <Terms onBack={closeLegal} />}
         {!booting && page === "dashboard" && isAuthenticated && <Dashboard user={user} onDeleteAccount={onAccountDeleted} />}
       </main>
 
@@ -190,12 +225,20 @@ export default function SafeID() {
       {!booting && (
         <footer className="border-t border-safe-border py-5 px-6 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-safe-dim text-xs text-center">
           <div><span className="text-safe-secondary font-bold">SafeID</span> · IFSP São Paulo · TADS 2026</div>
-          <div className="flex gap-5">
-            {['Privacidade', 'LGPD'].map(l => (
-              <button key={l} type="button" onClick={openPrivacy} className="bg-transparent border-none p-0 text-xs text-safe-dim cursor-pointer transition-colors hover:text-safe-text">
-                {l}
-              </button>
+          <div className="flex flex-wrap justify-center gap-x-5 gap-y-2">
+            {[{ key: "privacy", label: "Privacidade" }, { key: "terms", label: "Termos de Uso" }].map(({ key, label }) => (
+              <a
+                key={key}
+                href={LEGAL_PATHS[key]}
+                onClick={(event) => { event.preventDefault(); openLegal(key); }}
+                className="text-safe-dim no-underline transition-colors hover:text-safe-text"
+              >
+                {label}
+              </a>
             ))}
+            <a href="https://haveibeenpwned.com" target="_blank" rel="noopener noreferrer" className="text-safe-dim no-underline transition-colors hover:text-safe-text">
+              Dados de vazamentos: Have I Been Pwned
+            </a>
             <a href="https://github.com/Safe-ID/safeid-main" target="_blank" rel="noopener noreferrer" className="text-safe-dim no-underline transition-colors hover:text-safe-text">
               GitHub
             </a>

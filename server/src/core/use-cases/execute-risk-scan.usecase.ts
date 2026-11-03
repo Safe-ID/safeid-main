@@ -19,6 +19,7 @@ import { hashEmail } from '../../shared/crypto/email-hash';
 import { extractBreachNames } from '../../shared/utils/breach-names';
 import { AIEngine, AIRecommendation } from '../engines/ai.engine';
 import { ScanResult, ScanSource } from '../entities/scan-result.entity';
+import { anonymizeSensitiveBreaches } from '../../shared/utils/sensitive-breaches';
 import { IScanHistoryRepository } from '../repositories/scan-history.repository';
 
 interface HIBPBreach {
@@ -232,7 +233,8 @@ export class ExecuteRiskScanUseCase {
     }
 
     const aiResult = await this.aiEngine.generateRecommendation({
-      breaches: breaches,
+      // O nome de um vazamento sensível não sai do SafeID; os tipos de dado continuam contando
+      breaches: anonymizeSensitiveBreaches(breaches),
       riskScore: riskCalc.totalScore,
       classification: riskCalc.classification,
     });

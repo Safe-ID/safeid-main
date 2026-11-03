@@ -21,7 +21,8 @@ model User {
   googleId              String?   @unique
   scanSnapshot          Json?
   scanSnapshotUpdatedAt  DateTime?
-  termsAcceptedAt       DateTime? // Quando o usuário aceitou a Política de Privacidade (LGPD)
+  termsAcceptedAt       DateTime? // Quando o usuário aceitou os Termos e a Política de Privacidade (LGPD)
+  termsVersion          String?   // Qual versão dos textos ele aceitou
 
   // Verificação de e-mail: sem ela não há login, scan nem monitoramento
   emailVerifiedAt       DateTime?

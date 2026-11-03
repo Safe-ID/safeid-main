@@ -13,13 +13,13 @@ vi.mock('../../lib/api', () => ({
   signup: vi.fn(),
 }))
 
-const props = { onSuccess: vi.fn(), onSwitch: vi.fn(), onOpenPrivacy: vi.fn(), onGoToLogin: vi.fn() }
+const props = { onSuccess: vi.fn(), onSwitch: vi.fn(), onGoToLogin: vi.fn() }
 
 async function fillRegister(user, { email = 'Jane@Example.com', password = 'StrongPass123', confirm = password, terms = true } = {}) {
   await user.type(screen.getByLabelText('EMAIL'), email)
   await user.type(screen.getByLabelText('SENHA'), password)
   await user.type(screen.getByLabelText('CONFIRMAR SENHA'), confirm)
-  if (terms) await user.click(screen.getByRole('checkbox', { name: /Li e aceito/ }))
+  if (terms) await user.click(screen.getByRole('checkbox', { name: /aceito os Termos de Uso/ }))
 }
 
 describe('Auth (cadastro)', () => {
@@ -27,10 +27,24 @@ describe('Auth (cadastro)', () => {
     vi.clearAllMocks()
   })
 
+  it('abre os textos legais em outra aba, sem perder o que foi preenchido', () => {
+    render(<Auth mode="register" {...props} />)
+
+    for (const [name, href] of [['Termos de Uso', '/termos'], ['Política de Privacidade', '/privacidade']]) {
+      const links = screen.getAllByRole('link', { name })
+      expect(links.length).toBeGreaterThan(0)
+      links.forEach((link) => {
+        expect(link).toHaveAttribute('href', href)
+        expect(link).toHaveAttribute('target', '_blank')
+      })
+    }
+    expect(screen.getByRole('checkbox', { name: /18 anos ou mais/ })).toBeInTheDocument()
+  })
+
   it.each([
     ['a short password', { password: '1234567' }, 'Senha deve ter pelo menos 8 caracteres.'],
     ['different passwords', { confirm: 'OtherPass123' }, 'As senhas não coincidem.'],
-    ['an unchecked privacy policy', { terms: false }, 'Para criar a conta, aceite a Política de Privacidade.'],
+    ['an unchecked privacy policy', { terms: false }, 'Para criar a conta, aceite os Termos de Uso e a Política de Privacidade e confirme que tem 18 anos ou mais.'],
     ['an invalid e-mail', { email: 'sem-arroba' }, 'Email inválido.'],
   ])('blocks %s without calling the API', async (_label, values, message) => {
     const user = userEvent.setup()

@@ -26,7 +26,7 @@ export default function Landing({ onNav }) {
             Já tenho conta →
           </button>
         </div>
-        <p className="text-safe-dim text-sm mt-6">🔒 Gratuito · Sem cartão · Conformidade LGPD</p>
+        <p className="text-safe-dim text-sm mt-6">🔒 Gratuito · Sem cartão · Desenvolvido com base na LGPD</p>
       </section>
 
       {/* Content Section */}

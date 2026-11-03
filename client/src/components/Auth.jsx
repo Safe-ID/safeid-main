@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { API_BASE_URL, clearToken, login, resendVerification, setAuthTokens, signup } from "../lib/api";
+import { LEGAL_PATHS } from "../lib/legal";
 
 const RESEND_COOLDOWN_S = 60;
 
@@ -78,7 +79,16 @@ function AwaitingVerification({ email, onBack }) {
   );
 }
 
-export default function Auth({ mode, notice, onSuccess, onSwitch, onOpenPrivacy, onGoToLogin }) {
+// Abrem em outra aba, para quem está no cadastro não perder o que já preencheu
+function LegalLink({ to, children, className = "text-[13px]" }) {
+  return (
+    <a href={LEGAL_PATHS[to]} target="_blank" rel="noopener noreferrer" className={`${className} text-safe-secondary font-semibold no-underline hover:underline`}>
+      {children}
+    </a>
+  );
+}
+
+export default function Auth({ mode, notice, onSuccess, onSwitch, onGoToLogin }) {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [conf, setConf] = useState("");
@@ -95,7 +105,7 @@ export default function Auth({ mode, notice, onSuccess, onSwitch, onOpenPrivacy,
     if (!email.includes("@")) { setErr("Email inválido."); return; }
     if (pass.length < 8) { setErr("Senha deve ter pelo menos 8 caracteres."); return; }
     if (isReg && pass !== conf) { setErr("As senhas não coincidem."); return; }
-    if (isReg && !acceptTerms) { setErr("Para criar a conta, aceite a Política de Privacidade."); return; }
+    if (isReg && !acceptTerms) { setErr("Para criar a conta, aceite os Termos de Uso e a Política de Privacidade e confirme que tem 18 anos ou mais."); return; }
 
     try {
       setLoading(true);
@@ -192,11 +202,9 @@ export default function Auth({ mode, notice, onSuccess, onSwitch, onOpenPrivacy,
                       className="mt-0.5 w-4 h-4 shrink-0 accent-safe-primary cursor-pointer"
                     />
                     <span>
-                      Li e aceito a{" "}
-                      <button type="button" onClick={onOpenPrivacy} className="bg-transparent border-none p-0 text-[13px] text-safe-secondary font-semibold cursor-pointer hover:underline">
-                        Política de Privacidade
-                      </button>
-                      , incluindo a consulta do meu email no Have I Been Pwned.
+                      Tenho 18 anos ou mais e aceito os <LegalLink to="terms">Termos de Uso</LegalLink> e a{" "}
+                      <LegalLink to="privacy">Política de Privacidade</LegalLink>, incluindo a consulta do meu email no
+                      Have I Been Pwned e o armazenamento dos dados fora do Brasil.
                     </span>
                   </label>
                 )}
@@ -245,10 +253,9 @@ export default function Auth({ mode, notice, onSuccess, onSwitch, onOpenPrivacy,
                 </button>
 
                 <p className="text-center text-safe-dim text-[11px] leading-relaxed -mt-1">
-                  Ao continuar com o Google, você aceita a{" "}
-                  <button type="button" onClick={onOpenPrivacy} className="bg-transparent border-none p-0 text-[11px] text-safe-secondary cursor-pointer hover:underline">
-                    Política de Privacidade
-                  </button>
+                  Ao continuar com o Google, você declara ter 18 anos ou mais, aceita os{" "}
+                  <LegalLink to="terms" className="text-[11px]">Termos de Uso</LegalLink> e a{" "}
+                  <LegalLink to="privacy" className="text-[11px]">Política de Privacidade</LegalLink>
                   {" "}e passa a receber alertas de novos vazamentos (dá para desligar no painel).
                 </p>
 

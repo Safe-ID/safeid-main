@@ -1,106 +1,115 @@
-// O mesmo texto está em PRIVACY.md (link usado na tela de consentimento do Google): ao alterar um, atualize o outro
+// O mesmo texto está em PRIVACY.md: ao alterar um, atualize o outro e a versão em lib/legal.js
+import LegalDocument from "./LegalDocument";
+import { LEGAL } from "../lib/legal";
+
 const SECTIONS = [
   {
-    title: "1. Quem somos",
+    title: "1. Quem é o responsável",
     body: [
-      "O SafeID é um projeto acadêmico, desenvolvido como Trabalho de Conclusão de Curso do curso de Tecnologia em Análise e Desenvolvimento de Sistemas do IFSP São Paulo (2026). A equipe do projeto é responsável pelo tratamento dos dados descritos aqui.",
+      `O SafeID é um projeto acadêmico, desenvolvido como Trabalho de Conclusão de Curso do curso de Tecnologia em Análise e Desenvolvimento de Sistemas do IFSP São Paulo (2026). Responsáveis pelo tratamento dos dados: ${LEGAL.controller}.`,
+      `Para falar sobre os seus dados ou exercer qualquer direito desta política, escreva para ${LEGAL.contact}.`,
     ],
   },
   {
     title: "2. Quais dados coletamos",
     items: [
-      "Seu email, usado para criar a conta e para consultar vazamentos.",
+      "Seu email, usado para criar a conta, consultar vazamentos e enviar os avisos do serviço.",
       "Sua senha, guardada apenas como hash (bcrypt). Nem a equipe consegue ver a senha original.",
       "O identificador da sua conta Google, se você entrar com o Google.",
-      "Os resultados dos scans: nomes dos vazamentos, tipos de dado expostos, datas, score de risco e as recomendações geradas.",
-      "A data em que você aceitou esta política.",
+      "Os resultados das análises: nomes dos vazamentos, tipos de dado expostos, datas, score de risco e as recomendações geradas.",
+      "O monitoramento e os avisos: vazamentos já conhecidos da sua conta, notificações e a data da última verificação.",
+      "Seus consentimentos: quando você aceitou estes textos, qual versão aceitou e quando ligou os alertas.",
+      "Dados técnicos: o endereço IP, usado temporariamente para limitar tentativas de acesso, e registros de funcionamento do sistema, com o email mascarado.",
     ],
   },
   {
     title: "3. Para que usamos",
     items: [
-      "Verificar se o seu email aparece em vazamentos de dados conhecidos.",
-      "Calcular o score de risco e gerar o plano de ação.",
-      "Manter sua conta e o histórico dos seus scans.",
+      "Verificar se o seu email aparece em vazamentos conhecidos, calcular o score de risco e gerar o plano de ação (execução do serviço que você solicitou, art. 7º, V).",
+      "Monitorar novos vazamentos e avisar você no painel e por email, se você ligar os alertas (consentimento, art. 7º, I). Dá para desligar quando quiser.",
+      "Confirmar o seu email e manter a sua conta e o histórico das análises (execução do serviço).",
+      "Proteger o serviço contra abuso e investigar falhas (legítimo interesse, art. 7º, IX).",
     ],
-    after: "O tratamento se baseia no seu consentimento e na execução do serviço que você solicitou (LGPD, art. 7º, incisos I e V).",
+    after: "O score e o plano de ação são gerados automaticamente e têm caráter informativo: não geram nenhuma decisão sobre você.",
   },
   {
     title: "4. Com quem compartilhamos",
     items: [
       "Have I Been Pwned: recebe o seu email para consultar em quais vazamentos ele aparece.",
-      "Provedor de inteligência artificial (Azure AI Foundry): recebe apenas os nomes dos vazamentos e os tipos de dado expostos, para gerar as recomendações. O seu email nunca é enviado para a IA.",
+      "Azure AI Foundry (Microsoft), provedor de inteligência artificial: recebe os nomes dos vazamentos e os tipos de dado expostos, para gerar as recomendações. O seu email nunca é enviado, e o nome de um vazamento sensível também não (seção 6).",
+      "Amazon Web Services: hospeda o sistema e o banco de dados e envia os emails do serviço (Amazon SES).",
       "Google: apenas se você escolher entrar com o Google.",
-      "Provedores de hospedagem, que armazenam o sistema e o banco de dados.",
     ],
-    after: "Não vendemos nem compartilhamos seus dados para publicidade.",
+    after: "Não vendemos seus dados nem os usamos para publicidade. O plano de ação indica a ENETSEC, empresa parceira deste Trabalho de Conclusão de Curso. Não há contrato comercial entre o projeto e ela, e nenhum dado seu é enviado a ela: o contato só acontece se você clicar nos links.",
   },
   {
-    title: "5. Por quanto tempo guardamos",
+    title: "5. Transferência internacional",
     body: [
-      "Seus dados ficam guardados enquanto a sua conta existir. O resultado mais recente do scan também fica em cache por até 24 horas para agilizar novas consultas, e os dados temporários de processamento são apagados automaticamente.",
-      "Quando você exclui a conta, apagamos a conta e todo o histórico de scans.",
+      "Os dados ficam em servidores da Amazon Web Services nos Estados Unidos, e os serviços da seção 4 também podem processá-los fora do Brasil. Essa transferência é necessária para prestar o serviço que você solicitou e se baseia no seu consentimento ao aceitar esta política (LGPD, art. 33, VIII e IX).",
     ],
   },
   {
-    title: "6. Como protegemos",
+    title: "6. Vazamentos sensíveis",
     body: [
-      "Usamos hash de senha, autenticação por token com prazo de validade, limite de tentativas de login e acesso restrito ao banco de dados. No histórico de scans, o email é guardado apenas como hash.",
+      "Alguns vazamentos são marcados como sensíveis pelo Have I Been Pwned, porque o nome do serviço pode revelar algo íntimo sobre a pessoa. O nome deles aparece apenas no seu painel, depois do login: não vai para a inteligência artificial nem para os emails de alerta, que dizem apenas \"serviço de natureza sensível\".",
     ],
   },
   {
-    title: "7. Seus direitos",
+    title: "7. Por quanto tempo guardamos",
     items: [
-      "Confirmar se tratamos seus dados e acessar o que está guardado (o painel mostra o seu resultado e o histórico).",
-      "Corrigir dados incompletos ou desatualizados.",
-      "Excluir seus dados e revogar o consentimento a qualquer momento, pelo botão \"Excluir conta\" no painel.",
-      "Saber com quem seus dados são compartilhados (seção 4).",
+      "Conta, análises e notificações: enquanto a conta existir. Ao excluir a conta, tudo isso é apagado na hora.",
+      "Conta que não confirmou o email: apagada automaticamente depois de 7 dias.",
+      "Resultado da análise em cache, para agilizar consultas: até 24 horas.",
+      "Registros de funcionamento do sistema: 30 dias.",
+      "Backups do banco de dados: até 7 dias. Depois de excluída a conta, os dados saem dos backups conforme eles expiram.",
     ],
-    after: "Esses direitos estão no artigo 18 da LGPD (Lei nº 13.709/2018). Para qualquer outra solicitação, fale com a equipe pelo repositório do projeto no GitHub.",
   },
   {
-    title: "8. Alterações nesta política",
+    title: "8. Como protegemos",
     body: [
-      "Se esta política mudar, a nova versão será publicada nesta página. Última atualização: 30 de setembro de 2026.",
+      "Usamos conexão criptografada (HTTPS), hash de senha, criptografia dos dados de vazamento no banco (AES-256), autenticação por token com prazo de validade, limite de tentativas de acesso e acesso restrito ao banco de dados. No histórico das análises, o email é guardado apenas como hash. Nenhum sistema é totalmente imune a falhas: se ocorrer um incidente que possa causar risco ou dano relevante a você, avisaremos os titulares afetados e a ANPD.",
+    ],
+  },
+  {
+    title: "9. Cookies",
+    body: [
+      "O SafeID não usa cookies de publicidade nem ferramentas de análise de navegação. Para manter você conectado, guardamos os tokens de sessão no armazenamento local do seu navegador, e eles são apagados quando você sai da conta.",
+    ],
+  },
+  {
+    title: "10. Seus direitos",
+    items: [
+      "Confirmar se tratamos seus dados e acessar o que está guardado: o painel mostra o resultado e o histórico.",
+      "Corrigir dados incompletos ou desatualizados, e pedir uma cópia dos seus dados em formato estruturado (portabilidade), pelo contato da seção 1.",
+      "Excluir seus dados a qualquer momento, pelo botão \"Excluir conta\" no painel.",
+      "Revogar o consentimento dos alertas, no painel ou pelo link de cada email de alerta.",
+      "Saber com quem seus dados são compartilhados (seção 4).",
+      "Reclamar à Autoridade Nacional de Proteção de Dados (ANPD).",
+    ],
+    after: "Esses direitos estão no artigo 18 da LGPD.",
+  },
+  {
+    title: "11. Crianças e adolescentes",
+    body: [
+      "O SafeID é destinado a maiores de 18 anos. Se soubermos de uma conta de menor de idade, ela será excluída.",
+    ],
+  },
+  {
+    title: "12. Alterações nesta política",
+    body: [
+      `Se esta política mudar, a nova versão será publicada nesta página e, se a mudança for relevante, avisaremos você. Última atualização: ${LEGAL.updatedAt}.`,
     ],
   },
 ];
 
 export default function Privacy({ onBack }) {
   return (
-    <div className="w-full max-w-3xl mx-auto pt-10 px-6 pb-20 animate-slide-up">
-      <button
-        type="button"
-        onClick={onBack}
-        className="bg-transparent border border-safe-border rounded-lg text-safe-dim py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-hover hover:text-safe-muted mb-8"
-      >
-        ← Voltar
-      </button>
-
-      <div className="text-safe-dim text-xs font-semibold tracking-widest mb-2">LGPD</div>
-      <h1 className="text-safe-text text-3xl font-bold tracking-tight font-[system-ui,sans-serif] mb-3">
-        Política de Privacidade
-      </h1>
-      <p className="text-safe-muted text-base leading-relaxed mb-10">
-        Esta página explica quais dados o SafeID coleta, para que eles são usados e como você pode controlá-los, de acordo com a Lei Geral de Proteção de Dados (LGPD).
-      </p>
-
-      <div className="flex flex-col gap-6">
-        {SECTIONS.map((section) => (
-          <section key={section.title} className="bg-safe-card border border-safe-border rounded-2xl p-6">
-            <h2 className="text-safe-text font-semibold text-lg mb-3">{section.title}</h2>
-            {section.body?.map((paragraph) => (
-              <p key={paragraph} className="text-safe-muted text-sm leading-relaxed mb-2 last:mb-0">{paragraph}</p>
-            ))}
-            {section.items && (
-              <ul className="flex flex-col gap-2 list-disc pl-5 text-safe-muted text-sm leading-relaxed">
-                {section.items.map((item) => <li key={item}>{item}</li>)}
-              </ul>
-            )}
-            {section.after && <p className="text-safe-dim text-sm leading-relaxed mt-3">{section.after}</p>}
-          </section>
-        ))}
-      </div>
-    </div>
+    <LegalDocument
+      eyebrow="LGPD"
+      title="Política de Privacidade"
+      intro="Esta página explica quais dados o SafeID coleta, para que eles são usados, com quem são compartilhados e como você pode controlá-los, de acordo com a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018)."
+      sections={SECTIONS}
+      onBack={onBack}
+    />
   );
 }

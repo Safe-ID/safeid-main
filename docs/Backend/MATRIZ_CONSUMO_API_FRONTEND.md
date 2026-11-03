@@ -28,6 +28,7 @@ Referência do contrato entre o frontend (`client/`) e a API (`server/`): qual t
 | Sino (`NotificationBell.jsx`, `NotificationsPanel.jsx`) | `/api/v1/notifications/*` | `fetchUnreadCount`, `fetchNotifications`, `markNotificationRead`, `markAllNotificationsRead` |
 | Alertas de vazamento (`MonitoringSettings.jsx`) | `GET /api/v1/monitoring/status`, `PATCH /api/v1/monitoring/preferences` | `fetchMonitoringStatus`, `updateMonitoringPreferences` |
 | Aviso do descadastro (`Safe_ID.jsx`, `?monitoring=`) | redirecionamento de `GET /api/v1/monitoring/unsubscribe` | — |
+| Termos de Uso e Política de Privacidade (`Terms.jsx`, `Privacy.jsx`) | Nenhuma: textos no frontend, com endereços próprios `/termos` e `/privacidade` | — |
 | Renovação de sessão (automática) | `POST /api/v1/auth/refresh` | `refreshSession` |
 
 ---

@@ -1,3 +1,5 @@
+import { getFrontendUrl } from '../../../shared/config/urls';
+
 export interface RenderedEmail {
   subject: string;
   html: string;
@@ -35,14 +37,24 @@ export function renderMuted(html: string): string {
   return `<p style="margin:0 0 12px;font-size:13px;line-height:1.5;color:${COLORS.muted}">${html}</p>`;
 }
 
+/** Quem envia e onde ler os textos legais: vale para todo e-mail */
+export function legalFooterText(): string {
+  const site = getFrontendUrl();
+  return `SafeID, projeto acadêmico do IFSP São Paulo. Privacidade: ${site}/privacidade · Termos: ${site}/termos`;
+}
+
+function legalFooterHtml(): string {
+  const site = escapeHtml(getFrontendUrl());
+  const link = (path: string, label: string) => `<a href="${site}${path}" style="color:${COLORS.muted}">${label}</a>`;
+  return renderMuted(`SafeID, projeto acadêmico do IFSP São Paulo. ${link('/privacidade', 'Privacidade')} · ${link('/termos', 'Termos de Uso')}`);
+}
+
 /**
  * HTML base dos e-mails (CSS inline, tabela de largura fixa, compatível com clientes antigos).
  * O conteúdo de bodyHtml já deve vir escapado.
  */
 export function renderLayout(options: { title: string; preheader: string; bodyHtml: string; footerHtml?: string }): string {
-  const footer = options.footerHtml
-    ? `<tr><td style="padding:16px 32px 28px;border-top:1px solid ${COLORS.border}">${options.footerHtml}</td></tr>`
-    : '';
+  const footer = `<tr><td style="padding:16px 32px 28px;border-top:1px solid ${COLORS.border}">${options.footerHtml ?? ''}${legalFooterHtml()}</td></tr>`;
 
   return `<!doctype html>
 <html lang="pt-BR">

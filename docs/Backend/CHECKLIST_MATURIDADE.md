@@ -19,7 +19,7 @@ Situação real do backend em 17/10/2026, com a evidência de cada item. Todo n�
 | 9 | CORS restrito | ✅ | Só `CORS_ORIGIN` |
 | 10 | Rate limit | ✅ | `@nestjs/throttler` por IP, com limites por rota |
 | 11 | Dados pessoais protegidos | ✅ | Hash do e-mail, AES-256-GCM nos vazamentos, IA sem e-mail, `maskEmail` nos logs |
-| 12 | Consentimento e exclusão (LGPD) | ✅ | Aceite dos termos e dos alertas separados; descadastro em 1 clique; exclusão em cascata |
+| 12 | Consentimento e exclusão (LGPD) | ✅ | Termos de Uso e Política de Privacidade em `/termos` e `/privacidade`; aceite com data e versão, separado dos alertas; descadastro em 1 clique; exclusão em cascata; nome de vazamento sensível fora da IA e dos e-mails |
 | 13 | ORM e migrations | ✅ | Prisma, 6 migrations versionadas aplicadas por `migrate deploy` |
 | 14 | Variáveis de ambiente | ⚠️ | `.env.example` completo; a validação só **avisa** no log, não impede subir |
 | 15 | Logs estruturados | ⚠️ | Logger JSON nos módulos novos; ainda restam `console.log` em pontos antigos |
