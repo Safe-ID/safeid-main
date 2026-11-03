@@ -6,6 +6,7 @@ import Dashboard from "./components/Dashboard";
 import Privacy from "./components/Privacy";
 import Terms from "./components/Terms";
 import { LEGAL_PATHS } from "./lib/legal";
+import NotFound from "./components/NotFound";
 import { SESSION_EXPIRED_EVENT, clearToken, fetchMe, getToken, setAuthTokens, setToken, verifyEmail } from "./lib/api";
 
 const MONITORING_NOTICES = {
@@ -44,13 +45,23 @@ function legalPageFromPath() {
 
 const isLegalPage = (value) => value in LEGAL_PATHS;
 
-/** Ao sair de um texto legal por outro caminho, o endereço volta para a raiz */
-function resetLegalPath() {
-  if (legalPageFromPath()) window.history.replaceState({}, document.title, "/");
+/** Página própria do endereço: fica aberta depois de restaurar a sessão */
+const isAddressedPage = (value) => isLegalPage(value) || value === "not-found";
+
+/** Página pedida pelo endereço; null na raiz, onde quem decide é a sessão */
+function pageFromPath() {
+  const path = window.location.pathname.replace(/\/+$/, "");
+  if (path === "" || path === "/index.html") return null;
+  return legalPageFromPath() ?? "not-found";
+}
+
+/** Ao sair de uma página própria por outro caminho, o endereço volta para a raiz */
+function resetPath() {
+  if (pageFromPath()) window.history.replaceState({}, document.title, "/");
 }
 
 export default function SafeID() {
-  const [page, setPage] = useState(() => legalPageFromPath() ?? "landing");
+  const [page, setPage] = useState(() => pageFromPath() ?? "landing");
   const [user, setUser] = useState(null);
   const [booting, setBooting] = useState(true);
   const [notice, setNotice] = useState("");
@@ -61,7 +72,7 @@ export default function SafeID() {
   const legalExit = user ? "dashboard" : legalReturn;
 
   const openLegal = (target) => {
-    if (!isLegalPage(page)) setLegalReturn(page);
+    if (!isAddressedPage(page)) setLegalReturn(page);
     window.history.pushState({}, document.title, LEGAL_PATHS[target]);
     setPage(target);
     window.scrollTo(0, 0);
@@ -75,7 +86,7 @@ export default function SafeID() {
 
   // Botões voltar e avançar do navegador entre os textos legais e o resto do site
   useEffect(() => {
-    const onPopState = () => setPage(legalPageFromPath() ?? legalExit);
+    const onPopState = () => setPage(pageFromPath() ?? legalExit);
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, [legalExit]);
@@ -84,14 +95,14 @@ export default function SafeID() {
     // Logado, a logo leva ao painel: voltar para a página inicial apagava o usuário da tela
     // sem apagar o token, um "logout pela metade"
     if (p === "landing" && user) p = "dashboard";
-    resetLegalPath();
+    resetPath();
     setNotice("");
     setLandingNotice(null);
     setPage(p);
   };
   const onAuth = (u, token) => {
     if (token) setToken(token);
-    resetLegalPath();
+    resetPath();
     setNotice("");
     setUser(u);
     setPage("dashboard");
@@ -99,7 +110,7 @@ export default function SafeID() {
 
   useEffect(() => {
     const onSessionExpired = () => {
-      resetLegalPath();
+      resetPath();
       setUser(null);
       setNotice("Sua sessão expirou. Entre novamente para continuar.");
       setPage("login");
@@ -109,7 +120,7 @@ export default function SafeID() {
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
   }, []);
   const onAccountDeleted = () => { clearToken(); setUser(null); setPage("landing"); };
-  const onOut = () => { clearToken(); resetLegalPath(); setUser(null); setPage("landing"); };
+  const onOut = () => { clearToken(); resetPath(); setUser(null); setPage("landing"); };
 
   useEffect(() => {
     let active = true;
@@ -163,13 +174,13 @@ export default function SafeID() {
         if (!active) return;
         setUser(profile);
         // Quem abriu /privacidade ou /termos logado continua na página que pediu
-        setPage((current) => (isLegalPage(current) ? current : "dashboard"));
+        setPage((current) => (isAddressedPage(current) ? current : "dashboard"));
       } catch {
         clearToken();
         if (active) {
           setUser(null);
           // Se o token venceu, o aviso de sessão expirada já levou para o login
-          setPage((current) => (current === "login" || isLegalPage(current) ? current : "landing"));
+          setPage((current) => (current === "login" || isAddressedPage(current) ? current : "landing"));
         }
       } finally {
         if (active) setBooting(false);
@@ -218,6 +229,7 @@ export default function SafeID() {
         {!booting && page === "login" && <Auth mode="login" notice={notice} onSuccess={(u) => onAuth(u)} onSwitch={() => { setNotice(""); setPage("register"); }} />}
         {!booting && page === "privacy" && <Privacy onBack={closeLegal} />}
         {!booting && page === "terms" && <Terms onBack={closeLegal} />}
+        {!booting && page === "not-found" && <NotFound onBack={() => goTo("landing")} />}
         {!booting && page === "dashboard" && isAuthenticated && <Dashboard user={user} onDeleteAccount={onAccountDeleted} />}
       </main>
 

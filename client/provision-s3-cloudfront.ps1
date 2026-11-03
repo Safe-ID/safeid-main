@@ -6,7 +6,8 @@
 #
 # Lê client/.env.production. Opcional: FRONTEND_DOMAIN + FRONTEND_CERTIFICATE_ARN (certificado
 # do ACM em us-east-1, exigência do CloudFront) para servir em um domínio próprio, e
-# ROUTE53_HOSTED_ZONE_ID se o DNS estiver no Route 53. Ao final grava S3_BUCKET_NAME e
+# ROUTE53_HOSTED_ZONE_ID se o DNS estiver no Route 53. VITE_API_URL entra na Content-Security-Policy,
+# aplicada pela política de cabeçalhos de segurança. Ao final grava S3_BUCKET_NAME e
 # CLOUDFRONT_DISTRIBUTION_ID no próprio arquivo de ambiente, que o deploy-s3-cloudfront.ps1 usa.
 param(
     [string]$EnvFile = ".env.production",
@@ -25,6 +26,8 @@ foreach ($name in @('DomainName', 'CertificateArn', 'HostedZoneId')) {
         Set-Variable -Name $name -Value ''
     }
 }
+
+$ApiOrigin = ([Uri](Get-PublicUrlEnv -Name 'VITE_API_URL')).GetLeftPart([UriPartial]::Authority)
 
 # Zona fixa da AWS para aliases que apontam para o CloudFront
 $CloudFrontHostedZoneId = "Z2FDTNDATAQYW2"
@@ -226,6 +229,94 @@ function New-CloudFrontDistribution {
     return $distributionId.Trim()
 }
 
+function Get-OrUpdateResponseHeadersPolicy {
+    $name = "safeid-frontend-security-headers"
+
+    # Só o que o front usa de fora: a API e os logos da HIBP. O Tailwind e o React pedem estilo inline
+    $contentSecurityPolicy = @(
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: https://logos.haveibeenpwned.com",
+        "font-src 'self'",
+        "connect-src 'self' $ApiOrigin",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+        "frame-ancestors 'none'"
+    ) -join '; '
+
+    $policyConfig = @{
+        Name                  = $name
+        Comment               = "Cabecalhos de seguranca do frontend do SafeID"
+        SecurityHeadersConfig = @{
+            StrictTransportSecurity = @{ Override = $true; AccessControlMaxAgeSec = 31536000; IncludeSubdomains = $true; Preload = $false }
+            ContentTypeOptions      = @{ Override = $true }
+            FrameOptions            = @{ Override = $true; FrameOption = "DENY" }
+            ReferrerPolicy          = @{ Override = $true; ReferrerPolicy = "strict-origin-when-cross-origin" }
+            ContentSecurityPolicy   = @{ Override = $true; ContentSecurityPolicy = $contentSecurityPolicy }
+        }
+        CustomHeadersConfig   = @{
+            Quantity = 1
+            Items    = @(
+                @{ Header = "Permissions-Policy"; Value = "camera=(), microphone=(), geolocation=()"; Override = $true }
+            )
+        }
+    }
+    $configFile = Write-TempJson -Name "$name.json" -InputObject $policyConfig
+
+    $existing = aws cloudfront list-response-headers-policies --type custom `
+        --query "ResponseHeadersPolicyList.Items[?ResponseHeadersPolicy.ResponseHeadersPolicyConfig.Name=='$name'].ResponseHeadersPolicy.Id | [0]" `
+        --output text
+    if ($LASTEXITCODE -ne 0) {
+        throw "Falha ao listar as políticas de cabeçalhos do CloudFront."
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($existing) -and $existing -ne "None") {
+        $policyId = $existing.Trim()
+        $etag = aws cloudfront get-response-headers-policy-config --id $policyId --query "ETag" --output text
+        aws cloudfront update-response-headers-policy --id $policyId --if-match $etag.Trim() --response-headers-policy-config $configFile > $null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Falha ao atualizar a política de cabeçalhos do CloudFront."
+        }
+        return $policyId
+    }
+
+    $policyId = aws cloudfront create-response-headers-policy `
+        --response-headers-policy-config $configFile `
+        --query "ResponseHeadersPolicy.Id" `
+        --output text
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($policyId) -or $policyId -eq "None") {
+        throw "Falha ao criar a política de cabeçalhos do CloudFront."
+    }
+
+    return $policyId.Trim()
+}
+
+function Set-DistributionResponseHeadersPolicy {
+    param(
+        [Parameter(Mandatory = $true)][string]$DistributionId,
+        [Parameter(Mandatory = $true)][string]$PolicyId
+    )
+
+    $current = (aws cloudfront get-distribution-config --id $DistributionId --output json) -join "`n" | ConvertFrom-Json
+    if ($LASTEXITCODE -ne 0 -or -not $current) {
+        throw "Falha ao ler a configuração da distribuição $DistributionId."
+    }
+
+    $behavior = $current.DistributionConfig.DefaultCacheBehavior
+    if ($behavior.ResponseHeadersPolicyId -eq $PolicyId) {
+        return
+    }
+
+    $behavior | Add-Member -NotePropertyName 'ResponseHeadersPolicyId' -NotePropertyValue $PolicyId -Force
+    aws cloudfront update-distribution --id $DistributionId --if-match $current.ETag `
+        --distribution-config (Write-TempJson -Name "safeid-frontend-distribution-update.json" -InputObject $current.DistributionConfig -Depth 30) > $null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Falha ao aplicar os cabeçalhos de segurança na distribuição $DistributionId."
+    }
+}
+
 function Update-BucketPolicy {
     param(
         [Parameter(Mandatory = $true)][string]$DistributionId
@@ -300,6 +391,10 @@ else {
 }
 
 Update-BucketPolicy -DistributionId $distributionId
+
+$responseHeadersPolicyId = Get-OrUpdateResponseHeadersPolicy
+Set-DistributionResponseHeadersPolicy -DistributionId $distributionId -PolicyId $responseHeadersPolicyId
+Write-Host "Cabeçalhos de segurança aplicados: $responseHeadersPolicyId"
 
 $distributionDomainName = (aws cloudfront get-distribution `
         --id $distributionId `

@@ -66,6 +66,10 @@ Depois, na ordem (cada script pode rodar de novo sem duplicar nada):
 | 9 | `..\deploy.ps1` | Primeiro deploy (cria o ALB) | CNAME do domínio da API para o DNS do ALB (o script imprime) |
 | 10 | `.\create-alerts.ps1` | Alarmes no CloudWatch e e-mail de alertas | Confirmar a assinatura pelo e-mail; testar com `-Action Test` |
 
+O `provision-s3-cloudfront.ps1` também mantém a política de cabeçalhos de segurança do site (HSTS, Content-Security-Policy e os demais). Se o front passar a carregar algo de outro domínio, inclua o domínio na CSP desse script e rode-o de novo. Mudança no `VITE_API_URL` também pede nova execução, porque a API faz parte da CSP.
+
+O `client/public/.well-known/security.txt` tem validade (`Expires`, hoje 03/11/2027): renove a data antes de vencer.
+
 O Registro.br não aceita CNAME no domínio raiz. Use `www.` no `FRONTEND_URL` ou passe o DNS para o Route 53 (`ROUTE53_HOSTED_ZONE_ID`).
 
 ---
