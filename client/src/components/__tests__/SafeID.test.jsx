@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import SafeID from '../../Safe_ID'
@@ -54,7 +54,7 @@ describe('SafeID logado', () => {
     render(<SafeID />)
 
     expect(await screen.findByText('1 vazamento detectado')).toBeInTheDocument()
-    expect(screen.getByText('Médio')).toBeInTheDocument()
+    expect(await screen.findByText('Médio')).toBeInTheDocument()
     // Um vazamento com 0 contas não pode deixar um "0" solto na linha do tempo
     expect(screen.queryByText(/contas$/)).not.toBeInTheDocument()
 
@@ -98,6 +98,71 @@ describe('painel sem verificação manual', () => {
     expect(screen.getByText(/tenta de novo sozinho a cada hora/)).toBeInTheDocument()
     // O aviso de alertas desligados só faz sentido com um resultado válido
     expect(screen.queryByText('Seus alertas estão desligados.')).not.toBeInTheDocument()
+  })
+})
+
+describe('textos legais', () => {
+  beforeEach(() => {
+    vi.mocked(getToken).mockReturnValue(null)
+    vi.mocked(fetchMe).mockResolvedValue({ ...profile, monitoringEnabled: true })
+    window.history.replaceState({}, '', '/')
+    window.scrollTo = vi.fn()
+  })
+
+  it('abre os Termos direto pelo endereço e volta para a página inicial', async () => {
+    window.history.replaceState({}, '', '/termos')
+    const user = userEvent.setup()
+    render(<SafeID />)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Termos de Uso' })).toBeInTheDocument()
+    expect(screen.getByText(/Lucas Vieira de Souza/)).toBeInTheDocument()
+    expect(screen.getByText(/safeidifsp@gmail\.com/)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Voltar/ }))
+
+    expect(window.location.pathname).toBe('/')
+    expect(screen.getByRole('button', { name: 'Criar conta grátis' })).toBeInTheDocument()
+  })
+
+  it('logado, continua na política aberta pelo endereço e volta para o painel', async () => {
+    vi.mocked(getToken).mockReturnValue('token')
+    window.history.replaceState({}, '', '/privacidade')
+    const user = userEvent.setup()
+    render(<SafeID />)
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Sair' })).toBeInTheDocument())
+    expect(screen.getByRole('heading', { level: 1, name: 'Política de Privacidade' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /Voltar/ }))
+
+    expect(window.location.pathname).toBe('/')
+    expect(await screen.findByRole('heading', { level: 1, name: /Olá, w+/ })).toBeInTheDocument()
+  })
+
+  it('o rodapé leva aos textos, muda o endereço e credita a HIBP', async () => {
+    const user = userEvent.setup()
+    render(<SafeID />)
+
+    await user.click(await screen.findByRole('link', { name: 'Termos de Uso' }))
+    expect(window.location.pathname).toBe('/termos')
+    expect(screen.getByRole('heading', { level: 1, name: 'Termos de Uso' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('link', { name: 'Privacidade' }))
+    expect(window.location.pathname).toBe('/privacidade')
+    expect(screen.getByRole('heading', { level: 1, name: 'Política de Privacidade' })).toBeInTheDocument()
+
+    expect(screen.getByRole('link', { name: /Have I Been Pwned/ })).toHaveAttribute('href', 'https://haveibeenpwned.com')
+  })
+
+  it('os botões do navegador navegam entre os textos', async () => {
+    const user = userEvent.setup()
+    render(<SafeID />)
+
+    await user.click(await screen.findByRole('link', { name: 'Termos de Uso' }))
+    window.history.replaceState({}, '', '/')
+    window.dispatchEvent(new PopStateEvent('popstate'))
+
+    expect(await screen.findByRole('button', { name: 'Criar conta grátis' })).toBeInTheDocument()
   })
 })
 

@@ -16,6 +16,7 @@ import { PrismaService } from '../../infra/database/prisma.service';
 import { ScanService } from '../scan/services/scan.service';
 import { openBreachData } from '../../shared/crypto/breach-data.cipher';
 import { getFrontendUrl } from '../../shared/config/urls';
+import { CURRENT_TERMS_VERSION } from '../../shared/config/legal';
 import { log } from '../../shared/utils/logger';
 import { EmailVerificationService } from './email-verification.service';
 import {
@@ -238,7 +239,7 @@ export class AuthService {
       });
     }
 
-    // A tela de login avisa que continuar com o Google é aceitar a Política de Privacidade
+    // A tela de login avisa que continuar com o Google é aceitar os Termos, a Política de Privacidade
     // e os alertas de vazamento (que podem ser desligados no painel)
     const now = new Date();
     return this.prisma.user.create({
@@ -247,6 +248,7 @@ export class AuthService {
         googleId: input.googleId,
         passwordHash: null,
         termsAcceptedAt: now,
+        termsVersion: CURRENT_TERMS_VERSION,
         emailVerifiedAt: now,
         monitoringEnabled: true,
         monitoringConsentAt: now,
@@ -299,6 +301,7 @@ export class AuthService {
     const accountData = {
       passwordHash,
       termsAcceptedAt: now,
+      termsVersion: CURRENT_TERMS_VERSION,
       monitoringEnabled: acceptMonitoring,
       monitoringConsentAt: acceptMonitoring ? now : null,
     };

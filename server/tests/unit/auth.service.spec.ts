@@ -8,6 +8,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import axios from 'axios';
 import * as bcrypt from 'bcryptjs';
+import { CURRENT_TERMS_VERSION } from '../../src/shared/config/legal';
 import { AuthService } from '../../src/modules/auth/auth.service';
 
 jest.mock('axios');
@@ -90,6 +91,7 @@ describe('AuthService', () => {
           email: 'new@example.com',
           passwordHash: expect.any(String),
           termsAcceptedAt: expect.any(Date),
+          termsVersion: CURRENT_TERMS_VERSION,
           monitoringEnabled: true,
           monitoringConsentAt: expect.any(Date),
         },
@@ -505,6 +507,7 @@ describe('AuthService', () => {
           monitoringEnabled: true,
           monitoringConsentAt: expect.any(Date),
           termsAcceptedAt: expect.any(Date),
+          termsVersion: CURRENT_TERMS_VERSION,
         }),
       });
       // Conta nova pelo Google entra no painel já com o scan inicial, como no cadastro por email

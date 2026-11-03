@@ -186,6 +186,32 @@ describe('email templates', () => {
     expect(buildVerifyEmail({ verifyUrl, ttlHours: 1 }).text).toContain('1 hora.');
   });
 
+  it('identifies the sender and links the legal pages in every e-mail', () => {
+    process.env.FRONTEND_URL = 'https://www.safeid.app.br/';
+    try {
+      const emails = [
+        buildVerifyEmail({ verifyUrl: 'https://www.safeid.app.br/?verify_token=abc', ttlHours: 24 }),
+        buildNewBreachAlert({
+          breaches: [{ title: 'Adobe', breachDate: null, dataClasses: [] }],
+          riskScore: 10,
+          classification: 'LOW',
+          dashboardUrl: 'https://www.safeid.app.br/',
+          unsubscribeUrl: 'https://api.safeid.app.br/unsub',
+        }),
+      ];
+
+      for (const email of emails) {
+        expect(email.html).toContain('projeto acadêmico do IFSP');
+        expect(email.html).toContain('href="https://www.safeid.app.br/privacidade"');
+        expect(email.html).toContain('href="https://www.safeid.app.br/termos"');
+        expect(email.text).toContain('https://www.safeid.app.br/privacidade');
+        expect(email.text).toContain('https://www.safeid.app.br/termos');
+      }
+    } finally {
+      delete process.env.FRONTEND_URL;
+    }
+  });
+
   it('builds the new breach alert without AI content and with the unsubscribe link', () => {
     const email = buildNewBreachAlert({
       breaches: [

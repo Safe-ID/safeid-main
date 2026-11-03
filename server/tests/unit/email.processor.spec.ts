@@ -80,6 +80,20 @@ describe('EmailProcessor', () => {
     expect(message.text).toContain('24 horas');
   });
 
+  it('does not put the name of a sensitive breach in the alert e-mail', async () => {
+    prisma.breachCatalog = {
+      findMany: jest.fn(async () => [
+        { name: 'Adobe', title: 'Adobe', breachDate: null, dataClasses: ['Passwords'], isSensitive: false },
+        { name: 'AdultSite', title: 'Adult Site', breachDate: null, dataClasses: ['Email addresses'], isSensitive: true },
+      ]),
+    };
+
+    const items = await (new EmailProcessor(prisma, sender) as any).loadAlertItems(['Adobe', 'AdultSite']);
+
+    expect(items.map((item: any) => item.title)).toEqual(['Adobe', 'Serviço de natureza sensível']);
+    expect(JSON.stringify(items)).not.toContain('Adult Site');
+  });
+
   it('skips deleted and already verified accounts', async () => {
     const processor = new EmailProcessor(prisma, sender);
 

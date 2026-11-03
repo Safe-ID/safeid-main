@@ -5,6 +5,7 @@ import { PrismaService } from '../../../infra/database/prisma.service';
 import { EMAIL_SENDER, EmailSender } from '../../../infra/email/email-sender.interface';
 import { buildVerifyEmail } from '../../../infra/email/templates/verify-email.template';
 import { BreachAlertItem, buildNewBreachAlert } from '../../../infra/email/templates/new-breach-alert.template';
+import { SENSITIVE_BREACH_LABEL } from '../../../shared/utils/sensitive-breaches';
 import {
   JOB_SEND_NEW_BREACH_ALERT,
   JOB_SEND_VERIFICATION_EMAIL,
@@ -187,14 +188,15 @@ export class EmailProcessor implements OnModuleInit, OnModuleDestroy {
   private async loadAlertItems(names: string[]): Promise<BreachAlertItem[]> {
     const rows = await this.prisma.breachCatalog.findMany({
       where: { name: { in: names } },
-      select: { name: true, title: true, breachDate: true, dataClasses: true },
+      select: { name: true, title: true, breachDate: true, dataClasses: true, isSensitive: true },
     });
     const byName = new Map(rows.map(row => [row.name, row]));
 
     return names.map(name => {
       const row = byName.get(name);
       return {
-        title: row?.title || name,
+        // A caixa de entrada pode ser vista por outras pessoas: o nome fica só no painel
+        title: row?.isSensitive ? SENSITIVE_BREACH_LABEL : row?.title || name,
         breachDate: row?.breachDate ? row.breachDate.toISOString() : null,
         dataClasses: Array.isArray(row?.dataClasses) ? (row!.dataClasses as string[]) : [],
       };

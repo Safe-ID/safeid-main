@@ -1,4 +1,4 @@
-import { escapeHtml, renderButton, renderLayout, renderMuted, renderParagraph, RenderedEmail } from './layout';
+import { escapeHtml, legalFooterText, renderButton, renderLayout, renderMuted, renderParagraph, RenderedEmail } from './layout';
 
 export function buildVerifyEmail(input: { verifyUrl: string; ttlHours: number }): RenderedEmail {
   const subject = 'Confirme seu e-mail no SafeID';
@@ -26,6 +26,8 @@ export function buildVerifyEmail(input: { verifyUrl: string; ttlHours: number })
     `O link vale por ${validity}.`,
     '',
     'Se você não criou uma conta no SafeID, ignore este e-mail.',
+    '',
+    legalFooterText(),
   ].join('\n');
 
   return { subject, html, text };
