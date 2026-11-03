@@ -65,7 +65,8 @@ O SafeID não usa cookies de publicidade nem ferramentas de análise de navegaç
 ## 10. Seus direitos
 
 - Confirmar se tratamos seus dados e acessar o que está guardado: o painel mostra o resultado e o histórico.
-- Corrigir dados incompletos ou desatualizados, e pedir uma cópia dos seus dados em formato estruturado (portabilidade), pelo contato da seção 1.
+- Baixar uma cópia dos seus dados em formato estruturado (portabilidade), pelo botão "Baixar meus dados" no painel.
+- Corrigir dados incompletos ou desatualizados, pelo contato da seção 1.
 - Excluir seus dados a qualquer momento, pelo botão "Excluir conta" no painel.
 - Revogar o consentimento dos alertas, no painel ou pelo link de cada email de alerta.
 - Saber com quem seus dados são compartilhados (seção 4).

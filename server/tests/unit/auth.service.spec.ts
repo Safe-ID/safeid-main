@@ -385,6 +385,10 @@ describe('AuthService', () => {
         jwtServiceMock.verify.mockReturnValue({ sub: 7, email: 'jane@example.com', typ: 'refresh' });
         prismaMock.user.findUnique.mockResolvedValue({ ...verifiedUser, emailVerifiedAt: null });
       }],
+      ['a token issued before the password changed', () => {
+        jwtServiceMock.verify.mockReturnValue({ sub: 7, email: 'jane@example.com', typ: 'refresh', iat: 1000 });
+        prismaMock.user.findUnique.mockResolvedValue({ ...verifiedUser, passwordChangedAt: new Date(2000 * 1000) });
+      }],
     ])('rejects %s with REFRESH_INVALID', async (_label, arrange) => {
       arrange();
 
@@ -464,6 +468,7 @@ describe('AuthService', () => {
         id: 40,
         email: 'p@example.com',
         emailVerified: false,
+        hasPassword: false,
         monitoringEnabled: true,
         lastMonitoredAt,
         scanSnapshot: null,

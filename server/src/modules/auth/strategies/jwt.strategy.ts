@@ -8,6 +8,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, ExtractJwt } from 'passport-jwt';
 import { JwtPayload } from '../dto/auth.dto';
+import { isIssuedAfterPasswordChange } from '../../../shared/utils/session-validity';
 import { PrismaService } from '../../../infra/database/prisma.service';
 
 @Injectable()
@@ -29,7 +30,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // Token emitido antes da verificação obrigatória, ou de conta já apagada
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { emailVerifiedAt: true },
+      select: { emailVerifiedAt: true, passwordChangedAt: true },
     });
 
     if (!user) {
@@ -38,6 +39,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (!user.emailVerifiedAt) {
       throw new UnauthorizedException({ code: 'EMAIL_NOT_VERIFIED', message: 'Email não verificado' });
+    }
+
+    if (!isIssuedAfterPasswordChange(payload.iat, user.passwordChangedAt)) {
+      throw new UnauthorizedException('Sessão encerrada pela troca de senha');
     }
 
     return payload;

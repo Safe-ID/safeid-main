@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { API_BASE_URL, clearToken, login, resendVerification, setAuthTokens, signup } from "../lib/api";
+import { API_BASE_URL, clearToken, forgotPassword, login, resendVerification, setAuthTokens, signup } from "../lib/api";
 import { LEGAL_PATHS } from "../lib/legal";
 
 const RESEND_COOLDOWN_S = 60;
@@ -79,6 +79,54 @@ function AwaitingVerification({ email, onBack }) {
   );
 }
 
+/** "Esqueci minha senha": a resposta é a mesma exista a conta ou não */
+function ForgotPassword({ initialEmail, onBack }) {
+  const [email, setEmail] = useState(initialEmail);
+  const [sending, setSending] = useState(false);
+  const [message, setMessage] = useState("");
+  const [err, setErr] = useState("");
+
+  const submit = async (event) => {
+    event.preventDefault();
+    setErr("");
+    if (!email.includes("@")) { setErr("Email inválido."); return; }
+    try {
+      setSending(true);
+      const result = await forgotPassword(email.trim());
+      setMessage(result?.message || "Se houver uma conta com este email, enviamos um link para criar uma nova senha.");
+    } catch (error) {
+      setErr(error.message || "Não foi possível enviar agora. Tente de novo em instantes.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="flex flex-col gap-4">
+      <div className="text-center">
+        <h2 className="text-safe-text text-xl font-bold tracking-tight mb-2">Esqueci minha senha</h2>
+        <p className="text-safe-muted text-sm leading-relaxed">Informe o email da conta. Enviaremos um link para criar uma nova senha, válido por 1 hora.</p>
+      </div>
+      {!message && (
+        <div>
+          <label htmlFor="forgot-email" className="block text-safe-dim text-[11px] font-semibold mb-1.5 tracking-wide">EMAIL</label>
+          <input id="forgot-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="w-full bg-[#040C1A] border border-safe-border rounded-xl text-safe-text py-3 px-3.5 text-sm outline-none transition-colors focus:border-safe-primary" />
+        </div>
+      )}
+      {message && <div role="status" className="bg-safe-secondary/10 border border-safe-secondary/25 rounded-xl py-2.5 px-3.5 text-safe-secondary text-[13px]">{message} Confira também a caixa de spam.</div>}
+      {err && <div role="alert" className="bg-safe-danger/10 border border-safe-danger/25 rounded-xl py-2.5 px-3.5 text-safe-danger text-[13px]">{err}</div>}
+      {!message && (
+        <button type="submit" disabled={sending} className="rounded-xl text-white py-3.5 text-sm font-semibold bg-gradient-to-br from-safe-primary to-safe-primaryD cursor-pointer disabled:cursor-wait disabled:opacity-70">
+          {sending ? "Enviando..." : "Enviar link"}
+        </button>
+      )}
+      <button type="button" onClick={onBack} className="bg-transparent border-none p-0 text-[13px] text-safe-secondary cursor-pointer font-semibold hover:underline">
+        Voltar para o login
+      </button>
+    </form>
+  );
+}
+
 // Abrem em outra aba, para quem está no cadastro não perder o que já preencheu
 function LegalLink({ to, children, className = "text-[13px]" }) {
   return (
@@ -98,6 +146,7 @@ export default function Auth({ mode, notice, onSuccess, onSwitch, onGoToLogin })
   const [err, setErr] = useState("");
   // Email aguardando o clique no link de verificação
   const [awaitingEmail, setAwaitingEmail] = useState("");
+  const [forgot, setForgot] = useState(false);
   const isReg = mode === "register";
 
   const submit = async () => {
@@ -155,6 +204,8 @@ export default function Auth({ mode, notice, onSuccess, onSwitch, onGoToLogin })
         <div className="bg-safe-card border border-safe-borderL rounded-2xl p-6 sm:p-8 shadow-[0_0_60px_rgba(26,111,255,0.05)]">
           {awaitingEmail ? (
             <AwaitingVerification email={awaitingEmail} onBack={backToLogin} />
+          ) : forgot ? (
+            <ForgotPassword initialEmail={email} onBack={() => setForgot(false)} />
           ) : (
             <>
               <div className="text-center mb-7">
@@ -184,6 +235,11 @@ export default function Auth({ mode, notice, onSuccess, onSwitch, onGoToLogin })
                     placeholder={isReg ? "Mínimo 8 caracteres" : "••••••••"} className={inpClass}
                     onKeyDown={e => e.key === "Enter" && submit()} />
                 </div>
+                {!isReg && (
+                  <button type="button" onClick={() => { setErr(""); setForgot(true); }} className="self-end -mt-2 bg-transparent border-none p-0 text-xs text-safe-secondary cursor-pointer hover:underline">
+                    Esqueci minha senha
+                  </button>
+                )}
                 {isReg && (
                   <div>
                     <label htmlFor="auth-password-confirm" className="block text-safe-dim text-[11px] font-semibold mb-1.5 tracking-wide">CONFIRMAR SENHA</label>
