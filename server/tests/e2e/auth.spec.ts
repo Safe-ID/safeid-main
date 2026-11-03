@@ -28,6 +28,7 @@ function matches(row: Row, where: Row): boolean {
 function createInMemoryPrisma() {
   const users: Row[] = [];
   const tokens: Row[] = [];
+  const resetTokens: Row[] = [];
   let nextUserId = 1;
   let nextTokenId = 1;
 
@@ -80,6 +81,19 @@ function createInMemoryPrisma() {
       },
       updateMany: async ({ where, data }: any) => {
         const found = tokens.filter(token => matches(token, where));
+        found.forEach(token => Object.assign(token, data));
+        return { count: found.length };
+      },
+    },
+    passwordResetToken: {
+      findUnique: async ({ where }: any) => pick(resetTokens.find(token => matches(token, where))),
+      create: async ({ data }: any) => {
+        const token = { id: nextTokenId++, usedAt: null, createdAt: new Date(), ...data };
+        resetTokens.push(token);
+        return { ...token };
+      },
+      updateMany: async ({ where, data }: any) => {
+        const found = resetTokens.filter(token => matches(token, where));
         found.forEach(token => Object.assign(token, data));
         return { count: found.length };
       },
@@ -316,6 +330,61 @@ describe('Auth API E2E', () => {
     const me = await fetch(`${baseUrl}/api/v1/auth/me`, { headers: { Authorization: `Bearer ${legacyToken}` } });
 
     expect(me.status).toBe(401);
+  });
+
+  it('recovers the password through the e-mail link and ends the old sessions', async () => {
+    const passwordHash = await bcrypt.hash('StrongPass123', 10);
+    await prisma.user.create({ data: { email: 'reset@example.com', passwordHash, emailVerifiedAt: new Date() } });
+    // Sessão aberta antes da troca
+    const oldSession = app.get(JwtService).sign({ sub: 1, email: 'reset@example.com', iat: Math.floor(Date.now() / 1000) - 60 });
+
+    const forgot = await post('/api/v1/auth/forgot-password', { email: 'reset@example.com' });
+    expect(forgot.status).toBe(202);
+    const unknown = await post('/api/v1/auth/forgot-password', { email: 'ghost@example.com' });
+    expect(unknown.status).toBe(202);
+    await expect(unknown.json()).resolves.toEqual(await forgot.json());
+
+    const match = sender.lastMessageTo('reset@example.com')?.text.match(/reset_token=([A-Za-z0-9_%-]+)/);
+    const token = decodeURIComponent(match?.[1] ?? '');
+    expect(token).toHaveLength(43);
+
+    const reset = await post('/api/v1/auth/reset-password', { token, password: 'NovaSenha123' });
+    expect(reset.status).toBe(200);
+    expect(sender.lastMessageTo('reset@example.com')?.subject).toBe('Sua senha do SafeID foi alterada');
+
+    const reused = await post('/api/v1/auth/reset-password', { token, password: 'OutraSenha123' });
+    expect(reused.status).toBe(410);
+
+    const me = await fetch(`${baseUrl}/api/v1/auth/me`, { headers: { Authorization: `Bearer ${oldSession}` } });
+    expect(me.status).toBe(401);
+
+    expect((await post('/api/v1/auth/login', { email: 'reset@example.com', password: 'StrongPass123' })).status).toBe(401);
+    expect((await post('/api/v1/auth/login', { email: 'reset@example.com', password: 'NovaSenha123' })).status).toBe(200);
+  });
+
+  it('changes the password of the signed-in user and returns a session that keeps working', async () => {
+    const passwordHash = await bcrypt.hash('StrongPass123', 10);
+    await prisma.user.create({ data: { email: 'change@example.com', passwordHash, emailVerifiedAt: new Date() } });
+    const login = await post('/api/v1/auth/login', { email: 'change@example.com', password: 'StrongPass123' });
+    const { access_token } = (await login.json()) as any;
+    const change = (body: unknown) =>
+      fetch(`${baseUrl}/api/v1/auth/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${access_token}` },
+        body: JSON.stringify(body),
+      });
+
+    const wrong = await change({ currentPassword: 'errada', newPassword: 'NovaSenha123' });
+    expect(wrong.status).toBe(400);
+    await expect(wrong.json()).resolves.toMatchObject({ code: 'INVALID_CURRENT_PASSWORD' });
+
+    const changed = await change({ currentPassword: 'StrongPass123', newPassword: 'NovaSenha123' });
+    expect(changed.status).toBe(200);
+    const pair = (await changed.json()) as any;
+
+    const me = await fetch(`${baseUrl}/api/v1/auth/me`, { headers: { Authorization: `Bearer ${pair.access_token}` } });
+    expect(me.status).toBe(200);
+    await expect(me.json()).resolves.toMatchObject({ email: 'change@example.com', hasPassword: true });
   });
 
   it('deletes the authenticated account', async () => {

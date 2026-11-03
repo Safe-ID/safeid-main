@@ -19,12 +19,20 @@ describe('controller and guard unit coverage', () => {
       login: jest.fn(async () => ({ access_token: 'login-token', user: { id: 2, email: 'b@c.com' } })),
       refreshTokens: jest.fn(async () => ({ access_token: 'new-access', refresh_token: 'new-refresh' })),
       getUserProfile: jest.fn(async () => ({ id: 3, email: 'c@d.com' })),
+      issueTokens: jest.fn(async () => ({ access_token: 'after-change', refresh_token: 'after-change-r' })),
       deleteAccount: jest.fn(async () => ({ deleted: true })),
       getGoogleAuthUrl: jest.fn(async () => 'https://example.com/google'),
       handleGoogleCallback: jest.fn(async () => 'https://example.com/callback'),
     } as any;
 
-    const controller = new AuthController(authService);
+    const passwordService = {
+      requestReset: jest.fn(async () => ({ message: 'generic' })),
+      resetPassword: jest.fn(async () => ({ message: 'changed' })),
+      changePassword: jest.fn(async () => undefined),
+    } as any;
+    const accountData = { exportUserData: jest.fn(async () => ({ conta: { email: 'c@d.com' } })) } as any;
+
+    const controller = new AuthController(authService, passwordService, accountData);
     const signupDto = { email: 'a@b.com', password: 'Strong123!', acceptTerms: true };
     const loginDto = { email: 'b@c.com', password: 'Strong123!' };
     const response = { redirect: jest.fn() } as any;
@@ -39,6 +47,10 @@ describe('controller and guard unit coverage', () => {
     });
     await expect(controller.getMe({ sub: 3 } as any)).resolves.toMatchObject({ id: 3, email: 'c@d.com' });
     await expect(controller.deleteMe({ sub: 9 } as any)).resolves.toEqual({ deleted: true });
+    await expect(controller.forgotPassword({ email: 'a@b.com' })).resolves.toEqual({ message: 'generic' });
+    await expect(controller.resetPassword({ token: 't'.repeat(43), password: 'Strong123!' })).resolves.toEqual({ message: 'changed' });
+    await expect(controller.changePassword({ sub: 3 } as any, { currentPassword: 'old', newPassword: 'Strong123!' })).resolves.toMatchObject({ access_token: 'after-change' });
+    await expect(controller.exportMe({ sub: 3 } as any)).resolves.toEqual({ conta: { email: 'c@d.com' } });
     await controller.googleAuth(response);
     await controller.googleCallback('code-123', 'state-456', response);
 
@@ -49,6 +61,10 @@ describe('controller and guard unit coverage', () => {
     expect(authService.refreshTokens).toHaveBeenCalledWith('r'.repeat(30));
     expect(authService.getUserProfile).toHaveBeenCalledWith(3);
     expect(authService.deleteAccount).toHaveBeenCalledWith(9);
+    expect(passwordService.requestReset).toHaveBeenCalledWith('a@b.com');
+    expect(passwordService.resetPassword).toHaveBeenCalledWith('t'.repeat(43), 'Strong123!');
+    expect(passwordService.changePassword).toHaveBeenCalledWith(3, 'old', 'Strong123!');
+    expect(accountData.exportUserData).toHaveBeenCalledWith(3);
     expect(response.redirect).toHaveBeenCalledWith(302, 'https://example.com/google');
     expect(response.redirect).toHaveBeenCalledWith(302, 'https://example.com/callback');
   });
@@ -89,9 +105,13 @@ describe('controller and guard unit coverage', () => {
     const findUnique = jest.fn<(args: any) => Promise<any>>();
     const strategy = new JwtStrategy({ user: { findUnique } } as any);
 
+    findUnique.mockResolvedValueOnce({ emailVerifiedAt: new Date(), passwordChangedAt: new Date(2000 * 1000) });
+    await expect(strategy.validate({ sub: 15, email: 'x@y.com', iat: 1000 } as any)).rejects.toThrow();
+    findUnique.mockClear();
+
     findUnique.mockResolvedValueOnce({ emailVerifiedAt: new Date() });
     await expect(strategy.validate({ sub: 15, email: 'x@y.com' } as any)).resolves.toEqual({ sub: 15, email: 'x@y.com' });
-    expect(findUnique).toHaveBeenCalledWith({ where: { id: 15 }, select: { emailVerifiedAt: true } });
+    expect(findUnique).toHaveBeenCalledWith({ where: { id: 15 }, select: { emailVerifiedAt: true, passwordChangedAt: true } });
 
     await expect(strategy.validate({ sub: 0, email: '' } as any)).rejects.toBeInstanceOf(UnauthorizedException);
     await expect(strategy.validate({ sub: null } as any)).rejects.toThrow('Invalid token');

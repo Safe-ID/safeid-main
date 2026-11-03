@@ -5,9 +5,13 @@ import { PrismaService } from '../../../infra/database/prisma.service';
 import { EMAIL_SENDER, EmailSender } from '../../../infra/email/email-sender.interface';
 import { buildVerifyEmail } from '../../../infra/email/templates/verify-email.template';
 import { BreachAlertItem, buildNewBreachAlert } from '../../../infra/email/templates/new-breach-alert.template';
+import { buildPasswordChangedEmail, buildPasswordResetEmail } from '../../../infra/email/templates/password.template';
+import { RESET_TOKEN_TTL_MINUTES } from '../../auth/password.service';
 import { SENSITIVE_BREACH_LABEL } from '../../../shared/utils/sensitive-breaches';
 import {
   JOB_SEND_NEW_BREACH_ALERT,
+  JOB_SEND_PASSWORD_CHANGED,
+  JOB_SEND_PASSWORD_RESET,
   JOB_SEND_VERIFICATION_EMAIL,
   QUEUE_EMAIL,
 } from '../../../infra/queue/queue.constants';
@@ -91,6 +95,10 @@ export class EmailProcessor implements OnModuleInit, OnModuleDestroy {
         return this.sendVerificationEmail(job);
       case JOB_SEND_NEW_BREACH_ALERT:
         return this.sendNewBreachAlert(job);
+      case JOB_SEND_PASSWORD_RESET:
+        return this.sendPasswordReset(job);
+      case JOB_SEND_PASSWORD_CHANGED:
+        return this.sendPasswordChanged(job);
       default:
         throw new Error(`Unknown job '${job.name}' in queue ${QUEUE_EMAIL}`);
     }
@@ -117,6 +125,41 @@ export class EmailProcessor implements OnModuleInit, OnModuleDestroy {
     const email = buildVerifyEmail({ verifyUrl, ttlHours: verificationTtlHours() });
     await this.sender.send({ to: user.email, ...email });
 
+    return { sent: true };
+  }
+
+  private async sendPasswordReset(job: Job): Promise<{ sent: boolean; reason?: string }> {
+    const { userId, token } = job.data || {};
+    if (!userId || !token) {
+      throw new Error('Job missing userId or token');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    if (!user) {
+      return { sent: false, reason: 'user_not_found' };
+    }
+
+    const resetUrl = `${getFrontendUrl()}/?reset_token=${encodeURIComponent(token)}`;
+    await this.sender.send({ to: user.email, ...buildPasswordResetEmail({ resetUrl, ttlMinutes: RESET_TOKEN_TTL_MINUTES }) });
+    return { sent: true };
+  }
+
+  private async sendPasswordChanged(job: Job): Promise<{ sent: boolean; reason?: string }> {
+    const userId = job.data?.userId;
+    if (!userId) {
+      throw new Error('Job missing userId');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+    if (!user) {
+      return { sent: false, reason: 'user_not_found' };
+    }
+
+    const email = buildPasswordChangedEmail({
+      loginUrl: `${getFrontendUrl()}/`,
+      contactEmail: process.env.EMAIL_REPLY_TO || 'safeidifsp@gmail.com',
+    });
+    await this.sender.send({ to: user.email, ...email });
     return { sent: true };
   }
 

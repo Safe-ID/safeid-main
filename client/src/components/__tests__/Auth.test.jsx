@@ -2,11 +2,12 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Auth from '../Auth'
-import { login, setAuthTokens, signup } from '../../lib/api'
+import { forgotPassword, login, setAuthTokens, signup } from '../../lib/api'
 
 vi.mock('../../lib/api', () => ({
   API_BASE_URL: 'http://localhost:3000',
   clearToken: vi.fn(),
+  forgotPassword: vi.fn(),
   login: vi.fn(),
   resendVerification: vi.fn(),
   setAuthTokens: vi.fn(),
@@ -21,6 +22,33 @@ async function fillRegister(user, { email = 'Jane@Example.com', password = 'Stro
   await user.type(screen.getByLabelText('CONFIRMAR SENHA'), confirm)
   if (terms) await user.click(screen.getByRole('checkbox', { name: /aceito os Termos de Uso/ }))
 }
+
+describe('Auth (esqueci minha senha)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('envia o email digitado e mostra a resposta genérica', async () => {
+    forgotPassword.mockResolvedValue({ message: 'Se houver uma conta com este email, enviamos um link.' })
+    const user = userEvent.setup()
+    render(<Auth mode="login" {...props} />)
+
+    await user.type(screen.getByLabelText('EMAIL'), 'dono@example.com')
+    await user.click(screen.getByRole('button', { name: 'Esqueci minha senha' }))
+
+    // O email já digitado no login vem preenchido
+    expect(screen.getByLabelText('EMAIL')).toHaveValue('dono@example.com')
+    await user.click(screen.getByRole('button', { name: 'Enviar link' }))
+
+    expect(forgotPassword).toHaveBeenCalledWith('dono@example.com')
+    expect(await screen.findByRole('status')).toHaveTextContent('Se houver uma conta com este email')
+  })
+
+  it('não aparece no cadastro', () => {
+    render(<Auth mode="register" {...props} />)
+    expect(screen.queryByRole('button', { name: 'Esqueci minha senha' })).not.toBeInTheDocument()
+  })
+})
 
 describe('Auth (cadastro)', () => {
   beforeEach(() => {

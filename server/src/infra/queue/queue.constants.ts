@@ -21,6 +21,8 @@ export const JOB_RETRY_INITIAL_SCAN = 'retry-initial-scan';
 // Jobs da fila email
 export const JOB_SEND_VERIFICATION_EMAIL = 'send-verification-email';
 export const JOB_SEND_NEW_BREACH_ALERT = 'send-new-breach-alert';
+export const JOB_SEND_PASSWORD_RESET = 'send-password-reset';
+export const JOB_SEND_PASSWORD_CHANGED = 'send-password-changed';
 
 // Prioridade do monitor-check: o scan interativo (sem priority) sempre passa na frente
 export const MONITOR_CHECK_PRIORITY = 10;

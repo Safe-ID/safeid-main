@@ -35,6 +35,7 @@ describe('EmailVerificationService', () => {
         findUnique: jest.fn(),
         deleteMany: jest.fn(async () => ({ count: 4 })),
       },
+      passwordResetToken: { deleteMany: jest.fn(async () => ({ count: 1 })) },
       user: { deleteMany: jest.fn(async () => ({ count: 2 })) },
     };
 
@@ -203,6 +204,9 @@ describe('EmailVerificationService', () => {
       },
     });
     expect(prisma.emailVerificationToken.deleteMany).toHaveBeenCalledWith({
+      where: { expiresAt: { lt: new Date('2026-10-08T12:00:00.000Z') } },
+    });
+    expect(prisma.passwordResetToken.deleteMany).toHaveBeenCalledWith({
       where: { expiresAt: { lt: new Date('2026-10-08T12:00:00.000Z') } },
     });
 

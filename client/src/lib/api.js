@@ -184,6 +184,35 @@ export async function fetchScanDetail(jobId) {
   return request(`/api/v1/scan/${jobId}`, { method: "GET" });
 }
 
+export async function forgotPassword(email) {
+  return request("/api/v1/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+    token: null,
+  });
+}
+
+export async function resetPassword(token, password) {
+  return request("/api/v1/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, password }),
+    token: null,
+  });
+}
+
+// Devolve um par novo de tokens: as outras sessões caem, esta continua
+export async function changePassword(currentPassword, newPassword) {
+  const tokens = await request("/api/v1/auth/change-password", {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  setAuthTokens(tokens);
+}
+
+export async function exportAccountData() {
+  return request("/api/v1/auth/me/export", { method: "GET" });
+}
+
 export async function deleteAccount() {
   return request("/api/v1/auth/me", {
     method: "DELETE",

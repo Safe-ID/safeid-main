@@ -23,6 +23,7 @@ export interface AuthUserDto {
   id: number;
   email: string;
   emailVerified: boolean;
+  hasPassword?: boolean;
   monitoringEnabled: boolean;
   lastMonitoredAt?: string | Date | null;
   scanSnapshot?: ScanSnapshotDto | null;
@@ -57,6 +58,31 @@ export class VerifyEmailDto {
 export class ResendVerificationDto {
   @IsEmail()
   email!: string;
+}
+
+export class ForgotPasswordDto {
+  @IsEmail()
+  email!: string;
+}
+
+export class ResetPasswordDto {
+  // base64url de 32 bytes
+  @IsString()
+  @Length(43, 43)
+  token!: string;
+
+  @IsString()
+  @MinLength(8)
+  password!: string;
+}
+
+export class ChangePasswordDto {
+  @IsString()
+  currentPassword!: string;
+
+  @IsString()
+  @MinLength(8)
+  newPassword!: string;
 }
 
 export interface SignupResponseDto {

@@ -152,6 +152,10 @@ export class EmailVerificationService {
       where: { expiresAt: { lt: new Date(now.getTime() - 7 * DAY_S * 1000) } },
     });
 
+    await this.prisma.passwordResetToken.deleteMany({
+      where: { expiresAt: { lt: new Date(now.getTime() - 7 * DAY_S * 1000) } },
+    });
+
     log('info', 'EmailVerification', 'verification.cleanup', { users: users.count, tokens: tokens.count });
     return { users: users.count, tokens: tokens.count };
   }

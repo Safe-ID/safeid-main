@@ -6,6 +6,7 @@ import { ScanModule } from '../../src/modules/scan/scan.module';
 import { ScanService } from '../../src/modules/scan/services/scan.service';
 import { PrismaService } from '../../src/infra/database/prisma.service';
 import { EmailVerificationService } from '../../src/modules/auth/email-verification.service';
+import { PasswordService } from '../../src/modules/auth/password.service';
 import { JwtAuthGuard } from '../../src/modules/auth/guards/jwt-auth.guard';
 
 describe('Scan API E2E', () => {
@@ -60,6 +61,8 @@ describe('Scan API E2E', () => {
       .useValue(prismaMock)
       .overrideProvider(EmailVerificationService)
       .useValue({ canResend: jest.fn(async () => false), sendVerificationEmail: jest.fn() })
+      .overrideProvider(PasswordService)
+      .useValue({})
       .overrideProvider(ScanService)
       .useValue(scanServiceMock)
       .compile();
