@@ -24,17 +24,27 @@ export const RATE_LIMITS = {
   exportData: { default: { limit: 5, ttl: 15 * MINUTE } },
 };
 
+// Quantos proxies confiáveis ficam na frente da aplicação (ALB = 1; com CloudFront na
+// frente da API também, seriam 2). Cada um acrescenta ao fim do X-Forwarded-For o IP de
+// quem o chamou, então o IP real do cliente é o que o proxy mais próximo escreveu.
+const TRUSTED_PROXY_HOPS = Math.max(1, Number(process.env.TRUSTED_PROXY_HOPS) || 1);
+
 /**
- * Atrás do CloudFront/ALB todas as requisições chegam com o IP do proxy.
- * O IP do cliente vem no primeiro item do X-Forwarded-For, então ele é usado
- * quando existe, sem precisar configurar nada no Express.
+ * IP do cliente para o rate limit. O X-Forwarded-For é uma lista "cliente, proxy1, proxy2":
+ * os itens da esquerda vêm do cliente e podem ser forjados; só os que os proxies confiáveis
+ * acrescentam à direita são confiáveis. Por isso usamos o item a TRUSTED_PROXY_HOPS posições
+ * do fim — o que o proxy mais externo registrou — e não o primeiro, que o cliente controla.
  */
 export function getClientIp(req: Record<string, any>): string {
   const forwardedFor = req.headers?.['x-forwarded-for'];
-  const firstForwarded = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
-  const clientIp = typeof firstForwarded === 'string' ? firstForwarded.split(',')[0].trim() : '';
+  const raw = Array.isArray(forwardedFor) ? forwardedFor : typeof forwardedFor === 'string' ? [forwardedFor] : [];
+  const ips = raw.flatMap((value) => String(value).split(',')).map((ip) => ip.trim()).filter(Boolean);
 
-  return clientIp || req.ip || req.socket?.remoteAddress || 'unknown';
+  if (ips.length > 0) {
+    return ips[Math.max(0, ips.length - TRUSTED_PROXY_HOPS)];
+  }
+
+  return req.ip || req.socket?.remoteAddress || 'unknown';
 }
 
 @Injectable()
