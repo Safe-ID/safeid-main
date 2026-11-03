@@ -1,11 +1,11 @@
 # Relatórios de teste
 
-Campanha de 03/11/2026, sobre o commit `f9677df` da `main` (produção ainda roda a imagem anterior ao PR #123).
+Campanha de 03/11/2026, sobre o commit `fbc4e58` da `main`, com as correções S01 (PR #123) e S07 (PR #127) em produção.
 
 | Relatório | Resultado |
 |---|---|
 | [Alerta real por e-mail](relatorio-alerta-email.pdf) | Aprovado, em produção |
-| [Segurança (pentest)](relatorio-pentest.pdf) | Sem achado alto ou crítico em aberto; achado médio S07 recomendado corrigir |
+| [Segurança (pentest)](relatorio-pentest.pdf) | Todos os achados corrigidos ou aceitos (S01 e S07 resolvidos e reconfirmados em produção) |
 | [Carga com k6](relatorio-carga-k6.pdf) | Metas medidas atingidas; parte da Tabela 2 não é mensurável |
 | [E2E com Playwright](relatorio-e2e-playwright.pdf) | Aprovado, em cópia local |
 

@@ -1,0 +1,28 @@
+{
+ "gerado_em": "2026-11-03",
+ "sem_cabecalho_forjado": [
+  401,
+  401,
+  401,
+  401,
+  401,
+  429,
+  429
+ ],
+ "com_cabecalho_forjado": [
+  429,
+  429,
+  429,
+  429,
+  429,
+  429,
+  429,
+  429,
+  429,
+  429,
+  429,
+  429
+ ],
+ "mesmo_ip_bloqueia": true,
+ "ips_forjados_escapam": false
+}
