@@ -11,7 +11,7 @@ Situação real do backend em 17/10/2026, com a evidência de cada item. Todo n�
 | 1 | Arquitetura em camadas | ✅ | `core/` sem dependência de HTTP ou Prisma; `infra/`, `modules/`, `shared/` |
 | 2 | Use cases e repositórios | ✅ | `ExecuteRiskScanUseCase`, `ScanHistoryRepository` (interface), `UserBreachRepository` |
 | 3 | TypeScript strict | ✅ | `"strict": true` no `tsconfig.json` |
-| 4 | Cabeçalhos de segurança | ✅ | `helmet()` no `main.ts` |
+| 4 | Cabeçalhos de segurança | ✅ | `helmet()` na API; HSTS, CSP e os demais no site pela política de cabeçalhos do CloudFront |
 | 5 | Autenticação JWT | ✅ | Acesso 24 h + refresh 7 dias com `typ` separado; `JwtStrategy` confere a conta no banco |
 | 6 | Verificação de e-mail | ✅ | Token de uso único, validade de 24 h, só o hash no banco |
 | 7 | Hash de senha | ✅ | bcrypt, mínimo de 8 caracteres; recuperação por link de uso único (1 h, só o hash no banco); trocar a senha encerra as outras sessões |

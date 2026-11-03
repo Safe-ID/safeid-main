@@ -3,7 +3,6 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import compression from 'compression';
-import session from 'express-session';
 import { AppModule } from './app.module';
 import { getAppRole, servesHttp } from './shared/config/app-role';
 import { log } from './shared/utils/logger';
@@ -31,21 +30,6 @@ async function bootstrap() {
   // Security middleware
   app.use(helmet());
   app.use(compression());
-
-  // Session middleware
-  app.use(
-    session({
-      secret: process.env.SESSION_SECRET || 'local-session-secret',
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        httpOnly: true,
-        secure: nodeEnv === 'production',
-        sameSite: 'strict',
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      },
-    }),
-  );
 
   // CORS configuration
   app.enableCors({

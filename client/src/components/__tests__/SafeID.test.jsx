@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import SafeID from '../../Safe_ID'
 import { fetchMe, getToken } from '../../lib/api'
 import { classificationLabel, plural } from '../safeidData'
@@ -163,6 +163,55 @@ describe('textos legais', () => {
     window.dispatchEvent(new PopStateEvent('popstate'))
 
     expect(await screen.findByRole('button', { name: 'Criar conta grátis' })).toBeInTheDocument()
+  })
+})
+
+describe('endereço inexistente', () => {
+  beforeEach(() => {
+    window.history.replaceState({}, '', '/pagina-que-nao-existe')
+    vi.mocked(getToken).mockReturnValue(null)
+  })
+
+  afterEach(() => {
+    window.history.replaceState({}, '', '/')
+  })
+
+  it('mostra a página não encontrada e volta para o início', async () => {
+    const user = userEvent.setup()
+    render(<SafeID />)
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Página não encontrada' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Voltar para o início' }))
+
+    expect(window.location.pathname).toBe('/')
+    expect(screen.queryByRole('heading', { name: 'Página não encontrada' })).not.toBeInTheDocument()
+  })
+
+  it('logado, continua na página não encontrada e o botão leva ao painel', async () => {
+    vi.mocked(getToken).mockReturnValue('token')
+    vi.mocked(fetchMe).mockResolvedValue(profile)
+    const user = userEvent.setup()
+    render(<SafeID />)
+
+    await user.click(await screen.findByRole('button', { name: 'Voltar para o início' }))
+
+    expect(await screen.findByRole('heading', { level: 1, name: /Olá, w+/ })).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/')
+  })
+
+  it('abrir um texto legal e voltar não prende a pessoa na página não encontrada', async () => {
+    const user = userEvent.setup()
+    render(<SafeID />)
+
+    await screen.findByRole('heading', { level: 1, name: 'Página não encontrada' })
+    await user.click(screen.getByRole('link', { name: 'Termos de Uso' }))
+    expect(window.location.pathname).toBe('/termos')
+
+    await user.click(screen.getAllByRole('button', { name: /Voltar/ })[0])
+
+    expect(window.location.pathname).toBe('/')
+    expect(screen.queryByRole('heading', { name: 'Página não encontrada' })).not.toBeInTheDocument()
   })
 })
 

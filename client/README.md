@@ -110,7 +110,7 @@ Monte as classes sempre escritas por inteiro. O Tailwind só gera as classes que
 
 O build (`npm run build`) gera arquivos estáticos em `dist/`, publicados no S3 + CloudFront:
 
-- `provision-s3-cloudfront.ps1`: cria o bucket privado e a distribuição (uma vez);
+- `provision-s3-cloudfront.ps1`: cria o bucket privado e a distribuição (uma vez) e mantém os cabeçalhos de segurança do site;
 - `deploy-s3-cloudfront.ps1`: faz o build com o `VITE_API_URL` de produção, envia ao S3 e limpa o cache do CloudFront.
 
 Os dois leem o `client/.env.production` (modelo em `.env.production.example`, fora do git). Normalmente eles rodam pelo `deploy.ps1` da raiz, que publica backend e frontend juntos. O passo a passo está em [DEPLOY_PRODUCAO.md](../docs/Backend/DEPLOY_PRODUCAO.md).
