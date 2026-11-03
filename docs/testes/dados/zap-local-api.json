@@ -1,8 +1,8 @@
 {
  "@programName": "ZAP",
  "@version": "2.17.0",
- "@generated": "Tue, 3 Nov 2026 19:03:22",
- "created": "2026-11-03T19:03:22.784568495Z",
+ "@generated": "Tue, 3 Nov 2026 20:56:57",
+ "created": "2026-11-03T20:56:57.356343644Z",
  "insights": [
   {
    "level": "Low",
@@ -13,157 +13,155 @@
    "statistic": "1"
   },
   {
-   "level": "Low",
-   "reason": "Exceeded High",
-   "site": "https://accounts.google.com",
-   "key": "insight.response.slow",
-   "description": "Percentage of slow responses",
-   "statistic": "99"
-  },
-  {
    "level": "Info",
    "reason": "Informational",
-   "site": "",
-   "key": "insight.network.failure",
-   "description": "Percentage of network failures",
-   "statistic": "1"
-  },
-  {
-   "level": "Info",
-   "reason": "Informational",
-   "site": "http://host.docker.internal:3100",
+   "site": "http://host.docker.internal:3200",
    "key": "insight.code.2xx",
    "description": "Percentage of responses with status code 2xx",
-   "statistic": "37"
-  },
-  {
-   "level": "Info",
-   "reason": "Informational",
-   "site": "http://host.docker.internal:3100",
-   "key": "insight.code.3xx",
-   "description": "Percentage of responses with status code 3xx",
-   "statistic": "8"
-  },
-  {
-   "level": "Info",
-   "reason": "Informational",
-   "site": "http://host.docker.internal:3100",
-   "key": "insight.code.4xx",
-   "description": "Percentage of responses with status code 4xx",
-   "statistic": "54"
-  },
-  {
-   "level": "Info",
-   "reason": "Informational",
-   "site": "http://host.docker.internal:3100",
-   "key": "insight.endpoint.ctype.application/json",
-   "description": "Percentage of endpoints with content type application/json",
-   "statistic": "83"
-  },
-  {
-   "level": "Info",
-   "reason": "Informational",
-   "site": "http://host.docker.internal:3100",
-   "key": "insight.endpoint.ctype.text/plain",
-   "description": "Percentage of endpoints with content type text/plain",
-   "statistic": "8"
-  },
-  {
-   "level": "Info",
-   "reason": "Informational",
-   "site": "http://host.docker.internal:3100",
-   "key": "insight.endpoint.method.GET",
-   "description": "Percentage of endpoints with method GET",
-   "statistic": "50"
-  },
-  {
-   "level": "Info",
-   "reason": "Informational",
-   "site": "http://host.docker.internal:3100",
-   "key": "insight.endpoint.method.PATCH",
-   "description": "Percentage of endpoints with method PATCH",
-   "statistic": "12"
-  },
-  {
-   "level": "Info",
-   "reason": "Informational",
-   "site": "http://host.docker.internal:3100",
-   "key": "insight.endpoint.method.POST",
-   "description": "Percentage of endpoints with method POST",
-   "statistic": "37"
-  },
-  {
-   "level": "Info",
-   "reason": "Informational",
-   "site": "http://host.docker.internal:3100",
-   "key": "insight.endpoint.total",
-   "description": "Count of total endpoints",
-   "statistic": "24"
-  },
-  {
-   "level": "Info",
-   "reason": "Informational",
-   "site": "https://accounts.google.com",
-   "key": "insight.code.2xx",
-   "description": "Percentage of responses with status code 2xx",
-   "statistic": "40"
-  },
-  {
-   "level": "Info",
-   "reason": "Informational",
-   "site": "https://accounts.google.com",
-   "key": "insight.code.3xx",
-   "description": "Percentage of responses with status code 3xx",
-   "statistic": "48"
-  },
-  {
-   "level": "Info",
-   "reason": "Exceeded Low",
-   "site": "https://accounts.google.com",
-   "key": "insight.code.4xx",
-   "description": "Percentage of responses with status code 4xx",
-   "statistic": "11"
-  },
-  {
-   "level": "Info",
-   "reason": "Informational",
-   "site": "https://accounts.google.com",
-   "key": "insight.endpoint.ctype.application/binary",
-   "description": "Percentage of endpoints with content type application/binary",
    "statistic": "4"
   },
   {
    "level": "Info",
    "reason": "Informational",
-   "site": "https://accounts.google.com",
-   "key": "insight.endpoint.ctype.text/html",
-   "description": "Percentage of endpoints with content type text/html",
+   "site": "http://host.docker.internal:3200",
+   "key": "insight.code.3xx",
+   "description": "Percentage of responses with status code 3xx",
+   "statistic": "4"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "http://host.docker.internal:3200",
+   "key": "insight.code.4xx",
+   "description": "Percentage of responses with status code 4xx",
+   "statistic": "91"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "http://host.docker.internal:3200",
+   "key": "insight.endpoint.ctype.application/json",
+   "description": "Percentage of endpoints with content type application/json",
    "statistic": "95"
   },
   {
    "level": "Info",
    "reason": "Informational",
-   "site": "https://accounts.google.com",
-   "key": "insight.endpoint.method.GET",
-   "description": "Percentage of endpoints with method GET",
-   "statistic": "100"
+   "site": "http://host.docker.internal:3200",
+   "key": "insight.endpoint.ctype.text/plain",
+   "description": "Percentage of endpoints with content type text/plain",
+   "statistic": "1"
   },
   {
    "level": "Info",
    "reason": "Informational",
-   "site": "https://accounts.google.com",
+   "site": "http://host.docker.internal:3200",
+   "key": "insight.endpoint.method.GET",
+   "description": "Percentage of endpoints with method GET",
+   "statistic": "53"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "http://host.docker.internal:3200",
+   "key": "insight.endpoint.method.PATCH",
+   "description": "Percentage of endpoints with method PATCH",
+   "statistic": "7"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "http://host.docker.internal:3200",
+   "key": "insight.endpoint.method.POST",
+   "description": "Percentage of endpoints with method POST",
+   "statistic": "38"
+  },
+  {
+   "level": "Info",
+   "reason": "Informational",
+   "site": "http://host.docker.internal:3200",
    "key": "insight.endpoint.total",
    "description": "Count of total endpoints",
-   "statistic": "44"
+   "statistic": "65"
   }
  ],
  "site": [
   {
-   "@name": "http://host.docker.internal:3100",
+   "@name": "http://host.docker.internal:3200",
    "@host": "host.docker.internal",
-   "@port": "3100",
+   "@port": "3200",
    "@ssl": "false",
    "alerts": [
+    {
+     "pluginid": "10036",
+     "alertRef": "10036-2",
+     "alert": "Server Leaks Version Information via \"Server\" HTTP Response Header Field",
+     "name": "Server Leaks Version Information via \"Server\" HTTP Response Header Field",
+     "riskcode": "1",
+     "confidence": "3",
+     "riskdesc": "Low (High)",
+     "desc": "<p>The web/application server is leaking version information via the \"Server\" HTTP response header. Access to such information may facilitate attackers identifying other vulnerabilities your web/application server is subject to.</p>",
+     "instances": [
+      {
+       "id": "13",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/change-password",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/change-password ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "BaseHTTP/0.6 Python/3.14.4",
+       "otherinfo": ""
+      },
+      {
+       "id": "18",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/login",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/login ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "BaseHTTP/0.6 Python/3.14.4",
+       "otherinfo": ""
+      },
+      {
+       "id": "11",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/refresh",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/refresh ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "BaseHTTP/0.6 Python/3.14.4",
+       "otherinfo": ""
+      },
+      {
+       "id": "12",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/reset-password",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/reset-password ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "BaseHTTP/0.6 Python/3.14.4",
+       "otherinfo": ""
+      },
+      {
+       "id": "17",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/signup",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/signup ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "BaseHTTP/0.6 Python/3.14.4",
+       "otherinfo": ""
+      }
+     ],
+     "count": "5",
+     "systemic": true,
+     "solution": "<p>Ensure that your web server, application server, load balancer, etc. is configured to suppress the \"Server\" header or provide generic details.</p>",
+     "otherinfo": "",
+     "reference": "<p>https://httpd.apache.org/docs/current/mod/core.html#servertokens</p><p>https://learn.microsoft.com/en-us/previous-versions/msp-n-p/ff648552(v=pandp.10)</p><p>https://www.troyhunt.com/shhh-dont-let-your-response-headers/</p>",
+     "cweid": "497",
+     "wascid": "13",
+     "sourceid": "12"
+    },
     {
      "pluginid": "10096",
      "alertRef": "10096",
@@ -175,63 +173,33 @@
      "desc": "<p>A timestamp was disclosed by the application/web server. - Unix</p>",
      "instances": [
       {
-       "id": "18",
-       "uri": "http://host.docker.internal:3100/api/v1/auth/me",
-       "nodeName": "http://host.docker.internal:3100/api/v1/auth/me",
+       "id": "160",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/me",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/me",
        "method": "GET",
        "param": "",
        "attack": "",
-       "evidence": "1793732045",
-       "otherinfo": "1793732045, which evaluates to: 2026-11-03 18:54:05."
+       "evidence": "1793739382",
+       "otherinfo": "1793739382, which evaluates to: 2026-11-03 20:56:22."
       },
       {
-       "id": "41",
-       "uri": "http://host.docker.internal:3100/api/v1/auth/me/export",
-       "nodeName": "http://host.docker.internal:3100/api/v1/auth/me/export",
+       "id": "156",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/me/export",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/me/export",
        "method": "GET",
        "param": "",
        "attack": "",
-       "evidence": "1793732045",
-       "otherinfo": "1793732045, which evaluates to: 2026-11-03 18:54:05."
+       "evidence": "1793739382",
+       "otherinfo": "1793739382, which evaluates to: 2026-11-03 20:56:22."
       }
      ],
      "count": "2",
      "systemic": false,
      "solution": "<p>Manually confirm that the timestamp data is not sensitive, and that the data cannot be aggregated to disclose exploitable patterns.</p>",
-     "otherinfo": "<p>1793732045, which evaluates to: 2026-11-03 18:54:05.</p>",
+     "otherinfo": "<p>1793739382, which evaluates to: 2026-11-03 20:56:22.</p>",
      "reference": "<p>https://cwe.mitre.org/data/definitions/200.html</p>",
      "cweid": "497",
      "wascid": "13",
-     "sourceid": "26"
-    },
-    {
-     "pluginid": "100001",
-     "alertRef": "100001",
-     "alert": "Unexpected Content-Type was returned",
-     "name": "Unexpected Content-Type was returned",
-     "riskcode": "1",
-     "confidence": "3",
-     "riskdesc": "Low (High)",
-     "desc": "<p>A Content-Type of text/html was returned by the server.</p><p>This is not one of the types expected to be returned by an API.</p><p>Raised by the 'Alert on Unexpected Content Types' script</p>",
-     "instances": [
-      {
-       "id": "10",
-       "uri": "http://host.docker.internal:3100/api/v1/auth/google",
-       "nodeName": "http://host.docker.internal:3100/api/v1/auth/google",
-       "method": "GET",
-       "param": "",
-       "attack": "",
-       "evidence": "text/html",
-       "otherinfo": ""
-      }
-     ],
-     "count": "1",
-     "systemic": false,
-     "solution": "",
-     "otherinfo": "",
-     "reference": "",
-     "cweid": "-1",
-     "wascid": "-1",
      "sourceid": "13"
     },
     {
@@ -242,12 +210,82 @@
      "riskcode": "0",
      "confidence": "3",
      "riskdesc": "Informational (High)",
-     "desc": "<p>A response code of 401 was returned by the server.</p><p>This may indicate that the application is failing to handle unexpected input correctly.</p><p>Raised by the 'Alert on HTTP Response Code Error' script</p>",
+     "desc": "<p>A response code of 404 was returned by the server.</p><p>This may indicate that the application is failing to handle unexpected input correctly.</p><p>Raised by the 'Alert on HTTP Response Code Error' script</p>",
      "instances": [
       {
-       "id": "14",
-       "uri": "http://host.docker.internal:3100/api/health/jobs",
-       "nodeName": "http://host.docker.internal:3100/api/health/jobs",
+       "id": "37",
+       "uri": "http://host.docker.internal:3200",
+       "nodeName": "http://host.docker.internal:3200",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "330",
+       "uri": "http://host.docker.internal:3200/",
+       "nodeName": "http://host.docker.internal:3200/",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "28",
+       "uri": "http://host.docker.internal:3200/7708840258063679182",
+       "nodeName": "http://host.docker.internal:3200/7708840258063679182",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "39",
+       "uri": "http://host.docker.internal:3200/api",
+       "nodeName": "http://host.docker.internal:3200/api",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "331",
+       "uri": "http://host.docker.internal:3200/api/",
+       "nodeName": "http://host.docker.internal:3200/api/",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "29",
+       "uri": "http://host.docker.internal:3200/api/892509889249488777",
+       "nodeName": "http://host.docker.internal:3200/api/892509889249488777",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "30",
+       "uri": "http://host.docker.internal:3200/api/health/6189843983736174880",
+       "nodeName": "http://host.docker.internal:3200/api/health/6189843983736174880",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "10",
+       "uri": "http://host.docker.internal:3200/api/health/jobs",
+       "nodeName": "http://host.docker.internal:3200/api/health/jobs",
        "method": "GET",
        "param": "",
        "attack": "",
@@ -255,9 +293,9 @@
        "otherinfo": ""
       },
       {
-       "id": "11",
-       "uri": "http://host.docker.internal:3100/api/v1/auth/google/callback?code=code&state=Oklahoma",
-       "nodeName": "http://host.docker.internal:3100/api/v1/auth/google/callback (code,state)",
+       "id": "333",
+       "uri": "http://host.docker.internal:3200/api/health/jobs/",
+       "nodeName": "http://host.docker.internal:3200/api/health/jobs/",
        "method": "GET",
        "param": "",
        "attack": "",
@@ -265,9 +303,199 @@
        "otherinfo": ""
       },
       {
-       "id": "12",
-       "uri": "http://host.docker.internal:3100/api/v1/monitoring/preferences",
-       "nodeName": "http://host.docker.internal:3100/api/v1/monitoring/preferences ()({})",
+       "id": "42",
+       "uri": "http://host.docker.internal:3200/api/v1",
+       "nodeName": "http://host.docker.internal:3200/api/v1",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "334",
+       "uri": "http://host.docker.internal:3200/api/v1/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "31",
+       "uri": "http://host.docker.internal:3200/api/v1/205076560359089434",
+       "nodeName": "http://host.docker.internal:3200/api/v1/205076560359089434",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "45",
+       "uri": "http://host.docker.internal:3200/api/v1/auth",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "337",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "32",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/6566001572507532648",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/6566001572507532648",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "396",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/actuator/health",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/actuator/health",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "33",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/me/4804804904541566158",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/me/4804804904541566158",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "47",
+       "uri": "http://host.docker.internal:3200/api/v1/monitoring",
+       "nodeName": "http://host.docker.internal:3200/api/v1/monitoring",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "340",
+       "uri": "http://host.docker.internal:3200/api/v1/monitoring/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/monitoring/",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "34",
+       "uri": "http://host.docker.internal:3200/api/v1/monitoring/3156135479979064653",
+       "nodeName": "http://host.docker.internal:3200/api/v1/monitoring/3156135479979064653",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "80",
+       "uri": "http://host.docker.internal:3200/api/v1/monitoring/unsubscribe?token=%3C%21--%23EXEC+cmd%3D%22ls+%2F%22--%3E",
+       "nodeName": "http://host.docker.internal:3200/api/v1/monitoring/unsubscribe (token)",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "429",
+       "otherinfo": ""
+      },
+      {
+       "id": "338",
+       "uri": "http://host.docker.internal:3200/api/v1/monitoring/unsubscribe/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/monitoring/unsubscribe/",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "429",
+       "otherinfo": ""
+      },
+      {
+       "id": "49",
+       "uri": "http://host.docker.internal:3200/api/v1/notifications/1.2",
+       "nodeName": "http://host.docker.internal:3200/api/v1/notifications/1.2",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "342",
+       "uri": "http://host.docker.internal:3200/api/v1/notifications/1.2/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/notifications/1.2/",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "36",
+       "uri": "http://host.docker.internal:3200/api/v1/notifications/1.2/2646751746087724185",
+       "nodeName": "http://host.docker.internal:3200/api/v1/notifications/1.2/2646751746087724185",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "35",
+       "uri": "http://host.docker.internal:3200/api/v1/notifications/6679751292635050053",
+       "nodeName": "http://host.docker.internal:3200/api/v1/notifications/6679751292635050053",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "51",
+       "uri": "http://host.docker.internal:3200/api/v1/scan",
+       "nodeName": "http://host.docker.internal:3200/api/v1/scan",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "343",
+       "uri": "http://host.docker.internal:3200/api/v1/scan/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/scan/",
+       "method": "GET",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "8",
+       "uri": "http://host.docker.internal:3200/api/v1/monitoring/preferences",
+       "nodeName": "http://host.docker.internal:3200/api/v1/monitoring/preferences ()({})",
        "method": "PATCH",
        "param": "",
        "attack": "",
@@ -275,9 +503,29 @@
        "otherinfo": ""
       },
       {
-       "id": "15",
-       "uri": "http://host.docker.internal:3100/api/v1/notifications/1.2/read",
-       "nodeName": "http://host.docker.internal:3100/api/v1/notifications/1.2/read",
+       "id": "325",
+       "uri": "http://host.docker.internal:3200/api/v1/monitoring/preferences/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/monitoring/preferences/ ()({})",
+       "method": "PATCH",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "23",
+       "uri": "http://host.docker.internal:3200/api/v1/notifications/1.2/read",
+       "nodeName": "http://host.docker.internal:3200/api/v1/notifications/1.2/read",
+       "method": "PATCH",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "328",
+       "uri": "http://host.docker.internal:3200/api/v1/notifications/1.2/read/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/notifications/1.2/read/",
        "method": "PATCH",
        "param": "",
        "attack": "",
@@ -286,8 +534,18 @@
       },
       {
        "id": "7",
-       "uri": "http://host.docker.internal:3100/api/v1/auth/change-password",
-       "nodeName": "http://host.docker.internal:3100/api/v1/auth/change-password ()({})",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/change-password",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/change-password ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "319",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/change-password/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/change-password/ ()({})",
        "method": "POST",
        "param": "",
        "attack": "",
@@ -296,8 +554,18 @@
       },
       {
        "id": "5",
-       "uri": "http://host.docker.internal:3100/api/v1/auth/forgot-password",
-       "nodeName": "http://host.docker.internal:3100/api/v1/auth/forgot-password ()({})",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/forgot-password",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/forgot-password ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "318",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/forgot-password/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/forgot-password/ ()({})",
        "method": "POST",
        "param": "",
        "attack": "",
@@ -306,8 +574,18 @@
       },
       {
        "id": "3",
-       "uri": "http://host.docker.internal:3100/api/v1/auth/login",
-       "nodeName": "http://host.docker.internal:3100/api/v1/auth/login ()({})",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/login",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/login ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "317",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/login/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/login/ ()({})",
        "method": "POST",
        "param": "",
        "attack": "",
@@ -316,8 +594,18 @@
       },
       {
        "id": "4",
-       "uri": "http://host.docker.internal:3100/api/v1/auth/refresh",
-       "nodeName": "http://host.docker.internal:3100/api/v1/auth/refresh ()({})",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/refresh",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/refresh ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "320",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/refresh/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/refresh/ ()({})",
        "method": "POST",
        "param": "",
        "attack": "",
@@ -326,8 +614,18 @@
       },
       {
        "id": "2",
-       "uri": "http://host.docker.internal:3100/api/v1/auth/resend-verification",
-       "nodeName": "http://host.docker.internal:3100/api/v1/auth/resend-verification ()({})",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/resend-verification",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/resend-verification ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "323",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/resend-verification/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/resend-verification/ ()({})",
        "method": "POST",
        "param": "",
        "attack": "",
@@ -336,8 +634,18 @@
       },
       {
        "id": "6",
-       "uri": "http://host.docker.internal:3100/api/v1/auth/reset-password",
-       "nodeName": "http://host.docker.internal:3100/api/v1/auth/reset-password ()({})",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/reset-password",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/reset-password ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "322",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/reset-password/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/reset-password/ ()({})",
        "method": "POST",
        "param": "",
        "attack": "",
@@ -346,8 +654,18 @@
       },
       {
        "id": "0",
-       "uri": "http://host.docker.internal:3100/api/v1/auth/signup",
-       "nodeName": "http://host.docker.internal:3100/api/v1/auth/signup ()({})",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/signup",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/signup ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "321",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/signup/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/signup/ ()({})",
        "method": "POST",
        "param": "",
        "attack": "",
@@ -356,8 +674,8 @@
       },
       {
        "id": "1",
-       "uri": "http://host.docker.internal:3100/api/v1/auth/verify-email",
-       "nodeName": "http://host.docker.internal:3100/api/v1/auth/verify-email ()({})",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/verify-email",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/verify-email ()({})",
        "method": "POST",
        "param": "",
        "attack": "",
@@ -365,24 +683,124 @@
        "otherinfo": ""
       },
       {
-       "id": "13",
-       "uri": "http://host.docker.internal:3100/api/v1/monitoring/unsubscribe?token=token",
-       "nodeName": "http://host.docker.internal:3100/api/v1/monitoring/unsubscribe (token)",
+       "id": "327",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/verify-email/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/verify-email/ ()({})",
        "method": "POST",
        "param": "",
        "attack": "",
        "evidence": "400",
        "otherinfo": ""
+      },
+      {
+       "id": "9",
+       "uri": "http://host.docker.internal:3200/api/v1/monitoring/unsubscribe?token=token",
+       "nodeName": "http://host.docker.internal:3200/api/v1/monitoring/unsubscribe (token)",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "400",
+       "otherinfo": ""
+      },
+      {
+       "id": "70",
+       "uri": "http://host.docker.internal:3200/api/v1/monitoring/unsubscribe?token=%3C%21--%23EXEC+cmd%3D%22ls+%2F%22--%3E",
+       "nodeName": "http://host.docker.internal:3200/api/v1/monitoring/unsubscribe (token)",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "429",
+       "otherinfo": ""
+      },
+      {
+       "id": "326",
+       "uri": "http://host.docker.internal:3200/api/v1/monitoring/unsubscribe/",
+       "nodeName": "http://host.docker.internal:3200/api/v1/monitoring/unsubscribe/",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "429",
+       "otherinfo": ""
+      },
+      {
+       "id": "242",
+       "uri": "http://host.docker.internal:3200/computeMetadata/v1/",
+       "nodeName": "http://host.docker.internal:3200/computeMetadata/v1/ ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "238",
+       "uri": "http://host.docker.internal:3200/latest/meta-data/",
+       "nodeName": "http://host.docker.internal:3200/latest/meta-data/ ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "268",
+       "uri": "http://host.docker.internal:3200/metadata/instance",
+       "nodeName": "http://host.docker.internal:3200/metadata/instance ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "271",
+       "uri": "http://host.docker.internal:3200/metadata/v1",
+       "nodeName": "http://host.docker.internal:3200/metadata/v1 ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "248",
+       "uri": "http://host.docker.internal:3200/opc/v1/instance/",
+       "nodeName": "http://host.docker.internal:3200/opc/v1/instance/ ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "253",
+       "uri": "http://host.docker.internal:3200/opc/v2/instance/",
+       "nodeName": "http://host.docker.internal:3200/opc/v2/instance/ ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
+      },
+      {
+       "id": "274",
+       "uri": "http://host.docker.internal:3200/openstack/latest/meta_data.json",
+       "nodeName": "http://host.docker.internal:3200/openstack/latest/meta_data.json ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "404",
+       "otherinfo": ""
       }
      ],
-     "count": "13",
+     "count": "58",
      "systemic": false,
      "solution": "",
      "otherinfo": "",
      "reference": "",
      "cweid": "388",
      "wascid": "20",
-     "sourceid": "37"
+     "sourceid": "54"
     },
     {
      "pluginid": "10024",
@@ -395,9 +813,9 @@
      "desc": "<p>The request appeared to contain sensitive information leaked in the URL. This can violate PCI and most organizational compliance policies. You can configure the list of strings for this check to add or remove values specific to your environment.</p>",
      "instances": [
       {
-       "id": "43",
-       "uri": "http://host.docker.internal:3100/api/v1/monitoring/unsubscribe?token=token",
-       "nodeName": "http://host.docker.internal:3100/api/v1/monitoring/unsubscribe (token)",
+       "id": "148",
+       "uri": "http://host.docker.internal:3200/api/v1/monitoring/unsubscribe?token=token",
+       "nodeName": "http://host.docker.internal:3200/api/v1/monitoring/unsubscribe (token)",
        "method": "GET",
        "param": "token",
        "attack": "",
@@ -405,9 +823,9 @@
        "otherinfo": "The URL contains potentially sensitive information. The following string was found via the pattern: token\ntoken"
       },
       {
-       "id": "46",
-       "uri": "http://host.docker.internal:3100/api/v1/monitoring/unsubscribe?token=token",
-       "nodeName": "http://host.docker.internal:3100/api/v1/monitoring/unsubscribe (token)",
+       "id": "155",
+       "uri": "http://host.docker.internal:3200/api/v1/monitoring/unsubscribe?token=token",
+       "nodeName": "http://host.docker.internal:3200/api/v1/monitoring/unsubscribe (token)",
        "method": "POST",
        "param": "token",
        "attack": "",
@@ -422,7 +840,7 @@
      "reference": "",
      "cweid": "598",
      "wascid": "13",
-     "sourceid": "35"
+     "sourceid": "22"
     },
     {
      "pluginid": "10049",
@@ -435,39 +853,9 @@
      "desc": "<p>The response contents are not storable by caching components such as proxy servers. If the response does not contain sensitive, personal or user-specific information, it may benefit from being stored and cached, to improve performance.</p>",
      "instances": [
       {
-       "id": "23",
-       "uri": "http://host.docker.internal:3100/api/health/jobs",
-       "nodeName": "http://host.docker.internal:3100/api/health/jobs",
-       "method": "GET",
-       "param": "",
-       "attack": "",
-       "evidence": "authorization:",
-       "otherinfo": ""
-      },
-      {
-       "id": "19",
-       "uri": "http://host.docker.internal:3100/api/v1/auth/me",
-       "nodeName": "http://host.docker.internal:3100/api/v1/auth/me",
-       "method": "GET",
-       "param": "",
-       "attack": "",
-       "evidence": "authorization:",
-       "otherinfo": ""
-      },
-      {
-       "id": "33",
-       "uri": "http://host.docker.internal:3100/api/v1/monitoring/status",
-       "nodeName": "http://host.docker.internal:3100/api/v1/monitoring/status",
-       "method": "GET",
-       "param": "",
-       "attack": "",
-       "evidence": "authorization:",
-       "otherinfo": ""
-      },
-      {
-       "id": "24",
-       "uri": "http://host.docker.internal:3100/api/v1/auth/refresh",
-       "nodeName": "http://host.docker.internal:3100/api/v1/auth/refresh ()({})",
+       "id": "16",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/change-password",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/change-password ()({})",
        "method": "POST",
        "param": "",
        "attack": "",
@@ -475,9 +863,39 @@
        "otherinfo": ""
       },
       {
-       "id": "20",
-       "uri": "http://host.docker.internal:3100/api/v1/auth/resend-verification",
-       "nodeName": "http://host.docker.internal:3100/api/v1/auth/resend-verification ()({})",
+       "id": "25",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/forgot-password",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/forgot-password ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "authorization:",
+       "otherinfo": ""
+      },
+      {
+       "id": "14",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/refresh",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/refresh ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "authorization:",
+       "otherinfo": ""
+      },
+      {
+       "id": "15",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/reset-password",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/reset-password ()({})",
+       "method": "POST",
+       "param": "",
+       "attack": "",
+       "evidence": "authorization:",
+       "otherinfo": ""
+      },
+      {
+       "id": "24",
+       "uri": "http://host.docker.internal:3200/api/v1/auth/signup",
+       "nodeName": "http://host.docker.internal:3200/api/v1/auth/signup ()({})",
        "method": "POST",
        "param": "",
        "attack": "",
@@ -492,13 +910,10 @@
      "reference": "<p>https://datatracker.ietf.org/doc/html/rfc7234</p><p>https://datatracker.ietf.org/doc/html/rfc7231</p><p>https://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html</p>",
      "cweid": "524",
      "wascid": "13",
-     "sourceid": "37"
+     "sourceid": "12"
     }
    ]
   }
  ],
- "sequences": [],
- "fora_do_escopo_removido": [
-  "https://accounts.google.com"
- ]
+ "sequences": []
 }

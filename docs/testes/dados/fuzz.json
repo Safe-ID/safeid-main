@@ -1,0 +1,12 @@
+{
+ "requisicoes": 400,
+ "por_status": {
+  "200": 13,
+  "201": 17,
+  "400": 251,
+  "401": 107,
+  "413": 10
+ },
+ "api_responde_no_fim": true,
+ "problemas": []
+}

@@ -1,8 +1,8 @@
 {
  "@programName": "ZAP",
  "@version": "2.17.0",
- "@generated": "Tue, 3 Nov 2026 17:53:44",
- "created": "2026-11-03T17:53:44.695910611Z",
+ "@generated": "Tue, 3 Nov 2026 20:54:30",
+ "created": "2026-11-03T20:54:30.732284304Z",
  "insights": [
   {
    "level": "Info",
@@ -88,7 +88,7 @@
      "reference": "<p>https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#web-content-caching</p><p>https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Cache-Control</p><p>https://grayduck.mn/2021/09/13/cache-control-recommendations/</p>",
      "cweid": "525",
      "wascid": "13",
-     "sourceid": "1"
+     "sourceid": "13"
     },
     {
      "pluginid": "10049",
@@ -111,7 +111,7 @@
        "otherinfo": "In the absence of an explicitly specified caching lifetime directive in the response, a liberal lifetime heuristic of 1 year was assumed. This is permitted by rfc7234."
       },
       {
-       "id": "6",
+       "id": "8",
        "uri": "https://api.safeid.app.br/api",
        "nodeName": "https://api.safeid.app.br/api",
        "method": "GET",
@@ -121,7 +121,7 @@
        "otherinfo": "In the absence of an explicitly specified caching lifetime directive in the response, a liberal lifetime heuristic of 1 year was assumed. This is permitted by rfc7234."
       },
       {
-       "id": "3",
+       "id": "5",
        "uri": "https://api.safeid.app.br/api/health",
        "nodeName": "https://api.safeid.app.br/api/health",
        "method": "GET",
@@ -131,7 +131,7 @@
        "otherinfo": "In the absence of an explicitly specified caching lifetime directive in the response, a liberal lifetime heuristic of 1 year was assumed. This is permitted by rfc7234."
       },
       {
-       "id": "4",
+       "id": "6",
        "uri": "https://api.safeid.app.br/robots.txt",
        "nodeName": "https://api.safeid.app.br/robots.txt",
        "method": "GET",
@@ -141,7 +141,7 @@
        "otherinfo": "In the absence of an explicitly specified caching lifetime directive in the response, a liberal lifetime heuristic of 1 year was assumed. This is permitted by rfc7234."
       },
       {
-       "id": "7",
+       "id": "4",
        "uri": "https://api.safeid.app.br/sitemap.xml",
        "nodeName": "https://api.safeid.app.br/sitemap.xml",
        "method": "GET",
@@ -158,7 +158,7 @@
      "reference": "<p>https://datatracker.ietf.org/doc/html/rfc7234</p><p>https://datatracker.ietf.org/doc/html/rfc7231</p><p>https://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html</p>",
      "cweid": "524",
      "wascid": "13",
-     "sourceid": "10"
+     "sourceid": "4"
     }
    ]
   }

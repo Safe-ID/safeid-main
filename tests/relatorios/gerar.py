@@ -13,7 +13,7 @@ RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DADOS = os.path.join(RAIZ, "docs", "testes", "dados")
 HTML = os.path.join(RAIZ, "docs", "testes", "html")
 os.makedirs(HTML, exist_ok=True)
-COMMIT = "a778b8b"
+COMMIT = "f9677df"
 DATA = "03/11/2026"
 
 
@@ -99,6 +99,8 @@ pagina("relatorio-alerta-email.html", "Relatório de teste: alerta real por e-ma
 ver = carrega("verificacoes.json")
 aut = carrega("autorizacao.json")
 audit = carrega("npm-audit-server.json")
+fuzz = carrega("fuzz.json")
+xff = carrega("xff-bypass.json")
 cats = {}
 for r in ver:
     cats.setdefault(r["categoria"], []).append(r["ok"])
@@ -116,41 +118,34 @@ def zap(nome):
 
 zlin = []
 for nome, alvo, modo in (("prod-www", "www.safeid.app.br (produção)", "Passivo"), ("prod-api", "api.safeid.app.br (produção)", "Passivo"),
-                         ("local-api", "API local, autenticada, 38 URLs", "Ativo"), ("local-web", "Front local", "Ativo")):
+                         ("local-api", "API local, autenticada", "Ativo"), ("local-web", "Front local", "Ativo")):
     c, _ = zap(nome)
     zlin.append([alvo, modo, c["3"], c["2"], c["1"], c["0"]])
 
-altas = {}
-for a in audit["achados"]:
-    if a["severidade"] == "high":
-        altas.setdefault(a["pacote"], []).append(a["titulo"])
-ALCANCE = {
-    "body-parser": ("Sim", "Rotas JSON públicas passam por ele; negação de serviço com corpo comprimido."),
-    "follow-redirects": ("Limitado", "Usado pelo axios no cliente da HIBP. Só importaria se a HIBP redirecionasse para outra origem, levando o cabeçalho da chave."),
-    "multer": ("Não", "O código não tem rota de upload nem FileInterceptor."),
-    "js-yaml": ("Não", "Vem do @nestjs/swagger, desligado em produção, sem entrada externa."),
-    "lodash": ("Não", "Vem do @nestjs/swagger; a aplicação não importa lodash."),
-}
-lin_audit = [[p, len(t), ALCANCE.get(p, ("A avaliar", ""))[0], ALCANCE.get(p, ("", ""))[1]] for p, t in altas.items()]
-
+aud = audit["resumo"]
 pagina("relatorio-pentest.html", "Relatório de teste: segurança (pentest)", f"""
-<div class="alerta"><b>Resultado: há achado alto em aberto.</b> As varreduras e os testes dirigidos não encontraram falha explorável na aplicação, mas a auditoria de dependências aponta {audit['resumo']['high']} pacotes de severidade alta no back-end, e um deles (body-parser) é alcançável. Portanto, o critério da Seção 6.3 do documento ("nenhum achado de severidade alta ou crítica em aberto") <b>ainda não está cumprido</b>.</div>
+<div class="box"><b>Resultado: sem achado alto ou crítico em aberto.</b> O achado S01, com {6} pacotes altos nas dependências, foi corrigido pelo PR #123: o <code>npm audit --omit=dev</code> do back-end passou de 6 altos e 7 moderados para <b>0 altos e {aud['moderate']} moderados</b>, estes justificados. As varreduras, o fuzzing e os testes dirigidos não encontraram falha explorável. Resta o achado médio S07 (limite de login contornável por cabeçalho forjado), recomendado corrigir. O critério da Seção 6.3 do documento ("nenhum achado de severidade alta ou crítica em aberto") <b>passa a estar cumprido</b>.</div>
+<p><b>Nota:</b> a correção de dependências está na <code>main</code> ({COMMIT}), mas ainda não foi para produção, que roda a imagem anterior. O novo deploy a leva.</p>
 <h2>Escopo e autorização</h2><ul>
 <li>Autorizado pela equipe, dona do sistema, apenas sobre os domínios e a infraestrutura do próprio projeto.</li>
-<li><b>Em produção:</b> só testes de baixo impacto: varredura passiva e verificações dirigidas com poucas requisições.</li>
-<li><b>Em cópia local descartável:</b> varredura ativa, com PostgreSQL e Redis próprios, HIBP simulada, e-mail só em log.</li>
+<li><b>Em produção:</b> só testes de baixo impacto: varredura passiva, verificações dirigidas e a prova do S07, com poucas requisições.</li>
+<li><b>Em cópia local descartável:</b> varredura ativa, autorização e fuzzing de entrada, com PostgreSQL e Redis próprios, HIBP simulada, e-mail só em log.</li>
 <li><b>Fora do escopo:</b> negação de serviço, engenharia social e testes na infraestrutura da AWS.</li></ul>
-<h2>Ferramentas</h2><ul><li>OWASP ZAP 2.17.0: <code>zap-baseline</code>, <code>zap-api-scan</code> e <code>zap-full-scan</code>.</li><li>Scripts versionados: <code>tests/security/verificacoes.py</code> e <code>tests/security/autorizacao_local.py</code>.</li><li><code>npm audit --omit=dev</code> no back-end e no front-end.</li></ul>
+<h2>Ferramentas</h2><ul><li>OWASP ZAP 2.17.0: <code>zap-baseline</code>, <code>zap-api-scan</code> e <code>zap-full-scan</code>.</li><li>Scripts versionados: <code>tests/security/verificacoes.py</code>, <code>autorizacao_local.py</code> e <code>fuzz_entrada.py</code>.</li><li><code>npm audit --omit=dev</code> no back-end e no front-end.</li></ul>
 <h2>Verificações dirigidas em produção: {sum(r['ok'] for r in ver)} de {len(ver)} aprovadas</h2>
 {tabela(["Categoria", "Verificações", "Aprovadas"], linhas_ver, [60, 20, 20])}
 <p>Cobrem TLS e redirecionamento HTTPS, cabeçalhos, CORS, rotas sem login, JWT forjado (alg none e assinatura falsa), injeção SQL e NoSQL no login, campos extras, exposição de arquivos, enumeração de contas e bloqueio após tentativas de login.</p>
 <h2>Autorização entre usuários, em cópia local: {sum(r['ok'] for r in aut)} de {len(aut)} aprovadas</h2>
 {tabela(["Verificação", "Resultado"], [[r["verificacao"], '<span class="ok">Aprovada</span>' if r["ok"] else '<span class="nao">Reprovada</span>'] for r in aut], [78, 22])}
+<h2>Fuzzing de entrada, em cópia local</h2>
+<p>O script <code>fuzz_entrada.py</code> enviou {fuzz['requisicoes']} requisições, injetando {'22'} tipos de carga maliciosa (SQL, NoSQL, poluição de protótipo, XSS, comando, travessia de caminho, template, nulo, tipos trocados, 100 KB e corpo de 2 MB) em cada campo JSON de 10 rotas, nos parâmetros de caminho e de consulta. Resultado: <b>{len(fuzz['problemas'])} problema(s)</b>. Nenhum 5xx, nenhum detalhe interno na resposta, nenhum XSS refletido; a API seguiu respondendo ao final. As respostas foram {', '.join(f"{v}&times;{k}" for k, v in fuzz['por_status'].items())} (400, 401 e 413 são as recusas esperadas).</p>
 <h2>Varreduras do ZAP (número de tipos de alerta)</h2>
 {tabela(["Alvo", "Modo", "Alto", "Médio", "Baixo", "Informativo"], zlin, [38, 12, 10, 10, 10, 20])}
+<p>A varredura ativa da API importou 28 endereços do OpenAPI e, confirmado por um proxy contador, enviou 454 requisições reais à aplicação (incluindo os ataques das regras ativas), não apenas as rotas listadas.</p>
 <h2>Achados</h2>
 {tabela(["ID", "Severidade", "Achado", "Situação e recomendação"], [
-["S01", "Alta", f"npm audit: {audit['resumo']['high']} pacotes altos e {audit['resumo']['moderate']} moderados nas dependências de produção do back-end. Front-end: nenhum.", "<b>Em aberto.</b> Atualizar follow-redirects e qs com <code>npm audit fix</code>; forçar body-parser corrigido ou migrar para o NestJS 11 ou superior e testar."],
+["S01", "Alta", "npm audit: 6 pacotes altos e 7 moderados nas dependências de produção do back-end (na campanha anterior).", "<b>Resolvido (PR #123):</b> 0 altos e 3 moderados. Os moderados vêm de um único aviso de SSE no @nestjs/core, sem rota @Sse na aplicação."],
+["S07", "Média", "O limite de tentativas de login é contado pelo primeiro IP do X-Forwarded-For, que o cliente controla. Em produção, 12 tentativas com IP forjado diferente a cada vez não dispararam o 429.", "<b>Em aberto.</b> Confiar apenas no X-Forwarded-For escrito pelo ALB/CloudFront (número fixo de proxies), ou limitar também por e-mail/rota. Mitiga força bruta distribuída."],
 ["S02", "Média", "CSP do site com style-src 'unsafe-inline'.", "Aceito: exigido por React e Tailwind. script-src é só 'self', o que limita o impacto."],
 ["S03", "Baixa", "Cabeçalhos COOP, COEP e CORP ausentes no site.", "Recomendado incluir COOP e CORP na política do CloudFront. COEP não é necessário."],
 ["S04", "Baixa", "GET /scan/:jobId de outro usuário responde 200 com corpo vazio.", "Sem vazamento: a consulta filtra por userId. Recomendado responder 404."],
@@ -158,15 +153,16 @@ pagina("relatorio-pentest.html", "Relatório de teste: segurança (pentest)", f"
 ["S06", "Baixa", "Redis sem TLS nem criptografia em repouso.", "Já conhecido, na rede privada. Dados do cache usam HMAC. Avaliar ao sair do plano atual."],
 ["—", "Descartados", "'HTTP Only Site' (efeito do ambiente local) e 'Timestamp Disclosure' (datas legítimas no JSON).", "Falsos positivos, sem ação."],
 ], [7, 11, 42, 40])}
-<h2>Dependências altas: alcance no código</h2>
-{tabela(["Pacote", "Alertas altos", "Alcançável", "Análise"], lin_audit, [18, 10, 12, 60])}
-<p>O alcance é uma análise da leitura do código, sem prova de conceito. Os alertas completos estão em <code>docs/testes/dados/npm-audit-server.json</code>.</p>
-<h2>Incidente durante o teste</h2><div class="box">Na varredura ativa local, o ZAP seguiu o redirecionamento de <code>/api/v1/auth/google</code> e enviou dezenas de requisições a <code>accounts.google.com</code>, <b>fora do escopo autorizado</b>. O client_id era um valor de exemplo, sem credenciais. Os resultados desse domínio foram descartados dos dados publicados. Em execuções futuras, essa rota deve ser excluída da varredura.</div>
+<h2>Prova do S07 (produção)</h2>
+<p>Do mesmo IP, a 6ª tentativa de login já recebe 429 ({', '.join(map(str, xff['sem_cabecalho_forjado']))}). Com um X-Forwarded-For diferente a cada tentativa, as 12 passam sem 429 ({', '.join(map(str, xff['com_cabecalho_forjado']))}). Evidência em <code>docs/testes/dados/xff-bypass.json</code>.</p>
+<h2>Moderados restantes nas dependências</h2>
+{tabela(["Severidade", "Pacote", "Aviso", "Alcançável"], [[a["severidade"], a["pacote"], (a["titulo"] or "")[:70], "Não: exige endpoint @Sse, inexistente no código"] for a in audit["achados"]], [12, 16, 48, 24])}
+<p>Os alertas completos estão em <code>docs/testes/dados/npm-audit-server.json</code>.</p>
+<h2>Incidente durante o teste</h2><div class="box">Na primeira varredura ativa, o ZAP seguiu o redirecionamento de <code>/api/v1/auth/google</code> e enviou dezenas de requisições a <code>accounts.google.com</code>, <b>fora do escopo autorizado</b>. O client_id era um valor de exemplo, sem credenciais. A rota foi excluída das varreduras seguintes, e os resultados do domínio do Google foram descartados dos dados.</div>
 <h2>Limitações</h2><ul>
 <li><b>Não substitui um pentest manual por terceiros:</b> o teste é automatizado, com verificações dirigidas pela própria equipe, e não prova ausência de falhas.</li>
 <li>Os limites por rota (login 5 por minuto, cadastro 5 a cada 15 minutos) continuaram ativos na cópia local, o que reduz a cobertura do ZAP nessas rotas.</li>
-<li>Os fluxos com HIBP real, IA e login com Google não passaram pela varredura ativa.</li>
-<li>Uma primeira varredura da API alcançou só 3 URLs por erro de configuração. Ela foi descartada e repetida com 38 URLs; só a segunda consta aqui.</li></ul>
+<li>Os fluxos com HIBP real, IA e login com Google não passaram pela varredura ativa.</li></ul>
 <h2>Como repetir</h2><p>Ver <code>docs/testes/README.md</code>. Dados brutos em <code>docs/testes/dados/</code>.</p>
 """)
 
@@ -198,7 +194,7 @@ exec_lin = [[i + 1, num(r["metrics"]["http_reqs"]["values"]["count"]), f"{num(r[
 pagina("relatorio-carga-k6.html", "Relatório de teste: carga com k6", f"""
 <div class="box"><b>Resultado: metas medidas atingidas.</b> Foram {num(total)} requisições em 3 execuções, com {num(falhas, 2)}% de erro, nenhum alarme disparado e nenhum 5xx. As metas de cache, Motor de Risco e fila da Tabela 2 <b>não puderam ser medidas</b> pelo motivo explicado abaixo.</div>
 <h2>Objetivo</h2><p>Executar a campanha da Seção 5.5.3.2 do documento: aquecimento, patamar de 100 usuários virtuais por 5 minutos, pico de 300, recuperação, com 3 execuções e publicação da mediana e da amplitude dos P95.</p>
-<h2>Ambiente</h2><ul><li>Alvo: produção, em us-east-2, com 1 task Fargate (0,5 vCPU e 1 GB), RDS db.t3.micro e ElastiCache cache.t3.micro.</li><li>Gerador: k6 v2.3.0, em um único computador no Brasil. Script: <code>tests/load/k6-producao.js</code>.</li><li>Execuções entre 18:01 e 18:37 UTC, com 1 minuto de intervalo. Cada usuário virtual faz 1 acesso por segundo: <code>GET /api/health</code> e, a cada 5 iterações, a página inicial.</li></ul>
+<h2>Ambiente</h2><ul><li>Alvo: produção, em us-east-2, com 1 task Fargate (0,5 vCPU e 1 GB), RDS db.t3.micro e ElastiCache cache.t3.micro. Produção roda a imagem anterior ao PR #123; a medição não é afetada, por bater em rotas não tocadas por ele.</li><li>Gerador: k6 v2.3.0, em um único computador no Brasil. Script: <code>tests/load/k6-producao.js</code>.</li><li>Execuções entre 18:01 e 18:37 UTC, com 1 minuto de intervalo. Cada usuário virtual faz 1 acesso por segundo: <code>GET /api/health</code> e, a cada 5 iterações, a página inicial.</li></ul>
 <h2>Resultados da API (GET /api/health)</h2>
 {tabela(["Fase", "P95 (mediana)", "P95 (amplitude)", "Meta", "Vazão", "Erro máx.", "Situação"], lin, [24, 13, 18, 11, 11, 9, 14])}
 <h2>Site no CloudFront</h2>
