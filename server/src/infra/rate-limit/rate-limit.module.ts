@@ -18,6 +18,10 @@ export const RATE_LIMITS = {
   resendVerification: { default: { limit: 5, ttl: 15 * MINUTE } },
   refresh: { default: { limit: 20, ttl: 15 * MINUTE } },
   unsubscribe: { default: { limit: 20, ttl: 15 * MINUTE } },
+  forgotPassword: { default: { limit: 5, ttl: 15 * MINUTE } },
+  resetPassword: { default: { limit: 10, ttl: 15 * MINUTE } },
+  changePassword: { default: { limit: 5, ttl: 15 * MINUTE } },
+  exportData: { default: { limit: 5, ttl: 15 * MINUTE } },
 };
 
 /**

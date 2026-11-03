@@ -173,10 +173,14 @@ O `RiskEngine` soma os pesos das Data Classes expostas em cada vazamento e multi
 | `POST` | `/api/v1/auth/verify-email` | não | Confirma o e-mail com o token do link, devolve os tokens e roda o primeiro scan |
 | `POST` | `/api/v1/auth/resend-verification` | não | Reenvia o link de verificação |
 | `POST` | `/api/v1/auth/login` | não | Login com email e senha |
+| `POST` | `/api/v1/auth/forgot-password` | não | Envia o link para criar uma nova senha (resposta genérica) |
+| `POST` | `/api/v1/auth/reset-password` | não | Cria a nova senha com o token do link e encerra as sessões abertas |
+| `POST` | `/api/v1/auth/change-password` | JWT | Troca a senha, encerra as outras sessões e devolve tokens novos |
 | `POST` | `/api/v1/auth/refresh` | refresh token | Renova o token de acesso e o refresh token |
 | `GET` | `/api/v1/auth/google` | não | Inicia o login com Google |
 | `GET` | `/api/v1/auth/google/callback` | não | Retorno do Google, redireciona para o front com os tokens |
 | `GET` | `/api/v1/auth/me` | JWT | Perfil e último resultado de scan |
+| `GET` | `/api/v1/auth/me/export` | JWT | Cópia dos dados da conta em JSON (LGPD) |
 | `DELETE` | `/api/v1/auth/me` | JWT | Exclui a conta |
 | `GET` | `/api/v1/scan/history` | JWT | Histórico de scans do usuário |
 | `GET` | `/api/v1/scan/:jobId` | JWT | Detalhe de um scan |

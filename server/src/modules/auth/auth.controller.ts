@@ -42,9 +42,14 @@ import {
   AuthResponseDto,
   JwtPayload,
   SignupResponseDto,
+  ChangePasswordDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
 } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from '../../api/decorators/current-user.decorator';
+import { PasswordService } from './password.service';
+import { AccountDataService } from './account-data.service';
 import { RATE_LIMITS } from '../../infra/rate-limit/rate-limit.module';
 
 const authResponseSchema = {
@@ -94,7 +99,11 @@ const errorCodeSchema = (code: string) => ({
 @ApiTags('auth')
 @Controller('api/v1/auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private passwordService: PasswordService,
+    private accountData: AccountDataService,
+  ) {}
 
   @Post('signup')
   @Throttle(RATE_LIMITS.signup)
@@ -179,6 +188,39 @@ export class AuthController {
     return this.authService.refreshTokens(dto.refresh_token);
   }
 
+  @Post('forgot-password')
+  @Throttle(RATE_LIMITS.forgotPassword)
+  @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({ summary: 'Envia o link para criar uma nova senha (mesma resposta exista a conta ou não)' })
+  @ApiResponse({ status: 202, description: 'Pedido recebido' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto): Promise<{ message: string }> {
+    return this.passwordService.requestReset(dto.email);
+  }
+
+  @Post('reset-password')
+  @Throttle(RATE_LIMITS.resetPassword)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Define a nova senha pelo token do link e encerra as sessões abertas' })
+  @ApiResponse({ status: 200, description: 'Senha alterada' })
+  @ApiResponse({ status: 400, description: 'Token inválido', schema: errorCodeSchema('TOKEN_INVALID') })
+  @ApiResponse({ status: 410, description: 'Token expirado ou já usado', schema: errorCodeSchema('TOKEN_EXPIRED') })
+  async resetPassword(@Body() dto: ResetPasswordDto): Promise<{ message: string }> {
+    return this.passwordService.resetPassword(dto.token, dto.password);
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @Throttle(RATE_LIMITS.changePassword)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Troca a senha da conta logada; devolve tokens novos e encerra as outras sessões' })
+  @ApiResponse({ status: 200, description: 'Senha alterada; tokens novos', schema: { type: 'object', properties: { access_token: { type: 'string' }, refresh_token: { type: 'string' } } } })
+  @ApiResponse({ status: 400, description: 'Senha atual incorreta, igual à nova ou conta sem senha', schema: errorCodeSchema('INVALID_CURRENT_PASSWORD') })
+  async changePassword(@CurrentUser() user: JwtPayload, @Body() dto: ChangePasswordDto): Promise<TokenPairDto> {
+    await this.passwordService.changePassword(user.sub, dto.currentPassword, dto.newPassword);
+    return this.authService.issueTokens(user.sub, user.email);
+  }
+
   @Get('google')
   @ApiOperation({ summary: 'Inicia autenticação com Google' })
   async googleAuth(@Res() res: Response) {
@@ -211,6 +253,16 @@ export class AuthController {
   })
   async getMe(@CurrentUser() user: JwtPayload) {
     return this.authService.getUserProfile(user.sub);
+  }
+
+  @Get('me/export')
+  @UseGuards(JwtAuthGuard)
+  @Throttle(RATE_LIMITS.exportData)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cópia dos dados da conta em JSON (portabilidade, LGPD art. 18, V)' })
+  @ApiResponse({ status: 200, description: 'Dados da conta' })
+  async exportMe(@CurrentUser() user: JwtPayload) {
+    return this.accountData.exportUserData(user.sub);
   }
 
   @Delete('me')

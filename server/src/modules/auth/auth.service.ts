@@ -31,6 +31,7 @@ import {
 } from './dto/auth.dto';
 import * as bcrypt from 'bcryptjs';
 import axios from 'axios';
+import { isIssuedAfterPasswordChange } from '../../shared/utils/session-validity';
 import { createHmac, randomBytes } from 'crypto';
 
 interface GoogleTokenResponse {
@@ -484,6 +485,7 @@ export class AuthService {
       select: {
         id: true,
         email: true,
+        passwordHash: true,
         emailVerifiedAt: true,
         monitoringEnabled: true,
         lastMonitoredAt: true,
@@ -502,6 +504,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
       emailVerified: Boolean(user.emailVerifiedAt),
+      hasPassword: Boolean(user.passwordHash),
       monitoringEnabled: user.monitoringEnabled,
       lastMonitoredAt: user.lastMonitoredAt,
       // Os vazamentos ficam criptografados no banco e são abertos só na resposta
@@ -534,14 +537,19 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, email: true, emailVerifiedAt: true },
+      select: { id: true, email: true, emailVerifiedAt: true, passwordChangedAt: true },
     });
-    if (!user || !user.emailVerifiedAt) {
+    if (!user || !user.emailVerifiedAt || !isIssuedAfterPasswordChange(payload.iat, user.passwordChangedAt)) {
       throw invalid();
     }
 
     log('info', 'AuthService', 'auth.refreshed', { userId: user.id });
     return this.generateTokens(user.id, user.email);
+  }
+
+  /** Par novo depois de trocar a senha: as outras sessões caem, esta continua */
+  issueTokens(userId: number, email: string): TokenPairDto {
+    return this.generateTokens(userId, email);
   }
 
   /**

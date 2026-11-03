@@ -4,6 +4,7 @@ import Landing from "./components/Landing";
 import Auth from "./components/Auth";
 import Dashboard from "./components/Dashboard";
 import Privacy from "./components/Privacy";
+import ResetPassword from "./components/ResetPassword";
 import Terms from "./components/Terms";
 import { LEGAL_PATHS } from "./lib/legal";
 import { SESSION_EXPIRED_EVENT, clearToken, fetchMe, getToken, setAuthTokens, setToken, verifyEmail } from "./lib/api";
@@ -23,6 +24,9 @@ function verifyOnce(token) {
   }
   return pendingVerification.promise;
 }
+
+// O StrictMode roda o efeito duas vezes em dev: o token do link de recuperação sobrevive à segunda
+let pendingResetToken = null;
 
 /** Lê um parâmetro da URL e o remove do endereço (tokens não ficam no histórico) */
 function takeQueryParam(name) {
@@ -54,6 +58,7 @@ export default function SafeID() {
   const [user, setUser] = useState(null);
   const [booting, setBooting] = useState(true);
   const [notice, setNotice] = useState("");
+  const [resetToken, setResetToken] = useState(null);
   // Aviso da página inicial (ex.: alertas desativados pelo link do email)
   const [landingNotice, setLandingNotice] = useState(null);
   // Página de onde a pessoa abriu um texto legal, para o botão Voltar
@@ -117,6 +122,17 @@ export default function SafeID() {
       const monitoringParam = takeQueryParam("monitoring");
       if (monitoringParam && MONITORING_NOTICES[monitoringParam] && active) {
         setLandingNotice(MONITORING_NOTICES[monitoringParam]);
+      }
+
+      // Link do email de recuperação de senha: a tela vale mesmo com outra sessão aberta neste navegador
+      pendingResetToken = takeQueryParam("reset_token") ?? pendingResetToken;
+      if (pendingResetToken) {
+        if (active) {
+          setResetToken(pendingResetToken);
+          setPage("reset-password");
+          setBooting(false);
+        }
+        return;
       }
 
       // Link do email de verificação: o token sai da URL antes da chamada
@@ -218,6 +234,20 @@ export default function SafeID() {
         {!booting && page === "login" && <Auth mode="login" notice={notice} onSuccess={(u) => onAuth(u)} onSwitch={() => { setNotice(""); setPage("register"); }} />}
         {!booting && page === "privacy" && <Privacy onBack={closeLegal} />}
         {!booting && page === "terms" && <Terms onBack={closeLegal} />}
+        {!booting && page === "reset-password" && (
+          <ResetPassword
+            token={resetToken}
+            onDone={(message) => {
+              // A troca derruba as sessões abertas, inclusive a que estiver salva aqui
+              pendingResetToken = null;
+              clearToken();
+              setUser(null);
+              setResetToken(null);
+              setNotice(message);
+              setPage("login");
+            }}
+          />
+        )}
         {!booting && page === "dashboard" && isAuthenticated && <Dashboard user={user} onDeleteAccount={onAccountDeleted} />}
       </main>
 

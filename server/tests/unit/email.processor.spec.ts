@@ -94,6 +94,35 @@ describe('EmailProcessor', () => {
     expect(JSON.stringify(items)).not.toContain('Adult Site');
   });
 
+  it('sends the password reset link and the change notice to the account e-mail', async () => {
+    prisma.user.findUnique.mockResolvedValue({ email: 'user@example.com' });
+    const processor = new EmailProcessor(prisma, sender);
+
+    await expect(processor.process({ name: 'send-password-reset', data: { userId: 1, token: 'abc' } } as any)).resolves.toEqual({ sent: true });
+    expect(sender.send).toHaveBeenLastCalledWith(expect.objectContaining({
+      to: 'user@example.com',
+      subject: 'Crie uma nova senha no SafeID',
+      text: expect.stringContaining('https://safeid.app.br/?reset_token=abc'),
+    }));
+
+    await expect(processor.process({ name: 'send-password-changed', data: { userId: 1 } } as any)).resolves.toEqual({ sent: true });
+    expect(sender.send).toHaveBeenLastCalledWith(expect.objectContaining({
+      to: 'user@example.com',
+      subject: 'Sua senha do SafeID foi alterada',
+    }));
+  });
+
+  it('skips password e-mails of deleted accounts and rejects incomplete jobs', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    const processor = new EmailProcessor(prisma, sender);
+
+    await expect(processor.process({ name: 'send-password-reset', data: { userId: 1, token: 'abc' } } as any)).resolves.toEqual({ sent: false, reason: 'user_not_found' });
+    await expect(processor.process({ name: 'send-password-changed', data: { userId: 1 } } as any)).resolves.toEqual({ sent: false, reason: 'user_not_found' });
+    await expect(processor.process({ name: 'send-password-reset', data: { userId: 1 } } as any)).rejects.toThrow('Job missing');
+    await expect(processor.process({ name: 'send-password-changed', data: {} } as any)).rejects.toThrow('Job missing');
+    expect(sender.send).not.toHaveBeenCalled();
+  });
+
   it('skips deleted and already verified accounts', async () => {
     const processor = new EmailProcessor(prisma, sender);
 

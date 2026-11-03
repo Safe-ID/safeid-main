@@ -27,6 +27,9 @@ model User {
   // Verificação de e-mail: sem ela não há login, scan nem monitoramento
   emailVerifiedAt       DateTime?
 
+  // Tokens emitidos antes desta data deixam de valer: trocar a senha encerra as outras sessões
+  passwordChangedAt     DateTime?
+
   // Monitoramento contínuo de vazamentos (opt-in no cadastro, opt-out a qualquer momento)
   monitoringEnabled     Boolean   @default(true)
   monitoringConsentAt   DateTime?
@@ -39,6 +42,7 @@ model User {
   // Relacionamentos
   scans                   ScanHistory[]
   emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens   PasswordResetToken[]
   breaches                UserBreach[]
   notifications           Notification[]
 
@@ -58,6 +62,19 @@ model EmailVerificationToken {
 
   @@index([userId])
   @@map("email_verification_token")
+}
+
+model PasswordResetToken {
+  id         Int       @id @default(autoincrement())
+  userId     Int
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique // SHA-256 (hex) do token; o token em claro só existe no e-mail
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@map("password_reset_token")
 }
 
 // ============================================================================

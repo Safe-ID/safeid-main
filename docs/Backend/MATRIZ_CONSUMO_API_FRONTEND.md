@@ -21,6 +21,9 @@ Referência do contrato entre o frontend (`client/`) e a API (`server/`): qual t
 | Cadastro (`Auth.jsx`) | `POST /api/v1/auth/signup`, `POST /api/v1/auth/resend-verification` | `signup`, `resendVerification` |
 | Login (`Auth.jsx`) | `POST /api/v1/auth/login`, `GET /api/v1/auth/google` | `login` (Google é um redirecionamento) |
 | Link de verificação (`Safe_ID.jsx`, `?verify_token=`) | `POST /api/v1/auth/verify-email` | `verifyEmail` |
+| Esqueci minha senha (`Auth.jsx`) | `POST /api/v1/auth/forgot-password` | `forgotPassword` |
+| Link de nova senha (`ResetPassword.jsx`, `?reset_token=`) | `POST /api/v1/auth/reset-password` | `resetPassword` |
+| Sua conta (`AccountSettings.jsx`) | `POST /api/v1/auth/change-password`, `GET /api/v1/auth/me/export` | `changePassword`, `exportAccountData` |
 | Abertura do app / painel (`Safe_ID.jsx`, `Dashboard.jsx`) | `GET /api/v1/auth/me` | `fetchMe` |
 | Evolução do risco (`ScoreHistoryChart.jsx`) | `GET /api/v1/scan/history` | `fetchScanHistory` |
 | Plano de ação e PDF (`AIPanel.jsx`, `PrintablePlan.jsx`) | dados de `auth/me` (`scanSnapshot`) | — |
@@ -43,9 +46,14 @@ Referência do contrato entre o frontend (`client/`) e a API (`server/`): qual t
 | `/api/v1/auth/login` | `POST` | `email`, `password` | `access_token`, `refresh_token`, `user`. Conta não verificada: 403 `EMAIL_NOT_VERIFIED`, e um link novo é enviado (respeitando o limite) |
 | `/api/v1/auth/refresh` | `POST` | `refresh_token` | `{ access_token, refresh_token }` (o refresh também é renovado). 401 `REFRESH_INVALID` se inválido, vencido, se for um token de acesso, ou se a conta não existir mais ou não estiver verificada |
 | `/api/v1/auth/google` | `GET` | — | Redireciona para o Google; no fim, volta ao frontend com os tokens no hash da URL |
-| `/api/v1/auth/me` | `GET` | Bearer | `{ id, email, emailVerified, monitoringEnabled, lastMonitoredAt, scanSnapshot, scanSnapshotUpdatedAt }` |
+| `/api/v1/auth/forgot-password` | `POST` | `email` | `202 { message }` genérica (não revela se o e-mail existe); só contas verificadas recebem o link; 60 s entre envios e até 5 por dia |
+| `/api/v1/auth/reset-password` | `POST` | `token` (vem do link, `?reset_token=`, válido por 1 h), `password` (mín. 8) | `{ message }`. 400 `TOKEN_INVALID` ou 410 `TOKEN_EXPIRED` (usado ou vencido). Encerra as sessões abertas e avisa por e-mail |
+| `/api/v1/auth/change-password` | `POST` | Bearer, `currentPassword`, `newPassword` (mín. 8) | `{ access_token, refresh_token }` novos. 400 `INVALID_CURRENT_PASSWORD`, `SAME_PASSWORD` ou `NO_PASSWORD`. Encerra as outras sessões e avisa por e-mail |
+| `/api/v1/auth/me/export` | `GET` | Bearer | Cópia dos dados em JSON: `{ geradoEm, conta, analises, vazamentosConhecidos, notificacoes }`, sem senha nem hashes internos |
+| `/api/v1/auth/me` | `GET` | Bearer | `{ id, email, emailVerified, hasPassword, monitoringEnabled, lastMonitoredAt, scanSnapshot, scanSnapshotUpdatedAt }` |
 | `/api/v1/auth/me` | `DELETE` | Bearer | Apaga a conta e tudo ligado a ela (cascata) e limpa o cache |
 
+- Trocar a senha grava `passwordChangedAt`: tokens de acesso e de refresh emitidos antes disso passam a responder 401.
 - Token de acesso: 24 h (`JWT_EXPIRES_IN`). Refresh token: 7 dias (`REFRESH_TOKEN_EXPIRES_IN`), com `typ: "refresh"`, que não vale como token de acesso.
 - Booleanos do corpo são estritos: `"false"` em texto é rejeitado em vez de virar `true`.
 - Contas não verificadas são apagadas depois de `UNVERIFIED_ACCOUNT_TTL_DAYS` (padrão 7).

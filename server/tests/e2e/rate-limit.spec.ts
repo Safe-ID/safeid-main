@@ -5,6 +5,7 @@ import { AuthModule } from '../../src/modules/auth/auth.module';
 import { RateLimitModule } from '../../src/infra/rate-limit/rate-limit.module';
 import { PrismaService } from '../../src/infra/database/prisma.service';
 import { EmailVerificationService } from '../../src/modules/auth/email-verification.service';
+import { PasswordService } from '../../src/modules/auth/password.service';
 import { ScanService } from '../../src/modules/scan/services/scan.service';
 
 describe('Rate limit E2E', () => {
@@ -28,6 +29,8 @@ describe('Rate limit E2E', () => {
       .useValue(prismaMock)
       .overrideProvider(EmailVerificationService)
       .useValue({ canResend: jest.fn(async () => false), sendVerificationEmail: jest.fn() })
+      .overrideProvider(PasswordService)
+      .useValue({})
       .overrideProvider(ScanService)
       .useValue({})
       .compile();

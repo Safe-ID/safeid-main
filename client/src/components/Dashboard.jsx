@@ -5,6 +5,7 @@ import BreachCard from "./BreachCard";
 import AIPanel from "./AIPanel";
 import PrintablePlan from "./PrintablePlan";
 import MonitoringSettings from "./MonitoringSettings";
+import AccountSettings from "./AccountSettings";
 import ScoreHistoryChart from "./ScoreHistoryChart";
 import {
   NOTIFICATIONS_UPDATED_EVENT,
@@ -460,6 +461,7 @@ export default function Dashboard({ user, onDeleteAccount }) {
 
           {/* Ligar os alertas agenda uma checagem imediata no backend */}
           <MonitoringSettings onChange={(status) => setProfile((current) => ({ ...current, monitoringEnabled: status.enabled }))} />
+          <AccountSettings hasPassword={profile?.hasPassword !== false} />
         </>
       )}
     </div>

@@ -14,20 +14,20 @@ Situação real do backend em 17/10/2026, com a evidência de cada item. Todo n�
 | 4 | Cabeçalhos de segurança | ✅ | `helmet()` no `main.ts` |
 | 5 | Autenticação JWT | ✅ | Acesso 24 h + refresh 7 dias com `typ` separado; `JwtStrategy` confere a conta no banco |
 | 6 | Verificação de e-mail | ✅ | Token de uso único, validade de 24 h, só o hash no banco |
-| 7 | Hash de senha | ✅ | bcrypt, mínimo de 8 caracteres |
+| 7 | Hash de senha | ✅ | bcrypt, mínimo de 8 caracteres; recuperação por link de uso único (1 h, só o hash no banco); trocar a senha encerra as outras sessões |
 | 8 | Validação de entrada | ✅ | ValidationPipe com whitelist e `forbidNonWhitelisted`; `@StrictBoolean()` nos consentimentos |
 | 9 | CORS restrito | ✅ | Só `CORS_ORIGIN` |
 | 10 | Rate limit | ✅ | `@nestjs/throttler` por IP, com limites por rota |
 | 11 | Dados pessoais protegidos | ✅ | Hash do e-mail, AES-256-GCM nos vazamentos, IA sem e-mail, `maskEmail` nos logs |
 | 12 | Consentimento e exclusão (LGPD) | ✅ | Termos de Uso e Política de Privacidade em `/termos` e `/privacidade`; aceite com data e versão, separado dos alertas; descadastro em 1 clique; exclusão em cascata; nome de vazamento sensível fora da IA e dos e-mails |
-| 13 | ORM e migrations | ✅ | Prisma, 6 migrations versionadas aplicadas por `migrate deploy` |
+| 13 | ORM e migrations | ✅ | Prisma, 8 migrations versionadas aplicadas por `migrate deploy` |
 | 14 | Variáveis de ambiente | ⚠️ | `.env.example` completo; a validação só **avisa** no log, não impede subir |
 | 15 | Logs estruturados | ⚠️ | Logger JSON nos módulos novos; ainda restam `console.log` em pontos antigos |
 | 16 | Health checks | ✅ | `/api/health` (503 se o banco ou o Redis falharem) e `/api/health/jobs` |
 | 17 | Circuit breaker | ✅ | Opossum na HIBP; o 429 não abre o circuito |
 | 18 | Filas e agendamentos | ✅ | BullMQ com limiter global, prioridade, retentativas, watchdog e reconciliação |
 | 19 | Shutdown gracioso | ✅ | `enableShutdownHooks`, workers fecham ao fim do job atual |
-| 20 | Testes unitários | ✅ | 349 testes, 99,05% de linhas, 90,25% de branches |
+| 20 | Testes unitários | ✅ | 378 testes, 99,13% de linhas, 91,02% de branches |
 | 21 | Testes de integração | ⚠️ | 5 testes de fluxo (scan e monitoramento) com Prisma e Redis em memória; o CI aplica as migrations num PostgreSQL real, mas nenhum teste consulta o banco de verdade |
 | 22 | Testes e2e da API | ✅ | 23 testes subindo a API |
 | 23 | Fuzz testing | ✅ | `risk.engine.fuzz.spec.ts` (fast-check) |

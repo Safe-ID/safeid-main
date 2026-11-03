@@ -10,6 +10,8 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { EmailVerificationService } from './email-verification.service';
+import { PasswordService } from './password.service';
+import { AccountDataService } from './account-data.service';
 import { DatabaseModule } from '../../infra/database/database.module';
 import { ScanModule } from '../scan/scan.module';
 
@@ -30,7 +32,7 @@ import { ScanModule } from '../scan/scan.module';
     ScanModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, EmailVerificationService],
+  providers: [AuthService, JwtStrategy, EmailVerificationService, PasswordService, AccountDataService],
   exports: [AuthService, JwtStrategy, PassportModule, EmailVerificationService],
 })
 export class AuthModule {}
