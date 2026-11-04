@@ -61,7 +61,7 @@ const SECTIONS = [
       "Conta que não confirmou o email: apagada automaticamente depois de 7 dias.",
       "Resultado da análise em cache, para agilizar consultas: até 24 horas.",
       "Registros de funcionamento do sistema: 30 dias.",
-      "Backups do banco de dados: até 7 dias. Depois de excluída a conta, os dados saem dos backups conforme eles expiram.",
+      "Backups do banco de dados: até 1 dia. Depois de excluída a conta, os dados saem dos backups conforme eles expiram.",
     ],
   },
   {

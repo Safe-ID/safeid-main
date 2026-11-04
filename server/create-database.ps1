@@ -2,7 +2,7 @@
 #
 # Uso:
 #   .\create-database.ps1                        # cria o banco (uma vez)
-#   .\create-database.ps1 -Action EnableBackups  # backups automáticos de 7 dias
+#   .\create-database.ps1 -Action EnableBackups  # backups automáticos (DB_BACKUP_RETENTION_DAYS; produção: 1 dia)
 #   .\create-database.ps1 -Action Snapshot       # snapshot manual (antes de migrations)
 #   .\create-database.ps1 -Action Delete         # apaga o banco (com snapshot final)
 param(
@@ -27,7 +27,7 @@ $DB_ENGINE_VERSION      = Get-EnvOrDefault -Name 'DB_ENGINE_VERSION' -Default '1
 $DB_MASTER_USERNAME     = Get-EnvOrDefault -Name 'DB_USER' -Default 'safeid_user'
 $DB_MASTER_PASSWORD     = Get-RequiredEnv -Name 'DB_PASSWORD'
 $DB_ALLOCATED_STORAGE   = 20
-# Backups automáticos (padrão 7 dias): o banco guarda estado que não se recupera da HIBP
+# Backups automáticos (padrão 7 dias; em produção, 1 dia, por DB_BACKUP_RETENTION_DAYS): o banco guarda estado que não se recupera da HIBP
 # (vazamentos conhecidos, notificações, consentimento). Gratuito até o tamanho do storage.
 $DB_BACKUP_RETENTION    = [int](Get-EnvOrDefault -Name 'DB_BACKUP_RETENTION_DAYS' -Default '7')  # plano free da AWS: no máximo 1
 # 06:00-07:00 UTC = 03h-04h BRT, fora dos horários de varredura do monitoramento

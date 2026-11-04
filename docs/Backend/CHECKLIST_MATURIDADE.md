@@ -60,7 +60,7 @@ Situação real do backend em 17/10/2026, com a evidência de cada item. Todo n�
 - [x] Índices nas consultas do monitoramento
 - [x] Exclusão em cascata a partir do usuário
 - [x] Pool de conexões limitado em produção (`connection_limit=10`)
-- [x] Backups de 7 dias e snapshot antes de migration (scripts do RDS)
+- [x] Backups automáticos (1 dia em produção, limite do plano gratuito) e snapshot antes de migration (scripts do RDS)
 - [ ] Réplica de leitura (não necessária na escala atual)
 
 ### 🧪 Qualidade

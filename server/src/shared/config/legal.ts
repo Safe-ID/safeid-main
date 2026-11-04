@@ -3,4 +3,4 @@
  * para provar qual texto a pessoa aceitou. Ao mudar os textos, atualize também
  * client/src/lib/legal.js.
  */
-export const CURRENT_TERMS_VERSION = '2026-11-03';
+export const CURRENT_TERMS_VERSION = '2026-11-04';

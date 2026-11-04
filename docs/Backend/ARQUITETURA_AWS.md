@@ -46,7 +46,7 @@ DNS (Domain Name System): Nosso domínio customizado (api.safeid.app.br) está c
 
 A persistência de dados é crítica. Por isso, delegamos a manutenção, backups e atualizações de patch de segurança para os serviços gerenciados (Managed Services) da AWS.
 
-Amazon RDS (Relational Database Service) c/ PostgreSQL: O RDS automatiza tarefas administrativas do banco de dados relacional (PostgreSQL). Ele é provisionado em um Subnet Group isolado nas subnets privadas. O banco (PostgreSQL 16) opera em uma instância db.t3.micro com armazenamento SSD gp3 criptografado. Não há rota de internet para ele, impedindo ataques diretos externos. Os backups automáticos ficam guardados por 7 dias, com janela às 06h-07h UTC (03h-04h BRT), e um snapshot manual é feito antes de toda migration em produção (create-database.ps1 -Action Snapshot).
+Amazon RDS (Relational Database Service) c/ PostgreSQL: O RDS automatiza tarefas administrativas do banco de dados relacional (PostgreSQL). Ele é provisionado em um Subnet Group isolado nas subnets privadas. O banco (PostgreSQL 16) opera em uma instância db.t3.micro com armazenamento SSD gp3 criptografado. Não há rota de internet para ele, impedindo ataques diretos externos. Os backups automáticos ficam guardados por 1 dia (limite do plano gratuito da AWS; o script aceita mais por DB_BACKUP_RETENTION_DAYS), com janela às 06h-07h UTC (03h-04h BRT), e um snapshot manual é feito antes de toda migration em produção (create-database.ps1 -Action Snapshot).
 
 Amazon ElastiCache c/ Redis: O ElastiCache é um armazenamento de dados em memória totalmente gerenciado. Utilizamos o motor Redis para atuar como cache ultrarrápido, gerenciar sessões ativas dos usuários, guardar as filas do BullMQ e absorver picos de acesso, aliviando a carga no banco de dados primário (RDS). Fica, também, blindado na subnet privada. O cluster usa o parameter group safeid-redis-queues, com maxmemory-policy=noeviction, exigido pelo BullMQ: com a política padrão (volatile-lru), sob pressão de memória o Redis poderia apagar locks de jobs e travar ou duplicar execuções.
 
@@ -95,7 +95,7 @@ Até aqui a infraestrutura atendia só requisições disparadas pelo usuário: s
 
 Redis com noeviction: parameter group safeid-redis-queues (seção 4). O cache de scan já tem TTL e ocupa poucos KB, então deixar de ser despejado por LRU não é um problema; a memória do Redis entra nos alarmes.
 
-Backups do RDS: 7 dias de retenção e snapshot manual antes de migrations (seção 4). O banco passa a guardar estado que não se recupera da HIBP (vazamentos já conhecidos, notificações, consentimento). Perder o banco faria todos os usuários serem notificados de novo, ou perderia um opt-out.
+Backups do RDS: 1 dia de retenção (limite do plano gratuito) e snapshot manual antes de migrations (seção 4). O banco passa a guardar estado que não se recupera da HIBP (vazamentos já conhecidos, notificações, consentimento). Perder o banco faria todos os usuários serem notificados de novo, ou perderia um opt-out.
 
 Shutdown gracioso: a aplicação chama enableShutdownHooks e, ao receber o SIGTERM do ECS, fecha o worker do BullMQ (espera o job em andamento terminar e não pega jobs novos), a fila e as conexões Redis. O contêiner tem stopTimeout de 120 s, tempo para terminar a chamada mais longa (IA). Os jobs interrompidos mesmo assim são recuperados pelo BullMQ como "stalled", por isso todo job novo deve ser idempotente.
 

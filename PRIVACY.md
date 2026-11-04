@@ -52,7 +52,7 @@ Alguns vazamentos são marcados como sensíveis pelo Have I Been Pwned, porque o
 - Conta que não confirmou o email: apagada automaticamente depois de 7 dias.
 - Resultado da análise em cache, para agilizar consultas: até 24 horas.
 - Registros de funcionamento do sistema: 30 dias.
-- Backups do banco de dados: até 7 dias. Depois de excluída a conta, os dados saem dos backups conforme eles expiram.
+- Backups do banco de dados: até 1 dia. Depois de excluída a conta, os dados saem dos backups conforme eles expiram.
 
 ## 8. Como protegemos
 
@@ -80,4 +80,4 @@ O SafeID é destinado a maiores de 18 anos. Se soubermos de uma conta de menor d
 
 ## 12. Alterações nesta política
 
-Se esta política mudar, a nova versão será publicada nesta página e, se a mudança for relevante, avisaremos você. Última atualização: 3 de novembro de 2026.
+Se esta política mudar, a nova versão será publicada nesta página e, se a mudança for relevante, avisaremos você. Última atualização: 4 de novembro de 2026.
