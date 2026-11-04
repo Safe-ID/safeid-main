@@ -98,6 +98,36 @@ describe('RiskEngine', () => {
     expect(result.breachesFound).toBe(3);
   });
 
+  // Variação do exemplo da Seção 2.4.1.4 do trabalho escrito: o HIBP informa
+  // Email addresses em praticamente todos os vazamentos, o que muda a faixa.
+  it('moves the documented example to the critical band when Email addresses is exposed in every breach', () => {
+    const result = riskEngine.calculate([
+      breachWith(['Passwords', 'IP addresses', 'Names', 'Email addresses'], '2026-03-15', 'LojaX'),
+      breachWith(['Password hints', 'Usernames', 'Email addresses'], '2023-09-10', 'ServicoY'),
+      breachWith(['Credit cards', 'Phone numbers', 'Email addresses'], '2025-09-20', 'PlataformaZ'),
+    ]);
+
+    // 17 * 1.0 + 12 * 0.7 + 17 * 1.0 = 42.4 -> 84.8 -> 85
+    expect(result.subscores.map(sub => sub.score)).toEqual([17, 8.4, 17]);
+    expect(result.totalScore).toBe(85);
+    expect(result.classification).toBe('CRITICAL');
+  });
+
+  // Exemplo da Seção 5.5.3.4 do trabalho escrito, com os três fatores temporais.
+  it('reproduces the documented verification example with the three temporal factors', () => {
+    const result = riskEngine.calculate([
+      breachWith(['Passwords'], '2026-03-10', 'Senha recente'),
+      breachWith(['Phone numbers'], '2023-09-10', 'Telefone'),
+      breachWith(['Names'], '2020-09-10', 'Nome antigo'),
+    ]);
+
+    // 10 * 1.0 + 5 * 0.7 + 3 * 0.4 = 14.7 -> 29.4 -> 29
+    expect(result.subscores.map(sub => sub.temporalFactor)).toEqual([1, 0.7, 0.4]);
+    expect(result.subscores.map(sub => sub.score)).toEqual([10, 3.5, 1.2]);
+    expect(result.totalScore).toBe(29);
+    expect(result.classification).toBe('MODERATE');
+  });
+
   it.each([
     [['Passwords', 'Email addresses'], 24, 'LOW'],
     [['Passwords', 'Names'], 26, 'MODERATE'],
