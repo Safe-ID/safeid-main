@@ -10,7 +10,7 @@ Projeto de TCC do curso de Tecnologia em Análise e Desenvolvimento de Sistemas 
 
 - Cadastro e login com email e senha ou com Google, com recuperação e troca de senha
 - Consulta do email do usuário nas bases de vazamentos do Have I Been Pwned
-- **Score de risco** de 0 a 100, que considera o tipo de dado exposto, a data do vazamento e se ele foi verificado
+- **Score de risco** de 0 a 100, que considera o tipo de dado exposto e a data do vazamento (a marcação de vazamento verificado pelo HIBP aparece no painel, mas não altera o score)
 - **Plano de ação com IA** em português, feito para quem não é da área de tecnologia
 - Linha do tempo e detalhes de cada vazamento
 - Exclusão da conta pelo próprio usuário
