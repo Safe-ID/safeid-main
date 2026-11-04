@@ -78,7 +78,7 @@ A comunicação deve trazer, em linguagem simples: o que aconteceu e quando; qua
 ### 4.4 Recuperar e aprender
 
 1. Corrigir a causa e confirmar a correção em produção, com teste automatizado sempre que possível.
-2. Restaurar dados pelo backup do RDS (retenção de 7 dias), se necessário.
+2. Restaurar dados pelo backup do RDS (retenção de 1 dia), se necessário.
 3. Em até 10 dias úteis após o encerramento, reunir a equipe, registrar a causa raiz e as lições aprendidas e atualizar o [RIPD](RIPD.md) e este plano.
 
 ## 5. Contatos

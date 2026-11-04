@@ -48,7 +48,7 @@ O SafeID não trata dados sensíveis no sentido do art. 5º, II, da LGPD e não 
 | Tokens de verificação e de nova senha | Tabelas próprias, só o hash SHA-256 | Confirmar o e-mail e redefinir a senha | Execução do serviço | 24 h e 60 min de validade; apagados com a conta |
 | Endereço IP | Memória e Redis do limitador | Limitar tentativas de acesso | Legítimo interesse (art. 7º, IX) | Janela do limite (até 15 min) |
 | Registros técnicos | CloudWatch Logs | Operação e investigação de falhas | Legítimo interesse | 30 dias |
-| Backups do banco | Amazon RDS | Recuperação de desastres | Legítimo interesse | 7 dias |
+| Backups do banco | Amazon RDS | Recuperação de desastres | Legítimo interesse | 1 dia |
 
 O SafeID **não** recebe nem guarda as senhas vazadas: o HIBP informa apenas que a classe `Passwords` foi exposta.
 
@@ -91,7 +91,7 @@ Escala: probabilidade (P) e impacto (I) de 1 a 5; nível = P × I. A probabilida
 | R8 | E-mail do titular em registros técnicos | 2 | 2 | 4 | Logs com `userId` e e-mail mascarado (8 caracteres do SHA-256); retenção de 30 dias; acesso restrito à conta AWS da equipe |
 | R9 | Chave de hash ausente em produção, tornando o hash do e-mail reversível por dicionário | 3 | 3 | 9 | Aviso no log quando a variável falta; verificação prevista (item Must da Seção 6.3) |
 | R10 | Menores de idade usando o serviço | 2 | 3 | 6 | Declaração de idade no cadastro; exclusão da conta ao saber de menor (Política, seção 11) |
-| R11 | Dados mantidos após a exclusão da conta | 2 | 2 | 4 | Exclusão física em cascata e limpeza do cache; backups expiram em 7 dias |
+| R11 | Dados mantidos após a exclusão da conta | 2 | 2 | 4 | Exclusão física em cascata e limpeza do cache; backups expiram em 1 dia |
 | R12 | Cache Redis sem TLS nem criptografia em repouso | 2 | 2 | 4 | Rede privada; chaves do cache usam o hash do e-mail (achado S06 do pentest, aceito) |
 
 ## 5. Medidas adicionais
