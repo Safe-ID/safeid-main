@@ -1,0 +1,7 @@
+name: SafeID CodeQL config
+
+# Pastas fora da análise. Só entra aqui o que não é código do SafeID.
+paths-ignore:
+  # Entregas acadêmicas: as apresentações em HTML embutem o reveal.js minificado,
+  # código de terceiros que não roda na aplicação e gerava alertas falsos.
+  - docs/entregas
