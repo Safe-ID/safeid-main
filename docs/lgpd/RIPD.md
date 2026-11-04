@@ -1,6 +1,6 @@
 # Relatório de Impacto à Proteção de Dados Pessoais (RIPD) do SafeID
 
-> **Versão preliminar, 04/11/2026. Pendente de aprovação da equipe.**
+> **Versão 1.0, aprovada pelo Product Owner em 04/11/2026.**
 > Documento preparado pela equipe do projeto com base no código, na infraestrutura e na [Política de Privacidade](../../PRIVACY.md) vigentes em 04/11/2026 (commit `5d53dd4` da `main`). Não substitui avaliação jurídica especializada.
 
 ## 1. Identificação
@@ -94,28 +94,40 @@ Escala: probabilidade (P) e impacto (I) de 1 a 5; nível = P × I. A probabilida
 | R11 | Dados mantidos após a exclusão da conta | 2 | 2 | 4 | Exclusão física em cascata e limpeza do cache; backups expiram em 7 dias |
 | R12 | Cache Redis sem TLS nem criptografia em repouso | 2 | 2 | 4 | Rede privada; chaves do cache usam o hash do e-mail (achado S06 do pentest, aceito) |
 
-## 5. Medidas adicionais e plano de ação
+## 5. Medidas adicionais
+
+O projeto se encerra com a apresentação final, em 13/11/2026. Por isso, as medidas abaixo estão divididas entre as que têm prazo até essa data e as que ficam como recomendação, com o risco correspondente aceito.
+
+### 5.1 Até a apresentação final
 
 | Medida | Riscos | Responsável | Prazo | Situação |
 |---|---|---|---|---|
-| Confirmar `EMAIL_HASH_SECRET` no SSM de produção e torná-la obrigatória no script de implantação | R9 | Lucas Vieira | Imediato | Pendente |
-| Aprovar e publicar o [plano de resposta a incidentes](PLANO_RESPOSTA_INCIDENTES.md) | R1, R2 | Todos | 20/11/2026 | Em aprovação |
-| Trocar o `maskEmail` (SHA-256 sem chave) por HMAC truncado nos logs | R8 | Lucas Vieira | 1º sem./2027 | Planejado |
-| Rotação periódica dos segredos JWT, com procedimento documentado | R2, R4 | Lucas Vieira | 1º sem./2027 | Planejado |
-| Avaliar Redis com TLS e criptografia em repouso ao mudar de plano | R12 | Kelvyn Gabriel | Ao sair do plano atual | Planejado |
-| Responder 404 para a análise de outro usuário (hoje 200 com corpo vazio) | R3 | Kelvyn Gabriel | 1º sem./2027 | Planejado (S04) |
-| Revisar contratos e termos de tratamento dos operadores (AWS, Microsoft, HIBP) e registrar a região de processamento da IA | R7 | Matheus Pereira | 20/11/2026 | Pendente |
-| Revisar este RIPD a cada mudança relevante de tratamento e, no mínimo, uma vez por semestre | Todos | Matheus Pereira | Contínuo | — |
+| Publicar o [plano de resposta a incidentes](PLANO_RESPOSTA_INCIDENTES.md) | R1, R2 | Matheus Pereira | 04/11/2026 | Concluído |
+| Confirmar a presença de `EMAIL_HASH_SECRET` no SSM de produção | R9 | Lucas Vieira | 12/11/2026 | Pendente |
+| Conferir os termos de tratamento de dados dos operadores (AWS, Microsoft e HIBP) e registrar a região de processamento da IA | R7 | Matheus Pereira | 12/11/2026 | Pendente |
+
+### 5.2 Recomendações para uma eventual continuidade
+
+Sem responsável nem prazo. Enquanto não forem feitas, o risco correspondente fica aceito, no nível da seção 4.
+
+| Medida | Riscos |
+|---|---|
+| Tornar `EMAIL_HASH_SECRET` obrigatória no script de implantação | R9 |
+| Trocar o `maskEmail` (SHA-256 sem chave) por HMAC truncado nos logs | R8 |
+| Rotação periódica dos segredos JWT, com procedimento documentado | R2, R4 |
+| Redis com TLS e criptografia em repouso | R12 |
+| Responder 404 para a análise de outro usuário, hoje 200 com corpo vazio (S04) | R3 |
+| Revisar este RIPD a cada mudança relevante de tratamento | Todos |
 
 ## 6. Risco residual
 
-Com os controles da seção 4, os riscos mais altos (R1 e R2, nível 10) decorrem do impacto, e não da probabilidade: um vazamento do próprio SafeID atingiria justamente pessoas já expostas. Por isso, o plano de resposta a incidentes é a principal medida pendente. Os demais riscos têm nível igual ou inferior a 9 e medidas definidas. A equipe considera o risco residual **aceitável para a fase acadêmica**, condicionado à conclusão das medidas com prazo de 20/11/2026.
+Com os controles da seção 4, os riscos mais altos (R1 e R2, nível 10) decorrem do impacto, e não da probabilidade: um vazamento do próprio SafeID atingiria justamente pessoas já expostas. Por isso, o plano de resposta a incidentes é a principal medida pendente. Os demais riscos têm nível igual ou inferior a 9 e medidas definidas. A equipe considera o risco residual **aceitável para a fase acadêmica**, condicionado à conclusão das medidas da seção 5.1 até 12/11/2026.
 
 ## 7. Aprovação
 
 | Integrante | Papel | Data | Aprovação |
 |---|---|---|---|
-| Matheus Pereira Pereira | Product Owner | | |
+| Matheus Pereira Pereira | Product Owner | 04/11/2026 | Aprovado |
 | Kelvyn Gabriel Milu de Oliveira | Segurança e LGPD | | |
 | Lucas Vieira de Souza | Back-end e infraestrutura | | |
 | João Antônio Chamusca Martins | Front-end | | |

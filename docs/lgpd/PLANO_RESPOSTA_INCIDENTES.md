@@ -1,6 +1,6 @@
 # Plano de resposta a incidentes de segurança com dados pessoais
 
-> **Versão preliminar, 04/11/2026. Pendente de aprovação da equipe.**
+> **Versão 1.0, aprovada pelo Product Owner em 04/11/2026.**
 > Aplica-se a incidentes envolvendo os dados pessoais tratados pelo próprio SafeID. Complementa o [RIPD](RIPD.md) e segue o art. 48 da LGPD e a Resolução CD/ANPD nº 15/2024 (Regulamento de Comunicação de Incidente de Segurança).
 
 ## 1. O que é um incidente
@@ -71,7 +71,7 @@ Quando houver risco ou dano relevante:
 | Titulares afetados | 3 dias úteis (art. 9º do Regulamento) | E-mail individual pelo SES e aviso no painel; aviso público no site se não for possível falar com cada um |
 | Declaração à ANPD de que os titulares foram avisados | 3 dias úteis após o fim do prazo anterior | No processo da CIS |
 
-Se a equipe se enquadrar como agente de tratamento de pequeno porte, os prazos contam em dobro, desde que essa condição seja declarada na comunicação. Na dúvida, usar o prazo simples.
+A equipe se declara agente de tratamento de pequeno porte (Resolução CD/ANPD nº 2/2022), o que conta em dobro os prazos de comunicação: 6 dias úteis para comunicar a ANPD e os titulares. A condição precisa constar, como declaração, em cada comunicação à ANPD. Sempre que possível, comunicar antes, dentro do prazo simples.
 
 A comunicação deve trazer, em linguagem simples: o que aconteceu e quando; quais dados foram afetados; os riscos para o titular; o que a equipe já fez; o que o titular pode fazer (por exemplo, trocar a senha do SafeID e ficar atento a mensagens que citem seus vazamentos); e o contato safeidifsp@gmail.com.
 
@@ -113,9 +113,9 @@ Correções e lições aprendidas:
 Encerrado em:
 ```
 
-## 8. Testes do plano
+## 8. Vigência e testes do plano
 
-Simular um incidente por semestre, por exemplo, um segredo de teste exposto em um PR, percorrendo as etapas 4.1 a 4.4 sem comunicação real, e registrar o tempo gasto em cada uma.
+O plano vale enquanto o SafeID estiver em produção. O projeto acadêmico se encerra em 13/11/2026; se o sistema continuar no ar depois disso, a equipe mantém este plano e, em uma eventual continuidade, deve simular um incidente por semestre, por exemplo, um segredo de teste exposto em um PR, percorrendo as etapas 4.1 a 4.4 sem comunicação real.
 
 ## Referências
 
