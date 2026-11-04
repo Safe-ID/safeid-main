@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafeID · SEDCITEC 2026 · IFSP-SP</title>
+
+<!-- ===================== BIBLIOTECAS (CDN) =====================
+     Reveal.js 5.1.0 (estrutura e transições), Font Awesome 6.5.2 (ícones)
+     e as fontes Inter / JetBrains Mono. Precisa de internet para carregar. -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reset.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/theme/black.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/monokai.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   TEMA VISUAL — altere as cores aqui para mudar toda a apresentação
+   ============================================================ */
+:root{
+  --bg:#090d16; --card:rgba(17,24,39,.78); --line:rgba(148,163,184,.18);
+  --txt:#e5e7eb; --muted:#94a3b8; --dim:#64748b;
+  --green:#10b981; --green-2:#34d399; --blue:#3b82f6; --blue-2:#60a5fa;
+  --amber:#f59e0b; --red:#ef4444; --violet:#a78bfa;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --r-background-color:var(--bg);
+  --r-main-font:var(--sans); --r-main-color:var(--txt); --r-main-font-size:30px;
+  --r-heading-font:var(--sans); --r-heading-color:#fff; --r-heading-text-transform:none;
+  --r-heading-letter-spacing:-0.02em; --r-heading-font-weight:800;
+  --r-link-color:var(--green-2); --r-selection-background-color:var(--green);
+  --r-code-font:var(--mono);
+}
+html,body,.reveal-viewport{background:
+  radial-gradient(1100px 600px at 90% -10%,rgba(59,130,246,.13),transparent 60%),
+  radial-gradient(900px 600px at -10% 110%,rgba(16,185,129,.10),transparent 60%),var(--bg)}
+/* grade sutil de fundo */
+.reveal-viewport::before{content:"";position:fixed;inset:0;pointer-events:none;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:56px 56px;opacity:.18;mask-image:radial-gradient(ellipse at 50% 40%,#000,transparent 75%)}
+
+.reveal .slides{text-align:left}
+.reveal .slides section{height:100%;padding:0 10px;box-sizing:border-box}
+.reveal h1{font-size:2.6em;line-height:1.05;margin:0 0 .3em}
+.reveal h2{font-size:1.65em;line-height:1.12;margin:0 0 .55em}
+.reveal h3{font-size:.95em;margin:0 0 .4em;font-weight:700}
+.reveal p{margin:0 0 .5em;line-height:1.45}
+.reveal ul{margin:0;list-style:none}
+.reveal li{margin:.35em 0;line-height:1.4;padding-left:1.1em;position:relative}
+.reveal li::before{content:"";position:absolute;left:0;top:.62em;width:.38em;height:.38em;border-radius:2px;background:var(--green);transform:rotate(45deg)}
+
+.eyebrow{font:600 .5em var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--green);display:flex;align-items:center;gap:.8em;margin-bottom:.7em}
+.eyebrow::before{content:"";width:2em;height:2px;background:var(--green)}
+.hl-g{color:var(--green-2)} .hl-b{color:var(--blue-2)} .hl-a{color:var(--amber)} .hl-r{color:#f87171}
+.muted{color:var(--muted)} .mono{font-family:var(--mono)} .small{font-size:.62em} .tiny{font-size:.48em;color:var(--dim)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:.75em .9em;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 18px 45px rgba(0,0,0,.35)}
+.grid{display:grid;gap:.6em}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.row{display:flex;gap:.8em;align-items:stretch}
+.ic{width:1.9em;height:1.9em;border-radius:.5em;display:grid;place-items:center;font-size:.8em;flex:none}
+.ic.g{background:rgba(16,185,129,.15);color:var(--green-2)}.ic.b{background:rgba(59,130,246,.15);color:var(--blue-2)}
+.ic.a{background:rgba(245,158,11,.15);color:var(--amber)}.ic.v{background:rgba(167,139,250,.15);color:var(--violet)}.ic.r{background:rgba(239,68,68,.15);color:#f87171}
+.key{border-left:4px solid var(--green);background:linear-gradient(90deg,rgba(16,185,129,.13),transparent);padding:.55em .8em;border-radius:0 14px 14px 0;font-size:.78em;line-height:1.45}
+.key.blue{border-color:var(--blue);background:linear-gradient(90deg,rgba(59,130,246,.13),transparent)}
+.key b{color:#fff}
+.tag{display:inline-block;font:600 .42em var(--mono);padding:.25em .7em;border-radius:99px;border:1px solid rgba(16,185,129,.45);color:var(--green-2);background:rgba(16,185,129,.1);letter-spacing:.06em}
+
+/* fragmentos personalizados: surgem de baixo com leve desfoque */
+.reveal .fragment.rise{opacity:0;transform:translateY(22px);filter:blur(4px);transition:all .55s cubic-bezier(.2,.7,.2,1)}
+.reveal .fragment.rise.visible{opacity:1;transform:none;filter:none}
+.reveal .fragment.glow.current-fragment{box-shadow:0 0 0 2px var(--green),0 0 28px rgba(16,185,129,.45)}
+
+/* ---------- 1 capa ---------- */
+#capa .wrap{display:flex;align-items:center;height:100%;gap:1em}
+#capa .title{font-size:3.4em;font-weight:800;letter-spacing:-.045em;line-height:1;margin:0 0 .15em;
+  background:linear-gradient(100deg,#fff 25%,var(--green) 65%,var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
+#capa .sub{font-size:1.05em;color:#cbd5e1;margin-bottom:.9em;font-weight:500}
+#capa .event{display:inline-flex;align-items:center;gap:.6em;font-size:.62em;padding:.5em .9em;border-radius:12px;border:1px solid var(--line);background:rgba(17,24,39,.7);margin-bottom:.9em}
+#capa .team{font-size:.55em;color:var(--muted);line-height:1.6}
+#capa .team b{color:#e2e8f0;font-weight:600}
+.shield{width:430px;height:430px;flex:none}
+
+/* ---------- 2 problema ---------- */
+.stat .n{font-size:1.9em;font-weight:800;letter-spacing:-.03em;line-height:1}
+.stat .l{font-size:.55em;color:var(--muted);margin-top:.45em;line-height:1.4}
+.stat .s{font:500 .38em var(--mono);color:var(--dim);margin-top:.6em}
+
+/* ---------- 4 stack ---------- */
+.tech{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.35em;padding:.7em .4em;text-align:center}
+.tech i{font-size:1.5em;animation:float 4s ease-in-out infinite}
+.tech:nth-child(2n) i{animation-delay:-1.3s}.tech:nth-child(3n) i{animation-delay:-2.6s}
+.tech b{font-size:.55em}.tech span{font-size:.4em;color:var(--dim);font-family:var(--mono)}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+.layer-label{font:700 .38em var(--mono);letter-spacing:.16em;text-transform:uppercase;margin:.2em 0 .35em}
+
+/* ---------- 5 arquitetura ---------- */
+#arq svg{width:100%;height:auto}
+.n rect{fill:#0f172a;stroke:#334155;stroke-width:2}
+.n text{fill:#e5e7eb;font:650 17px var(--sans);text-anchor:middle}
+.n text.s{fill:#94a3b8;font:500 12.5px var(--mono)}
+.n.hl rect{stroke:var(--green)}
+.edge{fill:none;stroke:var(--blue-2);stroke-width:2.5;stroke-dasharray:7 7;animation:flow 1s linear infinite}
+.edge.back{stroke:var(--green-2)}
+@keyframes flow{to{stroke-dashoffset:-14}}
+.elabel{fill:#cbd5e1;font:500 12px var(--mono);text-anchor:middle}
+.reveal pre{width:100%;margin:0;box-shadow:none;font-size:.42em;border-radius:12px;border:1px solid var(--line)}
+.reveal pre code{max-height:none;padding:.8em 1em;background:#0b1220;border-radius:12px;line-height:1.5}
+
+/* ---------- 6 modelo ---------- */
+.entity{padding:.55em .7em}
+.entity h3{display:flex;align-items:center;gap:.5em;font-size:.68em}
+.entity table{width:100%;border-collapse:collapse;font:.4em var(--mono)}
+.reveal .entity td{padding:.28em .2em;border-bottom:1px solid rgba(148,163,184,.1);color:#cbd5e1}
+.entity td:last-child{color:var(--dim);text-align:right}
+.entity td .pk{color:var(--amber)} .entity td .enc{color:var(--green-2)}
+.pipe{display:flex;align-items:center;gap:.4em;font-size:.5em}
+.pipe .st{flex:1;text-align:center;padding:.6em .4em;border-radius:12px;border:1px solid var(--line);background:rgba(15,23,42,.7)}
+.pipe .st i{display:block;font-size:1.5em;margin-bottom:.3em}
+.pipe .ar{color:var(--dim)}
+.pipe .st .tiny{font-size:.82em}
+.formula{font:600 .5em/1.7 var(--mono);color:#e2e8f0}
+.formula .v{color:var(--green-2)}
+.bands{display:flex;height:.55em;border-radius:99px;overflow:hidden;margin:.45em 0 .25em}
+.bands span{flex:1}
+.blabels{display:flex;font:.36em var(--mono);color:var(--muted)}.blabels span{flex:1;text-align:center}
+.wlist{font:.4em/1.65 var(--mono);color:#cbd5e1}.wlist b{color:var(--amber);display:inline-block;width:2.2em}
+.apply{margin-top:.5em;padding-top:.45em;border-top:1px dashed rgba(148,163,184,.25);font:.36em/1.45 var(--mono);color:var(--blue-2)}
+.res{display:flex;flex-direction:column;gap:.35em;margin-top:.55em}
+.res div{display:flex;gap:.6em;align-items:center;font-size:.45em;color:#cbd5e1}
+.res i{width:1.4em;text-align:center}
+
+/* ---------- 7 cripto ---------- */
+.crypto-io{font:.42em/1.55 var(--mono);background:#020617;border:1px solid var(--line);border-radius:12px;padding:.7em .8em;word-break:break-all;min-height:4.6em}
+.crypto-io .lbl{color:var(--dim);display:block;margin-bottom:.2em;letter-spacing:.08em}
+.crypto-io .out{color:var(--green-2)}
+.crypto-io .out.b{color:var(--blue-2)} .crypto-io .out.a{color:var(--amber)}
+.demo-in{display:flex;gap:.4em;align-items:center;margin-bottom:.5em}
+.demo-in input{flex:1;font:.5em var(--mono);padding:.55em .7em;border-radius:10px;border:1px solid var(--line);background:#0b1220;color:#fff}
+.btn{font:600 .45em var(--sans);padding:.65em 1em;border-radius:10px;border:1px solid var(--green);background:rgba(16,185,129,.15);color:#fff;cursor:pointer}
+.btn:hover{background:rgba(16,185,129,.3)}
+.algo h3{font-size:.62em;display:flex;align-items:center;gap:.5em;margin-bottom:.3em}
+.algo p{font-size:.47em;color:var(--muted);line-height:1.45;margin-bottom:.45em}
+
+/* ---------- 8 prática ---------- */
+.flow{display:grid;grid-template-columns:repeat(6,1fr);gap:.45em}
+.step{padding:.6em .55em;text-align:left}
+.step .num{font:800 .55em var(--mono);color:var(--green-2)}
+.step h3{font-size:.56em;margin:.3em 0 .25em}
+.step p{font-size:.42em;color:var(--muted);line-height:1.4;margin:0}
+.step .bg{margin-top:.5em;padding-top:.45em;border-top:1px dashed rgba(148,163,184,.25);font:.36em/1.45 var(--mono);color:var(--blue-2)}
+.shot{border:1px dashed rgba(148,163,184,.4);border-radius:14px;display:grid;place-items:center;text-align:center;color:var(--dim);font-size:.5em;background:rgba(15,23,42,.5)}
+.shot i{font-size:2em;margin-bottom:.3em;color:#334155}
+
+/* ---------- 9 conclusão ---------- */
+.qa{display:flex;align-items:center;justify-content:space-between;padding:.7em 1em;margin-top:.6em}
+.qa .big{font-size:1.35em;font-weight:800}
+.cta{display:inline-flex;align-items:center;gap:.6em;font:700 .55em var(--sans);padding:.75em 1.2em;border-radius:14px;border:0;cursor:pointer;text-decoration:none;color:#04120d;background:linear-gradient(100deg,var(--green),var(--blue-2));box-shadow:0 0 0 0 rgba(16,185,129,.6);animation:ctaPulse 2.4s infinite;flex:none}
+.cta:hover{filter:brightness(1.1)} .cta i{font-size:1.25em}
+.reveal a.cta,.reveal a.cta:hover{color:#04120d}
+.cta.ghost{background:transparent;color:#fff;border:1px solid rgba(148,163,184,.45);animation:none}
+@keyframes ctaPulse{0%{box-shadow:0 0 0 0 rgba(16,185,129,.55)}70%{box-shadow:0 0 0 18px rgba(16,185,129,0)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}}
+.live-row{display:flex;align-items:center;justify-content:space-between;gap:.8em;margin-top:.7em;padding:.7em .9em}
+/* sobreposição do vídeo em tela cheia */
+#videoOverlay{position:fixed;inset:0;z-index:9999;background:#000;display:none}
+#videoOverlay.on{display:block}
+#videoOverlay iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+#videoOverlay .vbar{position:absolute;top:14px;right:14px;display:flex;gap:10px;z-index:2;opacity:.25;transition:opacity .3s}
+#videoOverlay .vbar:hover{opacity:1}
+#videoOverlay .vbar a,#videoOverlay .vbar button{font:600 15px var(--sans);color:#fff;background:rgba(17,24,39,.85);border:1px solid rgba(148,163,184,.4);border-radius:10px;padding:8px 14px;cursor:pointer;text-decoration:none}
+
+/* controles e barra de progresso na cor do tema */
+.reveal .progress{color:var(--green);height:4px}
+.reveal .controls{color:var(--green)}
+.reveal .slide-number{background:rgba(17,24,39,.8);font:500 14px var(--mono);color:var(--muted);border-radius:8px;padding:4px 10px;right:14px;bottom:14px}
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- =========================================================
+     SLIDE 1 — CAPA
+     EDITE: nomes da equipe, orientadores e data do evento.
+     ========================================================= -->
+<section id="capa" data-transition="fade">
+  <div class="wrap">
+    <div style="flex:1">
+      <div class="eyebrow">SEDCITEC 2026 · IFSP — Campus São Paulo · 21/10/2026</div>
+      <h1 class="title">Projeto SafeID</h1>
+      <div class="sub">Tecnologias e Criptografia para Identidade Segura</div>
+      <div class="event"><i class="fa-solid fa-flask hl-g"></i> 18ª Semana de Educação, Ciência e Tecnologia do IFSP
+        <!-- EDITE: data, sala e horário da apresentação --></div>
+      <div class="team">
+        <b>Equipe:</b> Joao Antônio Chamusca Martins · Kelvyn Gabriel Milu de Oliveira · Lucas Vieira de Souza · Matheus Pereira Pereira<br>
+        <!-- EDITE: orientadores do projeto para o evento -->
+        <b>Orientação:</b> Prof. Johnata Souza Santicioli · Prof. Marcelo Tavares de Santana<br>
+        <b>Curso:</b> Tecnologia em Análise e Desenvolvimento de Sistemas · <span class="hl-g mono">www.safeid.app.br</span>
+      </div>
+    </div>
+    <!-- Escudo animado (SVG). Para usar o logotipo real, troque este <svg> por <img src="logo.png" class="shield"> -->
+    <svg class="shield" viewBox="0 0 560 560" aria-hidden="true">
+      <defs>
+        <linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10b981"/><stop offset="1" stop-color="#3b82f6"/></linearGradient>
+        <radialGradient id="gl"><stop offset="0" stop-color="#10b981" stop-opacity=".35"/><stop offset="1" stop-color="#10b981" stop-opacity="0"/></radialGradient>
+      </defs>
+      <circle cx="280" cy="280" r="270" fill="url(#gl)"/>
+      <g fill="none" stroke="#1e293b" stroke-width="1.5"><circle cx="280" cy="280" r="250"/><circle cx="280" cy="280" r="200"/></g>
+      <g fill="none" stroke="url(#sg)" stroke-width="3" stroke-linecap="round">
+        <circle cx="280" cy="280" r="250" stroke-dasharray="90 700"><animateTransform attributeName="transform" type="rotate" from="0 280 280" to="360 280 280" dur="14s" repeatCount="indefinite"/></circle>
+        <circle cx="280" cy="280" r="200" stroke-dasharray="40 330" opacity=".7"><animateTransform attributeName="transform" type="rotate" from="360 280 280" to="0 280 280" dur="10s" repeatCount="indefinite"/></circle>
+      </g>
+      <path d="M280 130 L392 172 V272 C392 350 342 405 280 432 C218 405 168 350 168 272 V172 Z" fill="rgba(16,185,129,.08)" stroke="url(#sg)" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M232 280 L268 316 L336 244" fill="none" stroke="#10b981" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="160" stroke-dashoffset="160"><animate attributeName="stroke-dashoffset" values="160;0;0;160" keyTimes="0;.25;.85;1" dur="5s" repeatCount="indefinite"/></path>
+    </svg>
+  </div>
+  <aside class="notes"><b>🎤 Kelvyn</b> — Apresentar a equipe e o IFSP. Uma frase de abertura: "Seus dados provavelmente já vazaram — a questão é: você sabe o que isso significa?" (1 min)</aside>
+</section>
+
+<!-- =========================================================
+     SLIDE 2 — CONTEXTUALIZAÇÃO E PROBLEMA
+     Números com fonte; atualize se tiver dados mais recentes.
+     ========================================================= -->
+<section id="problema">
+  <div class="eyebrow">01 · Contexto e problema</div>
+  <h2>Os dados vazados existem. <span class="hl-r">O cidadão não sabe interpretá-los.</span></h2>
+  <div class="grid g3" style="margin-bottom:.7em">
+    <div class="card stat fragment rise"><div class="n hl-b"><span class="count" data-to="30">0</span> bi+</div><div class="l">tentativas de ataques cibernéticos no Brasil em 2022</div><div class="s">FORTINET, 2022</div></div>
+    <div class="card stat fragment rise"><div class="n hl-a">US$ <span class="count" data-to="4.45" data-dec="2">0</span> mi</div><div class="l">custo médio global de um vazamento de dados</div><div class="s">IBM SECURITY, 2023</div></div>
+    <div class="card stat fragment rise"><div class="n hl-r"><span class="count" data-to="277">0</span> dias</div><div class="l">entre a ocorrência e a contenção de um vazamento</div><div class="s">IBM SECURITY, 2023</div></div>
+  </div>
+  <div class="row">
+    <div class="card fragment rise" style="flex:1.1">
+      <h3><i class="fa-solid fa-triangle-exclamation hl-r"></i> O problema</h3>
+      <ul class="small">
+        <li>Senhas, telefones e documentos circulam em <b>bases de credenciais expostas</b>.</li>
+        <li>Roubo de identidade: golpes, contas abertas em nome da vítima, <i>phishing</i> personalizado.</li>
+        <li>O cidadão recebe <b>dados técnicos brutos</b> — e não sabe o que fazer.</li>
+      </ul>
+    </div>
+    <div class="key fragment rise" style="flex:1;align-self:center">
+      <b class="hl-g">Para que serve o SafeID?</b><br>
+      Verificar se o seu e-mail aparece em vazamentos conhecidos, <b>medir a gravidade</b> da exposição e entregar um <b>plano de ação em linguagem simples</b>.
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Kelvyn</b> — Os números dimensionam o problema, mas não dizem ao titular o que foi exposto nem o que fazer. Essa lacuna gera inércia. (2–3 min)</aside>
+</section>
+
+<!-- =========================================================
+     SLIDE 3 — FUNDAMENTAÇÃO TEÓRICA
+     ========================================================= -->
+<section id="conceitos">
+  <div class="eyebrow">02 · Fundamentação teórica</div>
+  <h2>O que é uma <span class="hl-g">identidade digital segura</span>?</h2>
+  <div class="key blue fragment rise" style="margin-bottom:.7em">
+    <b>Identidade digital</b> é o conjunto de atributos que representam uma pessoa em sistemas — e-mail, senhas, documentos, telefone. Ela é <b>segura</b> quando esses atributos permanecem confidenciais, íntegros e sob controle do titular, que precisa saber <b>quando</b> e <b>onde</b> foram expostos.
+  </div>
+  <div class="grid g4">
+    <div class="card fragment rise"><h3><span class="ic b"><i class="fa-solid fa-eye-slash"></i></span></h3><h3>Confidencialidade</h3><p class="small muted">Só quem tem autorização acessa o dado.</p><div class="apply">SafeID: AES-256-GCM · HMAC</div></div>
+    <div class="card fragment rise"><h3><span class="ic g"><i class="fa-solid fa-fingerprint"></i></span></h3><h3>Integridade</h3><p class="small muted">O dado não foi alterado sem que se perceba.</p><div class="apply">SafeID: tag de autenticação GCM</div></div>
+    <div class="card fragment rise"><h3><span class="ic v"><i class="fa-solid fa-id-card"></i></span></h3><h3>Autenticidade</h3><p class="small muted">Quem acessa é quem diz ser.</p><div class="apply">SafeID: JWT · Google OAuth · bcrypt</div></div>
+    <div class="card fragment rise"><h3><span class="ic a"><i class="fa-solid fa-scale-balanced"></i></span></h3><h3>Autodeterminação</h3><p class="small muted">O titular decide sobre seus dados (LGPD).</p><div class="apply">SafeID: consentimento · exclusão da conta</div></div>
+  </div>
+  <p class="tiny fragment rise" style="margin-top:.8em">Referências: Von Solms e Van Niekerk (2013) · NIST SP 800-63B (2017) · Lei nº 13.709/2018 (LGPD) · Conti, Dargahi e Dehghantanha (2018).</p>
+  <aside class="notes"><b>🎤 Matheus</b> — Tríade CIA + autenticidade. A cibersegurança passa a abranger a identidade do indivíduo, não só a infraestrutura das empresas. LGPD: autodeterminação informativa. (2–3 min)</aside>
+</section>
+
+<!-- =========================================================
+     SLIDE 6 — MODELO ESTRUTURAL
+     Campos conforme server/prisma/schema.prisma.
+     ========================================================= -->
+<section id="modelo">
+  <div class="eyebrow">03 · O modelo estrutural</div>
+  <h2>Como os dados são <span class="hl-g">estruturados e processados</span></h2>
+  <div class="grid g3" style="margin-bottom:.7em">
+    <div class="card entity fragment rise">
+      <h3><span class="ic b"><i class="fa-solid fa-user"></i></span>User</h3>
+      <table>
+        <tr><td><span class="pk">id</span></td><td>PK</td></tr>
+        <tr><td>email</td><td>único</td></tr>
+        <tr><td>passwordHash</td><td>bcrypt</td></tr>
+        <tr><td>googleId</td><td>OAuth</td></tr>
+        <tr><td>termsAcceptedAt</td><td>LGPD</td></tr>
+      </table>
+    </div>
+    <div class="card entity fragment rise">
+      <h3><span class="ic g"><i class="fa-solid fa-clock-rotate-left"></i></span>ScanHistory</h3>
+      <table>
+        <tr><td><span class="pk">jobId</span> · userId</td><td>1 : N</td></tr>
+        <tr><td>emailHash</td><td><span class="enc">HMAC</span></td></tr>
+        <tr><td>riskScore · classification</td><td>0–100</td></tr>
+        <tr><td>breachData</td><td><span class="enc">AES-256-GCM</span></td></tr>
+        <tr><td>recommendation · mitigationSteps</td><td>IA</td></tr>
+      </table>
+    </div>
+    <div class="card entity fragment rise">
+      <h3><span class="ic a"><i class="fa-solid fa-box-archive"></i></span>Cache (Redis)</h3>
+      <table>
+        <tr><td>scan:&lt;hash&gt;</td><td>12–24 h</td></tr>
+        <tr><td>ai-recommendation:&lt;hash&gt;</td><td>7 dias</td></tr>
+        <tr><td>fila check-hibp</td><td>BullMQ</td></tr>
+      </table>
+      <p class="tiny" style="margin-top:.5em">Nenhuma chave contém o e-mail em texto claro.</p>
+    </div>
+  </div>
+  <div class="pipe fragment rise" style="margin-bottom:.6em">
+    <div class="st"><i class="fa-solid fa-file-code hl-b"></i>Dado bruto<br><span class="tiny">JSON do HIBP</span></div><div class="ar"><i class="fa-solid fa-arrow-right"></i></div>
+    <div class="st"><i class="fa-solid fa-tags hl-a"></i>Classificação<br><span class="tiny">tipos de dado expostos</span></div><div class="ar"><i class="fa-solid fa-arrow-right"></i></div>
+    <div class="st"><i class="fa-solid fa-gauge-high hl-g"></i>Score de risco<br><span class="tiny">peso × recência</span></div><div class="ar"><i class="fa-solid fa-arrow-right"></i></div>
+    <div class="st"><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--violet)"></i>Recomendação<br><span class="tiny">IA, só metadados</span></div><div class="ar"><i class="fa-solid fa-arrow-right"></i></div>
+    <div class="st"><i class="fa-solid fa-lock hl-g"></i>Persistência<br><span class="tiny">cifrada</span></div>
+  </div>
+  <!-- Modelo de score de referência (trabalho escrito, seção do motor de risco).
+       EDITE os pesos/faixas aqui se a equipe ajustar o modelo. -->
+  <div class="row fragment rise">
+    <div class="card" style="flex:1.25">
+      <h3 class="small"><i class="fa-solid fa-square-root-variable hl-g"></i> Modelo de score de risco</h3>
+      <div class="formula">S<sub>j</sub> = T(t<sub>j</sub>) × Σ w<sub>i</sub> &nbsp;&nbsp;·&nbsp;&nbsp; RiskScore = min(100, 100 × S<sub>bruto</sub> / 50)</div>
+      <div class="formula muted" style="font-weight:500">T = <span class="v">1,0</span> (≤ 24 meses) · <span class="v">0,7</span> (24–60) · <span class="v">0,4</span> (&gt; 60)</div>
+      <div class="bands"><span style="background:#10b981"></span><span style="background:#facc15"></span><span style="background:#f97316"></span><span style="background:#ef4444"></span></div>
+      <div class="blabels"><span>0–25 Baixo</span><span>26–50 Médio</span><span>51–75 Alto</span><span>76–100 Crítico</span></div>
+    </div>
+    <div class="card" style="flex:1">
+      <h3 class="small"><i class="fa-solid fa-weight-hanging hl-a"></i> Pesos w<sub>i</sub> por tipo de dado</h3>
+      <div class="wlist"><b>10</b>dados financeiros · senha em texto claro ou hash fraco<br><b>8</b>documentos · tokens MFA · biometria<br><b>7</b>senha com hash forte &nbsp;&nbsp;<b>5</b>telefone · endereço<br><b>4</b>nascimento · filiação &nbsp;&nbsp;<b>3</b>usuário · nome<br><b>2</b>IP · geolocalização &nbsp;&nbsp;<b>1</b>user-agent</div>
+      <p class="tiny" style="margin:.4em 0 0">Base: NIST SP 800-63B · CVSS v3.1 · LGPD arts. 5 e 52</p>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Matheus</b> — User 1:N ScanHistory. O e-mail nunca é chave de cache nem vai para a IA. Modelo de score: cada vazamento soma os pesos dos tipos de dado expostos e é multiplicado pelo fator de recência; o total é normalizado para 0–100 e classificado em quatro faixas. Exemplo do trabalho escrito: senha + telefone em vazamento recente → score alto. (3 min)</aside>
+</section>
+
+<!-- =========================================================
+     SLIDE 4 — TECNOLOGIAS E STACK
+     ========================================================= -->
+<section id="stack">
+  <div class="eyebrow">04 · Tecnologias aplicadas</div>
+  <h2>Uma stack moderna, <span class="hl-b">tipada e testada</span></h2>
+  <div class="layer-label hl-b">Interface</div>
+  <div class="grid g4 fragment rise" style="margin-bottom:.4em">
+    <div class="card tech"><i class="fa-brands fa-react hl-b"></i><b>React 19</b><span>interface</span></div>
+    <div class="card tech"><i class="fa-solid fa-wind hl-b"></i><b>Tailwind CSS</b><span>estilo responsivo</span></div>
+    <div class="card tech"><i class="fa-solid fa-bolt hl-a"></i><b>Vite</b><span>build</span></div>
+    <div class="card tech"><i class="fa-brands fa-google" style="color:#fff"></i><b>Google OAuth</b><span>login social</span></div>
+  </div>
+  <div class="layer-label hl-g">Servidor e dados</div>
+  <div class="grid g4 fragment rise" style="margin-bottom:.4em">
+    <div class="card tech"><i class="fa-brands fa-node-js hl-g"></i><b>Node.js + NestJS</b><span>API em TypeScript</span></div>
+    <div class="card tech"><i class="fa-solid fa-database hl-b"></i><b>PostgreSQL</b><span>Prisma ORM</span></div>
+    <div class="card tech"><i class="fa-solid fa-memory hl-r"></i><b>Redis</b><span>cache</span></div>
+    <div class="card tech"><i class="fa-solid fa-layer-group hl-a"></i><b>BullMQ</b><span>filas assíncronas</span></div>
+  </div>
+  <div class="layer-label" style="color:var(--violet)">Integrações e qualidade</div>
+  <div class="grid g4 fragment rise">
+    <div class="card tech"><i class="fa-solid fa-user-secret" style="color:var(--violet)"></i><b>Have I Been Pwned</b><span>base de vazamentos</span></div>
+    <div class="card tech"><i class="fa-brands fa-microsoft" style="color:var(--violet)"></i><b>Azure AI Foundry</b><span>IA generativa</span></div>
+    <div class="card tech"><i class="fa-brands fa-docker hl-b"></i><b>Docker</b><span>contêineres</span></div>
+    <div class="card tech"><i class="fa-brands fa-github" style="color:#fff"></i><b>GitHub Actions</b><span>testes a cada PR</span></div>
+  </div>
+  <aside class="notes"><b>🎤 João → Lucas</b> — João apresenta a linha Interface (React, Tailwind, Vite, Google OAuth) e passa para o Lucas, que segue com Servidor e dados e Integrações e qualidade. Mostrar as três camadas. Destacar: TypeScript estrito, testes automáticos em cada Pull Request, e que a IA é usada só para explicar o resultado. (2 min)</aside>
+</section>
+
+<!-- =========================================================
+     SLIDE 5 — ARQUITETURA E INTEGRAÇÃO DE API
+     O diagrama aparece por partes (cada <g class="fragment">).
+     ========================================================= -->
+<section id="arq">
+  <div class="eyebrow">05 · Arquitetura e integração de APIs</div>
+  <h2 style="margin-bottom:.3em">Requisição, <span class="hl-b">fila</span> e resposta</h2>
+  <div class="row" style="align-items:flex-start">
+    <div style="flex:1.45">
+      <svg viewBox="0 0 760 420" role="img" aria-label="Fluxo de requisição e resposta do SafeID">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#60a5fa"/></marker>
+              <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#34d399"/></marker></defs>
+        <g class="n hl"><rect x="10" y="30" width="150" height="66" rx="14"/><text x="85" y="60">Navegador</text><text class="s" x="85" y="80">React</text></g>
+        <g class="n"><rect x="300" y="30" width="170" height="66" rx="14"/><text x="385" y="60">API NestJS</text><text class="s" x="385" y="80">JWT · rate limit</text></g>
+        <g class="fragment" data-fragment-index="1">
+          <path class="edge" d="M160 52 H298" marker-end="url(#ah)"/><text class="elabel" x="229" y="42">HTTPS + JWT</text>
+        </g>
+        <g class="fragment" data-fragment-index="2">
+          <g class="n"><rect x="590" y="30" width="160" height="66" rx="14"/><text x="670" y="60">Redis</text><text class="s" x="670" y="80">cache por hash</text></g>
+          <path class="edge" d="M470 63 H588" marker-end="url(#ah)"/><text class="elabel" x="529" y="54">consulta</text>
+        </g>
+        <g class="fragment" data-fragment-index="3">
+          <g class="n"><rect x="300" y="170" width="170" height="66" rx="14"/><text x="385" y="200">Fila BullMQ</text><text class="s" x="385" y="220">worker assíncrono</text></g>
+          <path class="edge" d="M385 96 V168" marker-end="url(#ah)"/><text class="elabel" x="440" y="137">job</text>
+        </g>
+        <g class="fragment" data-fragment-index="4">
+          <g class="n"><rect x="590" y="170" width="160" height="66" rx="14"/><text x="670" y="200">API HIBP v3</text><text class="s" x="670" y="220">1 req / 1,5 s</text></g>
+          <path class="edge" d="M470 203 H588" marker-end="url(#ah)"/><text class="elabel" x="529" y="194">GET breaches</text>
+        </g>
+        <g class="fragment" data-fragment-index="5">
+          <g class="n"><rect x="300" y="310" width="170" height="66" rx="14"/><text x="385" y="340">Motor de risco + IA</text><text class="s" x="385" y="360">score · plano</text></g>
+          <path class="edge" d="M385 236 V308" marker-end="url(#ah)"/>
+          <g class="n"><rect x="590" y="310" width="160" height="66" rx="14"/><text x="670" y="340">PostgreSQL</text><text class="s" x="670" y="360">histórico cifrado</text></g>
+          <path class="edge" d="M470 343 H588" marker-end="url(#ah)"/>
+        </g>
+        <g class="fragment" data-fragment-index="6">
+          <path class="edge back" d="M300 343 H85 V98" marker-end="url(#ag)"/><text class="elabel" x="190" y="333">200 OK · JSON</text>
+        </g>
+      </svg>
+    </div>
+    <div style="flex:1" class="fragment rise" data-fragment-index="6">
+<!-- Exemplo de requisição/resposta da API real (rota POST /api/v1/scan).
+     As linhas destacadas mudam a cada avanço graças a data-line-numbers. -->
+<pre><code class="language-http" data-trim data-line-numbers="1-2|4-12">
+POST /api/v1/scan HTTP/1.1
+Authorization: Bearer &lt;JWT&gt;
+
+HTTP/1.1 201 Created
+{
+  "riskScore": 74,
+  "classification": "...",
+  "breachesFound": 3,
+  "recommendation": "Troque a senha...",
+  "mitigationSteps": ["...", "..."],
+  "urgencyLevel": "HIGH"
+}
+</code></pre>
+      <p class="tiny" style="margin-top:.5em">O e-mail vem do token do usuário logado, nunca do corpo da requisição.</p>
+      <div class="res">
+        <div><i class="fa-solid fa-plug-circle-xmark hl-r"></i><span><b>Circuit breaker</b>: 50% de falhas → pausa de 30 s no HIBP</span></div>
+        <div><i class="fa-solid fa-gauge hl-a"></i><span><b>Rate limit</b>: 5 scans a cada 15 min por IP</span></div>
+        <div><i class="fa-solid fa-bolt hl-b"></i><span><b>Cache</b>: 12 h com vazamentos · 24 h sem</span></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Lucas</b> — Avançar passo a passo: 1) HTTPS + JWT; 2) cache; 3) fila (o HIBP limita as consultas); 4) chamada externa; 5) score, IA e banco; 6) resposta JSON. O valor de "classification" depende das faixas definidas no motor de risco. (3 min)</aside>
+</section>
+
+<!-- =========================================================
+     SLIDE 7 — CRIPTOGRAFIA E SEGURANÇA (ponto alto)
+     A demonstração usa a Web Crypto API do navegador: os valores
+     exibidos são calculados de verdade, na hora.
+     ========================================================= -->
+<section id="cripto">
+  <div class="eyebrow">06 · Criptografia e segurança</div>
+  <h2 style="margin-bottom:.35em">Proteger quem já teve os dados <span class="hl-g">expostos</span></h2>
+  <div class="row" style="gap:.7em">
+    <div style="flex:1" class="grid">
+      <div class="card algo fragment rise">
+        <h3><span class="ic g"><i class="fa-solid fa-hashtag"></i></span>HMAC-SHA-256 — e-mail</h3>
+        <p>Função de <i>hash</i> com chave secreta: gera uma impressão digital de 256 bits <b>irreversível</b>. Sem a chave, não dá para testar uma lista de e-mails.</p>
+      </div>
+      <div class="card algo fragment rise">
+        <h3><span class="ic b"><i class="fa-solid fa-key"></i></span>AES-256-GCM — vazamentos</h3>
+        <p>Cifra simétrica com chave de 256 bits. O modo GCM garante <b>confidencialidade e integridade</b>: qualquer alteração invalida a etiqueta de autenticação.</p>
+      </div>
+      <div class="card algo fragment rise">
+        <h3><span class="ic a"><i class="fa-solid fa-user-lock"></i></span>bcrypt — senhas · TLS — tráfego</h3>
+        <p>Senhas com <i>hash</i> lento e sal. No HTTPS, criptografia assimétrica (certificados RSA/ECDSA e troca de chaves) protege os dados em trânsito.</p>
+      </div>
+    </div>
+    <div style="flex:1.05" class="card fragment rise">
+      <h3 class="small" style="margin-bottom:.5em"><i class="fa-solid fa-terminal hl-g"></i> Demonstração ao vivo</h3>
+      <!-- EDITE: troque o e-mail de exemplo, se quiser -->
+      <div class="demo-in"><input id="cin" value="usuario@exemplo.com" aria-label="Texto para criptografar"><button class="btn" id="crun">Criptografar</button></div>
+      <div class="crypto-io" style="margin-bottom:.4em"><span class="lbl">HMAC-SHA-256 (chave de demonstração)</span><span class="out" id="out-hmac">—</span></div>
+      <div class="crypto-io" style="margin-bottom:.4em"><span class="lbl">AES-256-GCM · IV (96 bits) + texto cifrado</span><span class="out b" id="out-aes">—</span></div>
+      <div class="crypto-io"><span class="lbl">Decifrado com a mesma chave</span><span class="out a" id="out-dec">—</span></div>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Lucas</b> — Rodar a demonstração: digitar um e-mail e clicar. Mostrar que mudar uma letra muda o hash inteiro (efeito avalanche) e que cada execução do AES gera um texto cifrado diferente por causa do IV aleatório. (4 min)</aside>
+</section>
+
+<!-- =========================================================
+     SLIDE 8 — O FUNCIONAMENTO NA PRÁTICA
+     O botão abre www.safeid.app.br em nova aba (precisa de internet).
+     ========================================================= -->
+<section id="pratica">
+  <div class="eyebrow">07 · O funcionamento na prática</div>
+  <h2 style="margin-bottom:.4em">Da conta criada ao <span class="hl-g">plano de ação</span></h2>
+  <div class="flow">
+    <div class="card step fragment rise"><div class="num">01</div><h3>Cadastro</h3><p>E-mail e senha ou Google; aceite da Política de Privacidade.</p><div class="bg">bcrypt · termsAcceptedAt</div></div>
+    <div class="card step fragment rise"><div class="num">02</div><h3>Scan automático</h3><p>O sistema consulta o e-mail da conta.</p><div class="bg">fila BullMQ → HIBP</div></div>
+    <div class="card step fragment rise"><div class="num">03</div><h3>Score</h3><p>Velocímetro de 0 a 100 com faixa de risco.</p><div class="bg">motor de risco</div></div>
+    <div class="card step fragment rise"><div class="num">04</div><h3>Plano com IA</h3><p>Resumo e passos práticos em português.</p><div class="bg">IA recebe só metadados</div></div>
+    <div class="card step fragment rise"><div class="num">05</div><h3>Histórico</h3><p>Linha do tempo e novo scan sob demanda.</p><div class="bg">AES-256-GCM no banco</div></div>
+    <div class="card step fragment rise"><div class="num">06</div><h3>Controle</h3><p>Excluir a conta apaga tudo.</p><div class="bg">LGPD art. 18</div></div>
+  </div>
+  <!-- Botão da demonstração ao vivo: abre o site em uma nova aba -->
+  <div class="card live-row fragment rise">
+    <div><h3 style="margin:0"><i class="fa-solid fa-display hl-g"></i> Demonstração ao vivo</h3>
+      <p class="small muted" style="margin:.2em 0 0">Cadastro, scan, score, plano de ação e histórico no ambiente de produção.</p></div>
+    <a class="cta" href="https://www.safeid.app.br" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir o SafeID</a>
+  </div>
+  <aside class="notes"><b>🎤 João</b> — Clicar em "Abrir o SafeID" e demonstrar ao vivo no site (Alt+Tab para voltar aos slides). Cada passo mostra o que o usuário vê (em cima) e o que acontece nos bastidores (linha azul). (3–4 min)</aside>
+</section>
+
+<!-- =========================================================
+     SLIDE 9 — IMPACTO E PERGUNTAS
+     EDITE: para trocar o vídeo, altere VIDEO_ID no script do final do arquivo.
+     ========================================================= -->
+<section id="impacto">
+  <div class="eyebrow">08 · Impacto acadêmico e social</div>
+  <h2>O legado do <span class="hl-g">SafeID</span></h2>
+  <div class="grid g3">
+    <div class="card fragment rise"><h3><span class="ic g"><i class="fa-solid fa-people-group"></i></span></h3><h3>Social</h3><ul class="small"><li>Ferramenta gratuita para o cidadão leigo.</li><li>Literacia digital: entender o risco e agir.</li></ul></div>
+    <div class="card fragment rise"><h3><span class="ic b"><i class="fa-solid fa-graduation-cap"></i></span></h3><h3>Acadêmico</h3><ul class="small"><li>Projeto de extensão com parceiro do setor (Enetsec).</li><li>Código aberto no GitHub, com testes e revisão.</li></ul></div>
+    <div class="card fragment rise"><h3><span class="ic a"><i class="fa-solid fa-scale-balanced"></i></span></h3><h3>Normativo</h3><ul class="small"><li><i>Privacy by Design</i> e LGPD na prática.</li><li>IA usada com minimização de dados.</li></ul></div>
+  </div>
+  <div class="card qa fragment rise">
+    <div><div class="big">Obrigado! <span class="hl-g">Perguntas?</span></div>
+      <div class="small muted">www.safeid.app.br · github.com/Safe-ID/safeid-main</div></div>
+    <!-- Botão do vídeo: abre o vídeo do YouTube em tela cheia por cima dos slides -->
+    <button class="cta" id="btnVideo" type="button"><i class="fa-brands fa-youtube"></i> Assistir ao vídeo</button>
+  </div>
+  <aside class="notes"><b>🎤 Kelvyn (perguntas: todos)</b> — Fechar com o impacto, clicar em "Assistir ao vídeo" (2 min, abre em tela cheia; Esc ou "Voltar aos slides" para sair) e abrir para perguntas. (2 min + perguntas)</aside>
+</section>
+
+</div>
+</div>
+
+<!-- ===================== SCRIPTS (CDN) ===================== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/notes/notes.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/highlight.min.js"></script>
+<script>
+/* Configuração do Reveal.js — tecla S abre as notas do apresentador. */
+Reveal.initialize({
+  hash: true, slideNumber: 'c/t', progress: true, controls: true, center: false,
+  transition: 'slide', backgroundTransition: 'fade',
+  width: 1280, height: 720, margin: 0.06,
+  plugins: [ RevealNotes, RevealHighlight ]
+});
+
+/* ---------- Contadores do slide 2 (animam quando o card aparece) ---------- */
+function countUp(el){
+  const to = parseFloat(el.dataset.to), dec = +(el.dataset.dec || 0), t0 = performance.now();
+  (function step(t){
+    const p = Math.min(1, (t - t0) / 1200), e = 1 - Math.pow(1 - p, 3);
+    el.textContent = (to * e).toFixed(dec).replace('.', ',');
+    if (p < 1) requestAnimationFrame(step);
+  })(t0);
+}
+Reveal.on('fragmentshown', e => {
+  e.fragments.forEach(f => f.querySelectorAll('.count').forEach(countUp));
+});
+
+/* ---------- Demonstração de criptografia do slide 7 (Web Crypto API) ---------- */
+const enc = new TextEncoder();
+const hex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const GLYPHS = 'abcdef0123456789';
+function scramble(el, finalText, ms = 900){
+  const t0 = performance.now();
+  (function step(t){
+    const p = Math.min(1, (t - t0) / ms), keep = Math.floor(finalText.length * p);
+    let s = finalText.slice(0, keep);
+    for (let i = keep; i < finalText.length; i++) s += GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+    el.textContent = s;
+    if (p < 1) requestAnimationFrame(step);
+  })(t0);
+}
+async function runCrypto(){
+  const msg = document.getElementById('cin').value || 'usuario@exemplo.com';
+  const outH = document.getElementById('out-hmac'), outA = document.getElementById('out-aes'), outD = document.getElementById('out-dec');
+  if (!window.crypto || !crypto.subtle){
+    outH.textContent = 'Web Crypto indisponível neste navegador (abra via https ou localhost).';
+    return;
+  }
+  // 1) HMAC-SHA-256 com uma chave de demonstração (no SafeID a chave fica no servidor)
+  const hk = await crypto.subtle.importKey('raw', enc.encode('chave-demo-snct'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = await crypto.subtle.sign('HMAC', hk, enc.encode(msg.toLowerCase()));
+  scramble(outH, hex(mac));
+  // 2) AES-256-GCM: chave nova e IV aleatório a cada execução
+  const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const plain = JSON.stringify({ email: msg, breaches: ['LojaX'], dataClasses: ['Passwords'] });
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plain));
+  setTimeout(() => scramble(outA, hex(iv) + ':' + b64(ct), 1100), 350);
+  // 3) Decifra para provar que só quem tem a chave recupera o conteúdo
+  const back = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  setTimeout(() => { outD.textContent = new TextDecoder().decode(back); }, 1600);
+}
+document.getElementById('crun').addEventListener('click', runCrypto);
+document.getElementById('cin').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') runCrypto(); });
+Reveal.on('slidechanged', e => { if (e.currentSlide.id === 'cripto') setTimeout(runCrypto, 600); });
+</script>
+<!-- Vídeo do YouTube em tela cheia (aberto pelo botão do último slide) -->
+<div id="videoOverlay" role="dialog" aria-label="Vídeo do SafeID">
+  <div class="vbar">
+    <a id="vYt" target="_blank" rel="noopener">Abrir no YouTube ↗</a>
+    <button id="vClose" type="button">✕ Voltar aos slides</button>
+  </div>
+</div>
+<script>
+/* EDITE: ID do vídeo no YouTube (parte depois de "watch?v=") */
+const VIDEO_ID = 'GYTYK8He8w4';
+const ov = document.getElementById('videoOverlay');
+document.getElementById('vYt').href = 'https://www.youtube.com/watch?v=' + VIDEO_ID;
+function openVideo(){
+  const f = document.createElement('iframe');
+  f.src = 'https://www.youtube.com/embed/' + VIDEO_ID + '?autoplay=1&rel=0&modestbranding=1&playsinline=1';
+  f.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture';
+  f.allowFullscreen = true;
+  f.referrerPolicy = 'strict-origin-when-cross-origin';
+  ov.appendChild(f); ov.classList.add('on');
+  Reveal.configure({ keyboard: false });          // setas não trocam de slide durante o vídeo
+  if (ov.requestFullscreen) ov.requestFullscreen().catch(() => {});
+}
+function closeVideo(){
+  ov.classList.remove('on'); ov.querySelectorAll('iframe').forEach(f => f.remove());
+  Reveal.configure({ keyboard: true });
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+}
+document.getElementById('btnVideo').addEventListener('click', openVideo);
+document.getElementById('vClose').addEventListener('click', closeVideo);
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && ov.classList.contains('on')) closeVideo(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && ov.classList.contains('on')) closeVideo(); });
+</script>
+</body>
+</html>

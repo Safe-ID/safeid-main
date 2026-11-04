@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafeID · Apresentação final · IFSP-SP</title>
+
+<!-- ===================== BIBLIOTECAS (CDN) =====================
+     Mesmo padrão do deck da SEDCITEC: Reveal.js 5.1.0, Font Awesome 6.5.2,
+     fontes Inter / JetBrains Mono. Precisa de internet para carregar. -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reset.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/theme/black.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/monokai.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================
+   TEMA VISUAL — idêntico ao deck da SEDCITEC
+   ============================================================ */
+:root{
+  --bg:#090d16; --card:rgba(17,24,39,.78); --line:rgba(148,163,184,.18);
+  --txt:#e5e7eb; --muted:#94a3b8; --dim:#64748b;
+  --green:#10b981; --green-2:#34d399; --blue:#3b82f6; --blue-2:#60a5fa;
+  --amber:#f59e0b; --red:#ef4444; --violet:#a78bfa;
+  --sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --r-background-color:var(--bg);
+  --r-main-font:var(--sans); --r-main-color:var(--txt); --r-main-font-size:35px;
+  --r-heading-font:var(--sans); --r-heading-color:#fff; --r-heading-text-transform:none;
+  --r-heading-letter-spacing:-0.02em; --r-heading-font-weight:800;
+  --r-link-color:var(--green-2); --r-selection-background-color:var(--green);
+  --r-code-font:var(--mono);
+}
+html,body,.reveal-viewport{background:
+  radial-gradient(1100px 600px at 90% -10%,rgba(59,130,246,.13),transparent 60%),
+  radial-gradient(900px 600px at -10% 110%,rgba(16,185,129,.10),transparent 60%),var(--bg)}
+.reveal-viewport::before{content:"";position:fixed;inset:0;pointer-events:none;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:56px 56px;opacity:.18;mask-image:radial-gradient(ellipse at 50% 40%,#000,transparent 75%)}
+
+.reveal .slides{text-align:left}
+.reveal .slides section{height:100%;padding:0 10px;box-sizing:border-box}
+.reveal h1{font-size:2.6em;line-height:1.05;margin:0 0 .3em}
+.reveal h2{font-size:1.5em;line-height:1.12;margin:0 0 .5em}
+.reveal h3{font-size:.95em;margin:0 0 .4em;font-weight:700}
+.reveal h3.small{font-size:.64em}
+.reveal h1,.reveal h2{hyphens:none;-webkit-hyphens:none}
+.reveal p{margin:0 0 .5em;line-height:1.45}
+.reveal ul{margin:0;list-style:none}
+.reveal li{margin:.3em 0;line-height:1.4;padding-left:1.1em;position:relative}
+.reveal li::before{content:"";position:absolute;left:0;top:.62em;width:.38em;height:.38em;border-radius:2px;background:var(--green);transform:rotate(45deg)}
+
+.eyebrow{font:600 .5em var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--green);display:flex;align-items:center;gap:.8em;margin-bottom:.7em}
+.eyebrow::before{content:"";width:2em;height:2px;background:var(--green)}
+.hl-g{color:var(--green-2)} .hl-b{color:var(--blue-2)} .hl-a{color:var(--amber)} .hl-r{color:#f87171} .hl-v{color:var(--violet)}
+.muted{color:var(--muted)} .mono{font-family:var(--mono)} .small{font-size:.62em} .xs{font-size:.5em} .tiny{font-size:.46em;color:var(--dim)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:.7em .85em;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 18px 45px rgba(0,0,0,.35)}
+.grid{display:grid;gap:.55em}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g5{grid-template-columns:repeat(5,1fr)}.g6{grid-template-columns:repeat(6,1fr)}
+.row{display:flex;gap:.7em;align-items:stretch}
+.ic{width:1.9em;height:1.9em;border-radius:.5em;display:grid;place-items:center;font-size:.8em;flex:none}
+.ic.g{background:rgba(16,185,129,.15);color:var(--green-2)}.ic.b{background:rgba(59,130,246,.15);color:var(--blue-2)}
+.ic.a{background:rgba(245,158,11,.15);color:var(--amber)}.ic.v{background:rgba(167,139,250,.15);color:var(--violet)}.ic.r{background:rgba(239,68,68,.15);color:#f87171}
+.key{border-left:4px solid var(--green);background:linear-gradient(90deg,rgba(16,185,129,.13),transparent);padding:.55em .8em;border-radius:0 14px 14px 0;font-size:.74em;line-height:1.45}
+.key.blue{border-color:var(--blue);background:linear-gradient(90deg,rgba(59,130,246,.13),transparent)}
+.key.amber{border-color:var(--amber);background:linear-gradient(90deg,rgba(245,158,11,.12),transparent)}
+.key b{color:#fff}
+.tag{display:inline-block;font:600 .42em var(--mono);padding:.25em .7em;border-radius:99px;border:1px solid rgba(16,185,129,.45);color:var(--green-2);background:rgba(16,185,129,.1);letter-spacing:.06em}
+
+/* pílulas de status (sempre com texto, nunca só cor) */
+.pill{display:inline-flex;align-items:center;gap:.35em;font:600 .7em var(--mono);padding:.18em .6em;border-radius:99px;white-space:nowrap;letter-spacing:.02em}
+.pill.ok{color:var(--green-2);background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.4)}
+.pill.part{color:var(--amber);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4)}
+.pill.plan{color:var(--blue-2);background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.4)}
+.pill.no{color:#f87171;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35)}
+
+/* tabelas */
+.tbl{width:100%;border-collapse:collapse;font-size:.46em}
+.reveal .tbl th{font:700 .9em var(--mono);color:var(--muted);text-align:left;padding:.45em .55em;border-bottom:1px solid rgba(148,163,184,.3);letter-spacing:.04em}
+.reveal .tbl td{padding:.42em .55em;border-bottom:1px solid rgba(148,163,184,.1);color:#cbd5e1;vertical-align:middle}
+.tbl td.c,.tbl th.c{text-align:center} .tbl td.r,.tbl th.r{text-align:right;font-family:var(--mono)}
+.tbl tr.me td{background:rgba(16,185,129,.08);color:#fff;font-weight:600}
+.yes{color:var(--green-2)} .no-x{color:#64748b} .half{color:var(--amber)}
+
+/* fragmentos personalizados */
+.reveal .fragment.rise{opacity:0;transform:translateY(22px);filter:blur(4px);transition:all .55s cubic-bezier(.2,.7,.2,1)}
+.reveal .fragment.rise.visible{opacity:1;transform:none;filter:none}
+.reveal .fragment.glow.current-fragment{box-shadow:0 0 0 2px var(--green),0 0 28px rgba(16,185,129,.45)}
+
+/* ---------- capa ---------- */
+#capa .wrap{display:flex;align-items:center;height:100%;gap:1em}
+#capa .title{font-size:3.4em;font-weight:800;letter-spacing:-.045em;line-height:1;margin:0 0 .15em;
+  background:linear-gradient(100deg,#fff 25%,var(--green) 65%,var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
+#capa .sub{font-size:.95em;color:#cbd5e1;margin-bottom:.8em;font-weight:500;line-height:1.3}
+#capa .event{display:inline-flex;align-items:center;gap:.6em;font-size:.58em;padding:.5em .9em;border-radius:12px;border:1px solid var(--line);background:rgba(17,24,39,.7);margin:0 .4em .8em 0}
+#capa .team{font-size:.53em;color:var(--muted);line-height:1.65}
+#capa .team b{color:#e2e8f0;font-weight:600}
+.shield{width:400px;height:400px;flex:none}
+.live-dot{width:.55em;height:.55em;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(16,185,129,.6);animation:ctaPulse 2s infinite}
+
+/* ---------- roteiro ---------- */
+.agenda .card{display:flex;gap:.6em;align-items:flex-start;padding:.75em .8em}
+.agenda .n{font:800 1.1em var(--mono);color:var(--green-2);line-height:1}
+.agenda h3{font-size:.62em;margin:0 0 .25em}
+.agenda p{font-size:.45em;color:var(--muted);margin:0;line-height:1.45}
+
+/* ---------- números ---------- */
+.stat .n{font-size:1.8em;font-weight:800;letter-spacing:-.03em;line-height:1}
+.stat .l{font-size:.52em;color:var(--muted);margin-top:.45em;line-height:1.4}
+.stat .s{font:500 .38em var(--mono);color:var(--dim);margin-top:.6em}
+.need{display:flex;gap:.45em;flex-wrap:wrap}
+.need span{font:600 .42em var(--mono);padding:.45em .7em;border-radius:10px;border:1px solid var(--line);background:rgba(15,23,42,.7);color:#cbd5e1}
+.need b{color:var(--green-2);margin-right:.35em}
+
+/* ---------- objetivos ---------- */
+.obj{display:flex;align-items:center;justify-content:space-between;gap:.8em;padding:.5em .8em;font-size:.56em}
+.obj .t{line-height:1.35}
+
+/* ---------- regras ---------- */
+.rn{padding:.6em .7em}
+.rn .id{font:800 .5em var(--mono);color:var(--green-2)}
+.rn h3{font-size:.56em;margin:.25em 0 .25em}
+.rn p{font-size:.42em;color:var(--muted);margin:0;line-height:1.42}
+
+/* ---------- modelo de risco ---------- */
+.formula{font:600 .5em/1.75 var(--mono);color:#e2e8f0}
+.formula .v{color:var(--green-2)}
+.bands{display:flex;height:.55em;border-radius:99px;overflow:hidden;margin:.45em 0 .25em;gap:2px}
+.bands span{flex:1}
+.blabels{display:flex;font:.36em var(--mono);color:var(--muted)}.blabels span{flex:1;text-align:center}
+.wtab{width:100%;border-collapse:collapse;font:.4em var(--mono)}
+.reveal .wtab td{padding:.32em .35em;border-bottom:1px solid rgba(148,163,184,.1);color:#cbd5e1}
+.wtab td.w{color:var(--amber);font-weight:700;width:2.4em;text-align:center}
+.wtab td.lv{color:var(--dim);white-space:nowrap}
+.why{font-size:.44em;color:var(--muted);line-height:1.45}
+
+/* calculadora */
+.inc{padding:.55em .65em}
+.inc .hd{display:flex;align-items:center;justify-content:space-between;gap:.4em;margin-bottom:.4em}
+.inc .hd b{font-size:.52em}
+.inc select{font:.4em var(--mono);background:#0b1220;color:#fff;border:1px solid var(--line);border-radius:8px;padding:.35em .45em}
+.chips{display:flex;flex-wrap:wrap;gap:.3em}
+.chip{font:600 .38em var(--mono);padding:.4em .6em;border-radius:99px;border:1px dashed rgba(148,163,184,.4);color:var(--dim);background:transparent;cursor:pointer;user-select:none}
+.chip.on{border-style:solid;border-color:rgba(16,185,129,.55);color:#e2e8f0;background:rgba(16,185,129,.12)}
+.chip i{margin-right:.35em}
+.inc .sj{font:.4em var(--mono);color:var(--blue-2);margin-top:.5em}
+.gauge{padding:.7em .9em}
+.gauge .big{font:800 2.5em var(--sans);letter-spacing:-.04em;line-height:1}
+.gauge .lvl{font:700 .62em var(--sans);margin-top:.15em}
+.meter{position:relative;height:.6em;border-radius:99px;display:flex;gap:2px;overflow:hidden;margin:.7em 0 .25em}
+.meter span{flex:1;opacity:.35}
+.needle{position:absolute;top:-.25em;width:4px;height:1.1em;background:#fff;border-radius:2px;box-shadow:0 0 10px rgba(255,255,255,.7);transition:left .6s cubic-bezier(.2,.7,.2,1)}
+.calc-steps{font:.4em/1.7 var(--mono);color:#cbd5e1;margin-top:.5em}
+.calc-steps b{color:var(--green-2)}
+
+/* ---------- análise ---------- */
+.kpi{text-align:center;padding:.6em .4em}
+.kpi .n{font:800 1.6em var(--sans);line-height:1}
+.kpi .l{font-size:.44em;color:var(--muted);margin-top:.35em;line-height:1.35}
+.actor{display:flex;gap:.5em;align-items:center;font-size:.48em;padding:.45em .6em}
+.actor b{display:block;color:#fff}.actor span{color:var(--muted)}
+
+/* ---------- arquitetura ---------- */
+#arq svg,#aws svg{width:100%;height:auto}
+.n rect{fill:#0f172a;stroke:#334155;stroke-width:2}
+.n text{fill:#e5e7eb;font:650 16px var(--sans);text-anchor:middle}
+.n text.s{fill:#94a3b8;font:500 11px var(--mono)}
+.n.hl rect{stroke:var(--green)} .n.ext rect{stroke:var(--violet);stroke-dasharray:5 4} .n.data rect{stroke:var(--blue)}
+.edge{fill:none;stroke:var(--blue-2);stroke-width:2.5;stroke-dasharray:7 7;animation:flow 1s linear infinite}
+.edge.back{stroke:var(--green-2)} .edge.dim{stroke:#475569}
+@keyframes flow{to{stroke-dashoffset:-14}}
+.elabel{fill:#cbd5e1;font:500 11.5px var(--mono);text-anchor:middle}
+.zone{fill:rgba(15,23,42,.35);stroke:#1e293b;stroke-width:1.5;stroke-dasharray:6 6}
+.zlabel{fill:#64748b;font:700 11px var(--mono);letter-spacing:.12em}
+.reveal pre{width:100%;margin:0;box-shadow:none;font-size:.4em;border-radius:12px;border:1px solid var(--line)}
+.reveal pre code{max-height:none;padding:.7em .9em;background:#0b1220;border-radius:12px;line-height:1.5}
+.res{display:flex;flex-direction:column;gap:.35em;margin-top:.5em}
+.res div{display:flex;gap:.6em;align-items:flex-start;font-size:.43em;color:#cbd5e1;line-height:1.4}
+.res i{width:1.4em;text-align:center;margin-top:.15em}
+
+/* ---------- modelo de dados ---------- */
+.entity{padding:.5em .65em}
+.entity h3{display:flex;align-items:center;gap:.5em;font-size:.6em;margin-bottom:.3em}
+.entity table{width:100%;border-collapse:collapse;font:.38em var(--mono)}
+.reveal .entity td{padding:.26em .2em;border-bottom:1px solid rgba(148,163,184,.1);color:#cbd5e1}
+.entity td:last-child{color:var(--dim);text-align:right}
+.entity td .pk{color:var(--amber)} .entity td .enc{color:var(--green-2)}
+
+/* ---------- cripto ---------- */
+.crypto-io{font:.4em/1.55 var(--mono);background:#020617;border:1px solid var(--line);border-radius:12px;padding:.65em .8em;word-break:break-all;min-height:4.4em}
+.crypto-io .lbl{color:var(--dim);display:block;margin-bottom:.2em;letter-spacing:.08em}
+.crypto-io .out{color:var(--green-2)}
+.crypto-io .out.b{color:var(--blue-2)} .crypto-io .out.a{color:var(--amber)}
+.demo-in{display:flex;gap:.4em;align-items:center;margin-bottom:.5em}
+.demo-in input{flex:1;font:.48em var(--mono);padding:.55em .7em;border-radius:10px;border:1px solid var(--line);background:#0b1220;color:#fff}
+.btn{font:600 .44em var(--sans);padding:.65em 1em;border-radius:10px;border:1px solid var(--green);background:rgba(16,185,129,.15);color:#fff;cursor:pointer}
+.btn:hover{background:rgba(16,185,129,.3)}
+.btn.ghost{border-color:rgba(148,163,184,.45);background:transparent}
+.algo h3{font-size:.58em;display:flex;align-items:center;gap:.5em;margin-bottom:.3em}
+.algo p{font-size:.44em;color:var(--muted);line-height:1.45;margin-bottom:0}
+
+/* ---------- acesso / LGPD ---------- */
+.states{display:flex;align-items:center;gap:.35em;font-size:.46em}
+.states .st{flex:1;text-align:center;padding:.55em .35em;border-radius:12px;border:1px solid var(--line);background:rgba(15,23,42,.7);line-height:1.35}
+.states .st i{display:block;font-size:1.4em;margin-bottom:.25em}
+.states .st small{display:block;font:.82em var(--mono);color:var(--dim);margin-top:.2em}
+.states .ar{color:var(--dim)}
+.lgpd{font-size:.46em}
+.lgpd td:first-child{color:#fff;font-weight:600;white-space:nowrap}
+
+/* ---------- qualidade ---------- */
+.pipe{display:flex;align-items:center;gap:.3em;font-size:.44em;flex-wrap:nowrap}
+.pipe .st{flex:1;text-align:center;padding:.55em .3em;border-radius:12px;border:1px solid var(--line);background:rgba(15,23,42,.7);line-height:1.3}
+.pipe .st i{display:block;font-size:1.35em;margin-bottom:.25em}
+.pipe .ar{color:var(--dim)}
+.pipe .tiny{font-size:.82em}
+.cov{display:grid;grid-template-columns:5.5em 1fr 3.6em;align-items:center;gap:.6em;font-size:.48em;margin:.45em 0}
+.cov .bar{position:relative;height:.75em;background:rgba(148,163,184,.12);border-radius:4px}
+.cov .fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:4px;background:var(--green);transition:width 1.1s cubic-bezier(.2,.7,.2,1)}
+.cov .thr{position:absolute;top:-.25em;bottom:-.25em;width:2px;background:#e5e7eb}
+.cov .v{font-family:var(--mono);font-weight:700;color:#fff;text-align:right}
+.cov .lb{color:#cbd5e1}
+
+/* ---------- prática ---------- */
+.flow{display:grid;grid-template-columns:repeat(6,1fr);gap:.45em}
+.step{padding:.6em .55em;text-align:left}
+.step .num{font:800 .55em var(--mono);color:var(--green-2)}
+.step h3{font-size:.54em;margin:.3em 0 .25em}
+.step p{font-size:.41em;color:var(--muted);line-height:1.4;margin:0}
+.step .bg{margin-top:.5em;padding-top:.45em;border-top:1px dashed rgba(148,163,184,.25);font:.35em/1.45 var(--mono);color:var(--blue-2)}
+
+/* ---------- gestão ---------- */
+.member{display:flex;gap:.55em;align-items:center;padding:.5em .6em}
+.member .av{width:2.1em;height:2.1em;border-radius:50%;display:grid;place-items:center;font:800 .5em var(--sans);flex:none;color:#04120d}
+.member b{display:block;font-size:.5em;color:#fff}.member span{display:block;font-size:.4em;color:var(--muted);line-height:1.35}
+.gantt{display:grid;grid-template-columns:15em repeat(10,1fr);gap:3px;font-size:.38em;align-items:center}
+.gantt .h{font:700 1em var(--mono);color:var(--dim);text-align:center}
+.gantt .lbl{color:#cbd5e1;padding-right:.4em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gantt .c{height:1.35em;border-radius:3px;background:rgba(148,163,184,.06)}
+.gantt .c.on{background:var(--blue)}
+.gantt .c.real{background:var(--green)}
+.gantt .c.pi2{border-left:1px solid rgba(148,163,184,.0)}
+.legend{display:flex;gap:1em;font-size:.38em;color:var(--muted);margin-top:.45em}
+.legend i{display:inline-block;width:.9em;height:.9em;border-radius:3px;margin-right:.35em;vertical-align:-.1em}
+
+/* ---------- financeiro ---------- */
+.opex{display:grid;grid-template-columns:10.5em 1fr 5.4em;gap:.5em;align-items:center;font-size:.44em;margin:.38em 0}
+.opex .bar{height:.75em;background:rgba(148,163,184,.1);border-radius:4px;position:relative}
+.opex .fill{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--blue)}
+.opex .v{font-family:var(--mono);color:#fff;text-align:right}
+.opex .lb{color:#cbd5e1}
+.neg{color:#f87171} .pos{color:var(--green-2)}
+
+/* ---------- moscow ---------- */
+.mos{padding:.6em .65em}
+.mos h3{display:flex;align-items:center;justify-content:space-between;font-size:.62em;margin-bottom:.35em}
+.mos h3 small{font:600 .62em var(--mono);color:var(--dim)}
+.mos ul{font-size:.46em}
+.mos li{margin:.28em 0}
+.mos li em{font-style:normal;color:var(--dim);font-family:var(--mono);font-size:.92em}
+
+/* ---------- conclusão ---------- */
+.qa{display:flex;align-items:center;justify-content:space-between;padding:.7em 1em;margin-top:.6em}
+.qa .big{font-size:1.3em;font-weight:800}
+.cta{display:inline-flex;align-items:center;gap:.6em;font:700 .55em var(--sans);padding:.75em 1.2em;border-radius:14px;border:0;cursor:pointer;text-decoration:none;color:#04120d;background:linear-gradient(100deg,var(--green),var(--blue-2));box-shadow:0 0 0 0 rgba(16,185,129,.6);animation:ctaPulse 2.4s infinite;flex:none}
+.cta:hover{filter:brightness(1.1)} .cta i{font-size:1.25em}
+.reveal a.cta,.reveal a.cta:hover{color:#04120d}
+.cta.ghost{background:transparent;color:#fff;border:1px solid rgba(148,163,184,.45);animation:none}
+@keyframes ctaPulse{0%{box-shadow:0 0 0 0 rgba(16,185,129,.55)}70%{box-shadow:0 0 0 18px rgba(16,185,129,0)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}}
+.live-row{display:flex;align-items:center;justify-content:space-between;gap:.8em;margin-top:.65em;padding:.65em .9em}
+#videoOverlay{position:fixed;inset:0;z-index:9999;background:#000;display:none}
+#videoOverlay.on{display:block}
+#videoOverlay iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+#videoOverlay .vbar{position:absolute;top:14px;right:14px;display:flex;gap:10px;z-index:2;opacity:.25;transition:opacity .3s}
+#videoOverlay .vbar:hover{opacity:1}
+#videoOverlay .vbar a,#videoOverlay .vbar button{font:600 15px var(--sans);color:#fff;background:rgba(17,24,39,.85);border:1px solid rgba(148,163,184,.4);border-radius:10px;padding:8px 14px;cursor:pointer;text-decoration:none}
+
+.reveal .progress{color:var(--green);height:4px}
+.reveal .controls{color:var(--green)}
+.reveal .slide-number{background:rgba(17,24,39,.8);font:500 14px var(--mono);color:var(--muted);border-radius:8px;padding:4px 10px;right:14px;bottom:14px}
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- =========================================================
+     01 — CAPA
+     EDITE: disciplina (SPOPIE1/SPOPIE2), orientadores e data da banca.
+     ========================================================= -->
+<section id="capa" data-transition="fade">
+  <div class="wrap">
+    <div style="flex:1">
+      <!-- EDITE: data da apresentação final -->
+      <div class="eyebrow">Apresentação final · PI-2 · IFSP — Campus São Paulo · dez. 2026</div>
+      <h1 class="title">SafeID</h1>
+      <div class="sub">Diagnóstico de exposição de dados pessoais e<br>plano de ação em linguagem simples</div>
+      <div>
+        <div class="event"><i class="fa-solid fa-graduation-cap hl-g"></i> Projeto Integrado de Extensão <!-- EDITE: código da disciplina --></div>
+        <div class="event"><i class="fa-solid fa-handshake hl-b"></i> Parceria: Enetsec</div>
+        <div class="event"><span class="live-dot"></span> Em produção na AWS</div>
+      </div>
+      <div class="team">
+        <b>Equipe:</b> Joao Antônio Chamusca Martins · Kelvyn Gabriel Milu de Oliveira · Lucas Vieira de Souza · Matheus Pereira Pereira<br>
+        <!-- EDITE: professores da banca / orientação -->
+        <b>Orientação:</b> Prof. Johnata Souza Santicioli · Prof. Marcelo Tavares de Santana<br>
+        <b>Curso:</b> Tecnologia em Análise e Desenvolvimento de Sistemas · <span class="hl-g mono">www.safeid.app.br</span>
+      </div>
+    </div>
+    <svg class="shield" viewBox="0 0 560 560" aria-hidden="true">
+      <defs>
+        <linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10b981"/><stop offset="1" stop-color="#3b82f6"/></linearGradient>
+        <radialGradient id="gl"><stop offset="0" stop-color="#10b981" stop-opacity=".35"/><stop offset="1" stop-color="#10b981" stop-opacity="0"/></radialGradient>
+      </defs>
+      <circle cx="280" cy="280" r="270" fill="url(#gl)"/>
+      <g fill="none" stroke="#1e293b" stroke-width="1.5"><circle cx="280" cy="280" r="250"/><circle cx="280" cy="280" r="200"/></g>
+      <g fill="none" stroke="url(#sg)" stroke-width="3" stroke-linecap="round">
+        <circle cx="280" cy="280" r="250" stroke-dasharray="90 700"><animateTransform attributeName="transform" type="rotate" from="0 280 280" to="360 280 280" dur="14s" repeatCount="indefinite"/></circle>
+        <circle cx="280" cy="280" r="200" stroke-dasharray="40 330" opacity=".7"><animateTransform attributeName="transform" type="rotate" from="360 280 280" to="0 280 280" dur="10s" repeatCount="indefinite"/></circle>
+      </g>
+      <path d="M280 130 L392 172 V272 C392 350 342 405 280 432 C218 405 168 350 168 272 V172 Z" fill="rgba(16,185,129,.08)" stroke="url(#sg)" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M232 280 L268 316 L336 244" fill="none" stroke="#10b981" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="160" stroke-dashoffset="160"><animate attributeName="stroke-dashoffset" values="160;0;0;160" keyTimes="0;.25;.85;1" dur="5s" repeatCount="indefinite"/></path>
+    </svg>
+  </div>
+  <aside class="notes"><b>🎤 Kelvyn</b> — Apresentar a equipe, os orientadores e o parceiro. Frase de abertura: "Seus dados provavelmente já vazaram. A questão é: você sabe o que isso significa e o que fazer?" Dizer que o sistema está em produção e será demonstrado ao vivo. (1 min)<br><br>⚠️ Antes da banca: religar o NAT Gateway na AWS (sai do "modo economia" em cerca de 15 min) e testar o site.</aside>
+</section>
+
+<!-- =========================================================
+     02 — ROTEIRO
+     ========================================================= -->
+<section id="roteiro">
+  <div class="eyebrow">Roteiro</div>
+  <h2>O que vamos <span class="hl-g">apresentar</span></h2>
+  <div class="grid g3 agenda">
+    <div class="card fragment rise"><div class="n">01</div><div><h3>Problema e objetivos</h3><p>Contexto, lacuna, público, mercado e o que nos propusemos a entregar.</p></div></div>
+    <div class="card fragment rise"><div class="n">02</div><div><h3>Regras e modelo de risco</h3><p>RN01–RN08 e o Risk Score explicável, com cálculo ao vivo.</p></div></div>
+    <div class="card fragment rise"><div class="n">03</div><div><h3>Análise e arquitetura</h3><p>Atores, requisitos, monólito modular, filas e modelo de dados.</p></div></div>
+    <div class="card fragment rise"><div class="n">04</div><div><h3>Segurança, nuvem e testes</h3><p>Criptografia, LGPD, implantação na AWS e pipeline de qualidade.</p></div></div>
+    <div class="card fragment rise"><div class="n">05</div><div><h3>Demonstração e gestão</h3><p>O sistema em produção, equipe, cronograma, riscos e viabilidade.</p></div></div>
+    <div class="card fragment rise"><div class="n">06</div><div><h3>Resultados e próximos passos</h3><p>Objetivos atingidos, limitações assumidas e trabalhos futuros.</p></div></div>
+  </div>
+  <aside class="notes"><b>🎤 Kelvyn</b> — Passar rápido pelo roteiro: seis blocos, cerca de 25 minutos mais perguntas. (30 s)</aside>
+</section>
+
+<!-- =========================================================
+     03 — CONTEXTO E PROBLEMA
+     ========================================================= -->
+<section id="problema">
+  <div class="eyebrow">01 · Contexto e problema</div>
+  <h2>Os dados vazados existem. <span class="hl-r">O cidadão não sabe interpretá-los.</span></h2>
+  <div class="grid g3" style="margin-bottom:.6em">
+    <div class="card stat fragment rise"><div class="n hl-b"><span class="count" data-to="30">0</span> bi+</div><div class="l">tentativas de ataques cibernéticos no Brasil em 2022, 2º maior volume da América Latina</div><div class="s">FORTINET, 2022</div></div>
+    <div class="card stat fragment rise"><div class="n hl-a">US$ <span class="count" data-to="4.45" data-dec="2">0</span> mi</div><div class="l">custo médio global de um vazamento de dados, 15% acima de três anos antes</div><div class="s">IBM SECURITY, 2023</div></div>
+    <div class="card stat fragment rise"><div class="n hl-r"><span class="count" data-to="277">0</span> dias</div><div class="l">entre a ocorrência e a contenção de um vazamento: meses sem o titular saber</div><div class="s">IBM SECURITY, 2023</div></div>
+  </div>
+  <div class="key fragment rise" style="margin-bottom:.6em">
+    <b class="hl-g">Pergunta que orienta o trabalho:</b> como converter registros técnicos de exposição em uma <b>medida de risco compreensível</b> e em <b>orientações acionáveis</b> para o usuário comum, sem que a ferramenta vire nova fonte de exposição?
+  </div>
+  <div class="need fragment rise">
+    <span><b>N1</b>Conhecer as exposições</span><span><b>N2</b>Compreender a gravidade</span><span><b>N3</b>Saber como agir</span><span><b>N4</b>Acompanhar a evolução</span><span><b>N5</b>Preservar a privacidade</span>
+  </div>
+  <aside class="notes"><b>🎤 Kelvyn</b> — Os números dimensionam o problema, mas não dizem ao titular o que foi exposto nem o que fazer: assimetria informacional e fadiga de segurança geram inércia (Conti et al., 2018; Nemec Zlatolas et al., 2024; Chen, Henry e Jiang, 2023). As cinco necessidades N1–N5 serão retomadas nos resultados. (2 min)</aside>
+</section>
+
+<!-- =========================================================
+     04 — OBJETIVOS
+     Status conforme Seção 5.6 do documento final.
+     ========================================================= -->
+<section id="objetivos">
+  <div class="eyebrow">01 · Objetivos</div>
+  <h2>Do protótipo da PI-1 ao <span class="hl-g">produto em produção</span></h2>
+  <div class="key blue fragment rise" style="margin-bottom:.55em">
+    <b>Objetivo geral:</b> desenvolver um sistema de apoio à decisão que consulte fontes de <i>threat intelligence</i>, diagnostique a exposição de dados pessoais do usuário e forneça diretrizes de mitigação personalizadas por IA.
+  </div>
+  <div class="grid" style="gap:.35em">
+    <div class="card obj fragment rise"><span class="t">Investigar, selecionar e consumir APIs OSINT de exposição de dados</span><span class="pill ok"><i class="fa-solid fa-check"></i> Concluído · PI-1</span></div>
+    <div class="card obj fragment rise"><span class="t">Modelar e implementar o algoritmo de Risk Score</span><span class="pill ok"><i class="fa-solid fa-check"></i> Concluído · PI-1</span></div>
+    <div class="card obj fragment rise"><span class="t">Interface web responsiva com termômetro de risco</span><span class="pill ok"><i class="fa-solid fa-check"></i> Concluído · PI-1</span></div>
+    <div class="card obj fragment rise"><span class="t">Persistência do histórico e funções de conta <span class="muted">(falta: múltiplos identificadores, US07)</span></span><span class="pill part"><i class="fa-solid fa-circle-half-stroke"></i> Parcial · PI-1 e PI-2</span></div>
+    <div class="card obj fragment rise"><span class="t">Integrar uma LLM como assistente cognitivo</span><span class="pill ok"><i class="fa-solid fa-check"></i> Concluído · PI-2</span></div>
+    <div class="card obj fragment rise"><span class="t">Privacy by Design e LGPD no ciclo operacional <span class="muted">(falta: aprovar o relatório de impacto e o plano de resposta a incidentes)</span></span><span class="pill part"><i class="fa-solid fa-spinner"></i> Em andamento · PI-2</span></div>
+  </div>
+  <aside class="notes"><b>🎤 Matheus</b> — Objetivo geral e os seis específicos, cada um com a fase e o status real (Seção 5.6). Nenhum ficou "não iniciado". Ser transparente sobre os dois parciais: US07 e governança LGPD. (2 min)</aside>
+</section>
+
+<!-- =========================================================
+     05 — MERCADO, PÚBLICO E PARCEIRO
+     Quadro 1 do documento.
+     ========================================================= -->
+<section id="mercado">
+  <div class="eyebrow">01 · Mercado, público e parceiro</div>
+  <h2>Dado bruto existe. <span class="hl-g">Falta interpretação.</span></h2>
+  <div class="row">
+    <div class="card fragment rise" style="flex:1.45">
+      <table class="tbl">
+        <tr><th>Funcionalidade</th><th class="c">HIBP</th><th class="c">Mozilla Monitor</th><th class="c">Soluções pagas</th><th class="c">SafeID</th></tr>
+        <tr><td>Consulta de incidentes (OSINT)</td><td class="c yes"><i class="fa-solid fa-check"></i></td><td class="c yes"><i class="fa-solid fa-check"></i></td><td class="c yes"><i class="fa-solid fa-check"></i></td><td class="c yes"><i class="fa-solid fa-check"></i></td></tr>
+        <tr><td>Alertas de novas exposições</td><td class="c no-x">Não*</td><td class="c yes"><i class="fa-solid fa-check"></i></td><td class="c yes"><i class="fa-solid fa-check"></i></td><td class="c yes"><i class="fa-solid fa-check"></i></td></tr>
+        <tr><td>Interface acessível</td><td class="c no-x">Não</td><td class="c yes"><i class="fa-solid fa-check"></i></td><td class="c half">Parcial</td><td class="c yes"><i class="fa-solid fa-check"></i></td></tr>
+        <tr><td>Score de risco ponderado</td><td class="c no-x">Não</td><td class="c no-x">Não</td><td class="c yes"><i class="fa-solid fa-check"></i></td><td class="c yes"><i class="fa-solid fa-check"></i></td></tr>
+        <tr class="me"><td>Assistente cognitivo (LLM)</td><td class="c no-x">Não</td><td class="c no-x">Não</td><td class="c no-x">Não</td><td class="c yes"><i class="fa-solid fa-check"></i></td></tr>
+        <tr class="me"><td>Foco em educação digital</td><td class="c no-x">Não</td><td class="c half">Parcial</td><td class="c no-x">Não</td><td class="c yes"><i class="fa-solid fa-check"></i></td></tr>
+      </table>
+      <p class="tiny" style="margin:.5em 0 0">* A consulta gratuita do HIBP não oferece alertas ao usuário comum. Análise qualitativa: documentação oficial e testes manuais (2026).</p>
+    </div>
+    <div class="grid" style="flex:1;gap:.45em">
+      <div class="card fragment rise"><h3 class="small"><i class="fa-solid fa-users hl-b"></i> Público-alvo</h3><p class="xs muted" style="margin:0">Cidadãos brasileiros usuários de serviços digitais, <b style="color:#fff">sem formação técnica</b> em segurança. Perfis: usuário cadastrado, responsável familiar (planejado) e administrador (planejado).</p></div>
+      <div class="card fragment rise"><h3 class="small"><i class="fa-solid fa-handshake hl-g"></i> Enetsec</h3><p class="xs muted" style="margin:0">Consultoria em segurança da informação e validação da proposta por profissionais do setor; base do modelo <b style="color:#fff">B2B2C</b> futuro.</p></div>
+      <div class="card fragment rise"><h3 class="small"><i class="fa-solid fa-store hl-a"></i> Modelo</h3><p class="xs muted" style="margin:0">SaaS <b style="color:#fff">freemium</b>: consulta gratuita de utilidade pública e plano Pro recorrente (Apêndice C).</p></div>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Matheus</b> — HIBP é a fonte de dados e a referência técnica; o Mozilla Monitor simplifica, mas com recomendações estáticas; soluções pagas (LifeLock, Aura) são caras e ligadas a crédito. O diferencial do SafeID são as duas linhas destacadas: assistente cognitivo e foco em educação. (2 min)</aside>
+</section>
+
+<!-- =========================================================
+     06 — REGRAS DE NEGÓCIO
+     ========================================================= -->
+<section id="regras">
+  <div class="eyebrow">02 · Regras de negócio</div>
+  <h2>Oito regras que <span class="hl-g">governam o domínio</span></h2>
+  <div class="grid g4">
+    <div class="card rn fragment rise"><div class="id">RN01</div><h3>Identificador único</h3><p>Só o e-mail do cadastro, com titularidade comprovada por link antes de qualquer consulta.</p></div>
+    <div class="card rn fragment rise"><div class="id">RN02</div><h3>Cálculo do score</h3><p>Soma dos pesos das classes expostas por incidente, normalizada em 0–100 com S<sub>max</sub> = 50.</p></div>
+    <div class="card rn fragment rise"><div class="id">RN03</div><h3>Fator temporal</h3><p>1,0 até 24 meses · 0,7 de 24 a 60 · 0,4 acima de 60 meses.</p></div>
+    <div class="card rn fragment rise"><div class="id">RN04</div><h3>Rate limiting</h3><p>100 req/15 min por IP; login 5/min; cadastro 5/15 min; HTTP 429. HIBP com limite global do plano.</p></div>
+    <div class="card rn fragment rise"><div class="id">RN05</div><h3>Anonimização</h3><p>Nunca exibir senha vazada: informar a exposição e orientar a troca imediata.</p></div>
+    <div class="card rn fragment rise"><div class="id">RN06</div><h3>Personalização via IA</h3><p>Plano contextualizado ao tipo de dado; resposta padrão determinística se o modelo não responder.</p></div>
+    <div class="card rn fragment rise"><div class="id">RN07</div><h3>Histórico e retenção</h3><p>Sem consulta anônima; histórico cifrado; conta não verificada some em 7 dias; exclusão em cascata.</p></div>
+    <div class="card rn fragment rise"><div class="id">RN08</div><h3>Faixas de risco</h3><p>Score arredondado e classificado: Baixo, Médio, Alto e Crítico. Valor e faixa nunca divergem.</p></div>
+  </div>
+  <p class="tiny fragment rise" style="margin-top:.7em">RN07 também previne a enumeração de e-mails: a exigência de conta verificada impede consultar endereços de terceiros (LGPD, princípio da necessidade).</p>
+  <aside class="notes"><b>🎤 Matheus</b> — As regras são conceituais e independentes de implementação, mas cada uma tem verificação no código. Destacar RN01 e RN07: decidimos não ter consulta pública, o que muda a arquitetura (o scan roda na verificação do e-mail). (2 min)</aside>
+</section>
+
+<!-- =========================================================
+     07 — MODELO DE RISCO (FUNDAMENTAÇÃO E PESOS)
+     Pesos conforme server/src/core/engines/risk.engine.ts (Tabela 1).
+     ========================================================= -->
+<section id="risco">
+  <div class="eyebrow">02 · Modelo de risco · contribuição central</div>
+  <h2>Um score <span class="hl-g">explicável e auditável</span></h2>
+  <div class="row">
+    <div class="card fragment rise" style="flex:1.1">
+      <h3 class="small"><i class="fa-solid fa-square-root-variable hl-g"></i> Formulação (RN02, RN03, RN08)</h3>
+      <div class="formula">S<sub>j</sub> = T(t<sub>j</sub>) × Σ<sub>i∈D<sub>j</sub></sub> w<sub>i</sub><br>RiskScore = min(100, 100 × Σ S<sub>j</sub> / <span class="v">50</span>)</div>
+      <div class="formula muted" style="font-weight:500">T = <span class="v">1,0</span> (≤ 24 meses) · <span class="v">0,7</span> (24–60) · <span class="v">0,4</span> (&gt; 60)</div>
+      <div class="bands"><span style="background:#10b981"></span><span style="background:#facc15"></span><span style="background:#f97316"></span><span style="background:#ef4444"></span></div>
+      <div class="blabels"><span>0–25 Baixo</span><span>26–50 Médio</span><span>51–75 Alto</span><span>76–100 Crítico</span></div>
+      <p class="why" style="margin-top:.7em"><b style="color:#fff">Por que S<sub>max</sub> = 50?</b> Análise de sensibilidade com {30, 40, 50, 60, 75}: 30 e 40 saturam após 3–4 exposições críticas; 60 e 75 comprimem as faixas intermediárias.</p>
+      <p class="why" style="margin:0"><b style="color:#fff">Fundamentação:</b> NIST SP 800-63B-4 (2025) · NIST CSF 2.0 · CVSS 4.0 · OWASP Risk Rating · LGPD arts. 5º e 52.</p>
+    </div>
+    <div class="card fragment rise" style="flex:1">
+      <h3 class="small"><i class="fa-solid fa-weight-hanging hl-a"></i> Pesos w<sub>i</sub> por classe do HIBP</h3>
+      <table class="wtab">
+        <tr><td class="w">10</td><td>Passwords · Credit cards · CVV · Bank account · Financial transactions</td><td class="lv">N4 · VC:H</td></tr>
+        <tr><td class="w">8</td><td>Government IDs · Passport · Driver's licenses · Partial card · Auth tokens · Biometric · Security Q&amp;A</td><td class="lv">N3 · VC:H</td></tr>
+        <tr><td class="w">7</td><td>Password hints</td><td class="lv">N3 · VC:L</td></tr>
+        <tr><td class="w">5</td><td>Phone numbers · Physical addresses</td><td class="lv">N2</td></tr>
+        <tr><td class="w">4</td><td>Dates of birth</td><td class="lv">N2</td></tr>
+        <tr><td class="w">3</td><td>Names · Usernames · <i>classe não mapeada</i></td><td class="lv">N1</td></tr>
+        <tr><td class="w">2</td><td>Email · IP · Geographic locations</td><td class="lv">N1</td></tr>
+        <tr><td class="w">1</td><td>User agent · Device information</td><td class="lv">N1 · VC:N</td></tr>
+      </table>
+      <p class="why" style="margin:.5em 0 0"><b style="color:#fff">Biometria com peso 8:</b> é irrevogável, mas o peso mede a urgência de exploração no curto prazo; senha e cartão permitem abuso imediato e têm contramedida ao alcance do titular.</p>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Matheus</b> — Os pesos usam os nomes exatos que o HIBP devolve. A correspondência com OWASP e CVSS 4.0 não gerou os pesos: serviu para verificar a ordenação depois. Se a banca questionar a biometria abaixo de senha, usar o argumento do slide (urgência × irrevogabilidade). (3 min)</aside>
+</section>
+
+<!-- =========================================================
+     08 — CÁLCULO AO VIVO
+     Exemplo da Seção 2.4.1.4: resultado 74 (Alto); com Email addresses, 85 (Crítico).
+     ========================================================= -->
+<section id="calc">
+  <div class="eyebrow">02 · Modelo de risco · cálculo ao vivo</div>
+  <h2 style="margin-bottom:.4em">O exemplo do documento, <span class="hl-g">recalculado na hora</span></h2>
+  <div class="row">
+    <div class="grid" style="flex:1.35;gap:.45em" id="incs"></div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:.45em">
+      <div class="card gauge">
+        <div class="tiny" style="letter-spacing:.12em">RISKSCORE</div>
+        <div class="big" id="gScore">74</div>
+        <div class="lvl" id="gLvl">Alto</div>
+        <div class="meter"><span style="background:#10b981"></span><span style="background:#facc15"></span><span style="background:#f97316"></span><span style="background:#ef4444"></span><div class="needle" id="gNeedle" style="left:74%"></div></div>
+        <div class="blabels"><span>Baixo</span><span>Médio</span><span>Alto</span><span>Crítico</span></div>
+        <div class="calc-steps" id="gSteps"></div>
+      </div>
+      <div class="row" style="gap:.4em">
+        <button class="btn" id="btnEmail" type="button"><i class="fa-solid fa-at"></i> Incluir Email addresses</button>
+        <button class="btn ghost" id="btnReset" type="button"><i class="fa-solid fa-rotate-left"></i> Exemplo original</button>
+      </div>
+      <p class="tiny" style="margin:0">Clique nas classes para ligar/desligar e troque a idade do incidente. Mesmo cálculo do Motor de Risco: arredonda antes de classificar (RN08).</p>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Matheus</b> — Mostrar o 74 (Alto) do documento. Depois clicar em "Incluir Email addresses": o HIBP informa essa classe em quase todo incidente, e o score vai para 85 (Crítico). Mostra que exposições recorrentes de dados simples também deslocam o titular de faixa. Opcional: mudar a idade do ServicoY para mostrar o fator temporal. (2 min)</aside>
+</section>
+
+<!-- =========================================================
+     09 — ANÁLISE DO SISTEMA
+     ========================================================= -->
+<section id="analise">
+  <div class="eyebrow">03 · Análise do sistema</div>
+  <h2>Atores, histórias e <span class="hl-b">requisitos verificáveis</span></h2>
+  <div class="grid g4 fragment rise" style="margin-bottom:.55em">
+    <div class="card kpi"><div class="n hl-g">8<span class="muted" style="font-size:.5em"> / 10</span></div><div class="l">histórias de usuário implementadas<br>(US07 e US10 planejadas)</div></div>
+    <div class="card kpi"><div class="n hl-g">13<span class="muted" style="font-size:.5em"> / 14</span></div><div class="l">requisitos funcionais em produção<br>(RF12 planejado)</div></div>
+    <div class="card kpi"><div class="n hl-b">10</div><div class="l">requisitos não funcionais,<br>cada um com meta verificável</div></div>
+    <div class="card kpi"><div class="n hl-a">8</div><div class="l">regras de negócio rastreadas<br>até requisitos e testes</div></div>
+  </div>
+  <div class="row">
+    <div class="card fragment rise" style="flex:1">
+      <h3 class="small"><i class="fa-solid fa-user-group hl-b"></i> Atores</h3>
+      <div class="grid g2" style="gap:.3em">
+        <div class="actor"><span class="ic g"><i class="fa-solid fa-user-check"></i></span><div><b>Usuário cadastrado</b><span>e-mail verificado</span></div></div>
+        <div class="actor"><span class="ic b"><i class="fa-solid fa-user-gear"></i></span><div><b>Administrador</b><span>planejado (US10)</span></div></div>
+        <div class="actor"><span class="ic v"><i class="fa-solid fa-user-secret"></i></span><div><b>HIBP</b><span>fonte de incidentes</span></div></div>
+        <div class="actor"><span class="ic v"><i class="fa-solid fa-brain"></i></span><div><b>Azure AI Foundry</b><span>plano em linguagem natural</span></div></div>
+        <div class="actor"><span class="ic v"><i class="fa-solid fa-envelope"></i></span><div><b>Amazon SES</b><span>verificação e alertas</span></div></div>
+        <div class="actor"><span class="ic a"><i class="fa-solid fa-clock"></i></span><div><b>Agendador</b><span>varreduras periódicas</span></div></div>
+      </div>
+    </div>
+    <div class="card fragment rise" style="flex:1.05">
+      <h3 class="small"><i class="fa-solid fa-bullseye hl-g"></i> Exemplos de metas verificáveis</h3>
+      <table class="tbl" style="font-size:.42em">
+        <tr><th>ID</th><th>Meta</th></tr>
+        <tr><td class="mono hl-g">RF03</td><td>Exemplo da Seção 2.4.1.4 = 74 (Alto); fronteiras 25/26, 50/51, 75/76</td></tr>
+        <tr><td class="mono hl-g">RF06</td><td>Prompt sem e-mail; JSON válido ou resposta padrão em até 10 s</td></tr>
+        <tr><td class="mono hl-g">RF11</td><td>Após excluir a conta, nenhum registro no banco nem no cache</td></tr>
+        <tr><td class="mono hl-b">RNF01</td><td>Nenhum e-mail em claro em chaves do Redis, histórico ou logs</td></tr>
+        <tr><td class="mono hl-b">RNF08</td><td>Cobertura ≥ 80% (≥ 85% functions), bloqueante no CI</td></tr>
+        <tr><td class="mono hl-b">RNF10</td><td>Meta de 99% mensal; task recriada em até 2 min</td></tr>
+      </table>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 João</b> — Os requisitos foram reescritos para ter critério objetivo de verificação e rastreabilidade com RN e RNF (Quadros 3 e 4). Dar dois exemplos: RF03 (o 74 que acabamos de ver) e RF11 (exclusão de conta, LGPD art. 18, VI). (2 min)</aside>
+</section>
+
+<!-- =========================================================
+     10 — ARQUITETURA
+     Não há rota pública de scan: ele roda na verificação do e-mail,
+     no 1º login com Google, no monitoramento e na reconciliação horária.
+     ========================================================= -->
+<section id="arq">
+  <div class="eyebrow">03 · Arquitetura e integração de APIs</div>
+  <h2 style="margin-bottom:.25em">Monólito modular com <span class="hl-b">processamento assíncrono</span></h2>
+  <div class="row" style="align-items:flex-start">
+    <div style="flex:1.5">
+      <svg viewBox="0 0 760 430" role="img" aria-label="Fluxo do scan no SafeID">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#60a5fa"/></marker>
+              <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#34d399"/></marker></defs>
+        <g class="n hl"><rect x="10" y="20" width="150" height="66" rx="14"/><text x="85" y="49">Navegador</text><text class="s" x="85" y="69">React 19</text></g>
+        <g class="n"><rect x="290" y="20" width="190" height="66" rx="14"/><text x="385" y="49">API NestJS</text><text class="s" x="385" y="69">JWT · DTOs · rate limit</text></g>
+        <g class="fragment" data-fragment-index="1">
+          <path class="edge" d="M160 53 H288" marker-end="url(#ah)"/><text class="elabel" x="224" y="43">HTTPS</text>
+          <g class="n"><rect x="10" y="150" width="190" height="96" rx="14" style="stroke:#f59e0b"/><text x="105" y="178">Gatilhos do scan</text><text class="s" x="105" y="200">e-mail verificado</text><text class="s" x="105" y="217">1º login Google</text><text class="s" x="105" y="234">monitoramento · 1/h</text></g>
+        </g>
+        <g class="fragment" data-fragment-index="2">
+          <g class="n"><rect x="290" y="165" width="190" height="66" rx="14"/><text x="385" y="194">Fila BullMQ</text><text class="s" x="385" y="214">90% do limite do plano</text></g>
+          <path class="edge" d="M385 86 V163" marker-end="url(#ah)"/>
+          <path class="edge" d="M200 198 H288" marker-end="url(#ah)"/><text class="elabel" x="244" y="188">job</text>
+        </g>
+        <g class="fragment" data-fragment-index="3">
+          <g class="n ext"><rect x="580" y="165" width="170" height="66" rx="14"/><text x="665" y="194">API HIBP v3</text><text class="s" x="665" y="214">circuit breaker</text></g>
+          <path class="edge" d="M480 198 H578" marker-end="url(#ah)"/><text class="elabel" x="529" y="188">≤ 10 s</text>
+        </g>
+        <g class="fragment" data-fragment-index="4">
+          <g class="n"><rect x="290" y="300" width="190" height="66" rx="14"/><text x="385" y="329">Motor de risco</text><text class="s" x="385" y="349">determinístico</text></g>
+          <path class="edge" d="M385 231 V298" marker-end="url(#ah)"/>
+          <g class="n ext"><rect x="580" y="300" width="170" height="66" rx="14"/><text x="665" y="329">Azure AI Foundry</text><text class="s" x="665" y="349">metadados · fallback</text></g>
+          <path class="edge" d="M480 333 H578" marker-end="url(#ah)"/><text class="elabel" x="529" y="323">≤ 10 s</text>
+        </g>
+        <g class="fragment" data-fragment-index="5">
+          <g class="n data"><rect x="580" y="20" width="170" height="66" rx="14"/><text x="665" y="49">Redis</text><text class="s" x="665" y="69">cache · filas</text></g>
+          <path class="edge" d="M480 53 H578" marker-end="url(#ah)"/>
+          <g class="n data"><rect x="10" y="300" width="190" height="66" rx="14"/><text x="105" y="329">PostgreSQL</text><text class="s" x="105" y="349">histórico AES-256-GCM</text></g>
+          <path class="edge" d="M290 333 H202" marker-end="url(#ah)"/>
+        </g>
+        <g class="fragment" data-fragment-index="6">
+          <path class="edge back" d="M105 300 V265 Q105 258 98 258 H40 Q30 258 30 248 V88" marker-end="url(#ag)"/><text class="elabel" x="105" y="392">painel: GET /scan/history</text>
+        </g>
+      </svg>
+    </div>
+    <div style="flex:1" class="fragment rise" data-fragment-index="6">
+<pre><code class="language-http" data-trim data-line-numbers="1-2|4-12">
+GET /api/v1/scan/:jobId HTTP/1.1
+Authorization: Bearer &lt;JWT&gt;
+
+HTTP/1.1 200 OK
+{
+  "riskScore": 74,
+  "classification": "HIGH",
+  "breachesFound": 3,
+  "recommendation": "Troque a senha...",
+  "mitigationSteps": ["...", "..."],
+  "urgencyLevel": "HIGH"
+}
+</code></pre>
+      <div class="res">
+        <div><i class="fa-solid fa-ban hl-r"></i><span><b>Sem rota pública de scan</b>: o e-mail vem da conta verificada, nunca do corpo da requisição.</span></div>
+        <div><i class="fa-solid fa-plug-circle-xmark hl-r"></i><span><b>Circuit breaker</b>: ≥ 50% de erro em 10 s abre; 30 s até semiabrir; 429 não conta.</span></div>
+        <div><i class="fa-solid fa-gauge hl-a"></i><span><b>HIBP</b>: no plano de entrada, 1 chamada a cada 6,7 s, global.</span></div>
+        <div><i class="fa-solid fa-bolt hl-b"></i><span><b>Cache</b>: scan 12 h (com vazamentos) / 24 h; IA 7 dias.</span></div>
+      </div>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Lucas</b> — Avançar passo a passo: 1) HTTPS até a API; 2) gatilhos e fila (o HIBP limita as chamadas, por isso nada é síncrono); 3) HIBP com circuit breaker; 4) motor de risco e IA, ambos com tempo-limite e fallback; 5) Redis e PostgreSQL; 6) o painel lê o histórico. Monólito modular: microsserviços custariam 17–24% a mais na AWS sem ganho para o MVP (Seção 6.2.2). Se a HIBP falhar, o score fica PENDENTE e é refeito de hora em hora. (3 min)</aside>
+</section>
+
+<!-- =========================================================
+     11 — MODELO DE DADOS
+     Campos conforme server/prisma/schema.prisma.
+     ========================================================= -->
+<section id="dados">
+  <div class="eyebrow">03 · Modelo de dados</div>
+  <h2>Sete tabelas, <span class="hl-g">nenhum e-mail fora do cadastro</span></h2>
+  <div class="grid g3" style="margin-bottom:.5em">
+    <div class="card entity fragment rise">
+      <h3><span class="ic b"><i class="fa-solid fa-user"></i></span>User</h3>
+      <table>
+        <tr><td><span class="pk">id</span> · email</td><td>PK · único</td></tr>
+        <tr><td>passwordHash · googleId</td><td>bcrypt · OAuth</td></tr>
+        <tr><td>emailVerifiedAt</td><td>RN01</td></tr>
+        <tr><td>termsAcceptedAt · monitoringConsentAt</td><td>LGPD</td></tr>
+      </table>
+    </div>
+    <div class="card entity fragment rise">
+      <h3><span class="ic g"><i class="fa-solid fa-clock-rotate-left"></i></span>ScanHistory</h3>
+      <table>
+        <tr><td><span class="pk">jobId</span> · userId</td><td>N : 1</td></tr>
+        <tr><td>emailHash</td><td><span class="enc">HMAC</span></td></tr>
+        <tr><td>riskScore · classification</td><td>RN08</td></tr>
+        <tr><td>breachData</td><td><span class="enc">AES-256-GCM</span></td></tr>
+      </table>
+    </div>
+    <div class="card entity fragment rise">
+      <h3><span class="ic a"><i class="fa-solid fa-bell"></i></span>UserBreach · Notification</h3>
+      <table>
+        <tr><td>breachName · firstSeenAt</td><td>base conhecida</td></tr>
+        <tr><td>notifiedAt</td><td>alerta único</td></tr>
+        <tr><td>dedupeKey</td><td>sha256</td></tr>
+        <tr><td>emailStatus</td><td>SES</td></tr>
+      </table>
+    </div>
+    <div class="card entity fragment rise">
+      <h3><span class="ic v"><i class="fa-solid fa-book"></i></span>BreachCatalog</h3>
+      <table>
+        <tr><td><span class="pk">name</span> · dataClasses</td><td>cópia local</td></tr>
+        <tr><td>breachDate · addedDate</td><td>RN03</td></tr>
+        <tr><td>+ CatalogSyncState</td><td>sync a cada 6 h</td></tr>
+      </table>
+    </div>
+    <div class="card entity fragment rise">
+      <h3><span class="ic r"><i class="fa-solid fa-key"></i></span>EmailVerificationToken</h3>
+      <table>
+        <tr><td>tokenHash</td><td>SHA-256</td></tr>
+        <tr><td>expiresAt · usedAt</td><td>24 h · uso único</td></tr>
+      </table>
+    </div>
+    <div class="card entity fragment rise">
+      <h3><span class="ic b"><i class="fa-solid fa-memory"></i></span>Redis</h3>
+      <table>
+        <tr><td>scan:&lt;hash&gt;</td><td>12–24 h</td></tr>
+        <tr><td>recomendação da IA</td><td>7 dias</td></tr>
+        <tr><td>filas e limitador HIBP</td><td>BullMQ</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="key fragment rise"><b>Exclusão em cascata:</b> excluir o <i>User</i> remove histórico, vazamentos conhecidos, notificações e tokens (<span class="mono">onDelete: Cascade</span>) e limpa o cache — RF11 e LGPD, art. 18, VI.</div>
+  <aside class="notes"><b>🎤 Kelvyn</b> — Modelo físico em PostgreSQL via Prisma. UserBreach guarda a base de vazamentos já conhecidos para que o monitoramento só alerte o que é novo; a dedupeKey garante uma notificação por vazamento. O e-mail só existe na tabela User. (2 min)</aside>
+</section>
+
+<!-- =========================================================
+     12 — CRIPTOGRAFIA (demonstração ao vivo, Web Crypto API)
+     ========================================================= -->
+<section id="cripto">
+  <div class="eyebrow">04 · Criptografia e segurança</div>
+  <h2 style="margin-bottom:.35em">Proteger quem já teve os dados <span class="hl-g">expostos</span></h2>
+  <div class="row" style="gap:.7em">
+    <div style="flex:1" class="grid">
+      <div class="card algo fragment rise">
+        <h3><span class="ic g"><i class="fa-solid fa-hashtag"></i></span>HMAC-SHA-256 — pseudonimização do e-mail</h3>
+        <p>Chave secreta (<i>pepper</i>) guardada no SSM, fora do banco. Diferente de um SHA-256 puro, não pode ser revertida por dicionário sem a chave.</p>
+      </div>
+      <div class="card algo fragment rise">
+        <h3><span class="ic b"><i class="fa-solid fa-key"></i></span>AES-256-GCM — dados dos incidentes</h3>
+        <p>Cifra na aplicação, prefixo <span class="mono">enc:v1</span>. O GCM garante confidencialidade e integridade: qualquer alteração invalida a etiqueta.</p>
+      </div>
+      <div class="card algo fragment rise">
+        <h3><span class="ic a"><i class="fa-solid fa-user-lock"></i></span>bcrypt · TLS · minimização na IA</h3>
+        <p>Senhas com bcrypt (custo 10); HTTPS terminado no ALB e no CloudFront; a LLM recebe só nome, data e classes dos incidentes.</p>
+      </div>
+    </div>
+    <div style="flex:1.05" class="card fragment rise">
+      <h3 class="small" style="margin-bottom:.5em"><i class="fa-solid fa-terminal hl-g"></i> Demonstração ao vivo</h3>
+      <div class="demo-in"><input id="cin" value="usuario@exemplo.com" aria-label="Texto para criptografar"><button class="btn" id="crun">Criptografar</button></div>
+      <div class="crypto-io" style="margin-bottom:.4em"><span class="lbl">HMAC-SHA-256 (chave de demonstração)</span><span class="out" id="out-hmac">—</span></div>
+      <div class="crypto-io" style="margin-bottom:.4em"><span class="lbl">AES-256-GCM · IV (96 bits) + texto cifrado</span><span class="out b" id="out-aes">—</span></div>
+      <div class="crypto-io"><span class="lbl">Decifrado com a mesma chave</span><span class="out a" id="out-dec">—</span></div>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Lucas</b> — Rodar a demonstração: mudar uma letra e mostrar que o hash muda inteiro (efeito avalanche); cada execução do AES gera um texto cifrado diferente por causa do IV aleatório. Ponto de atenção honesto: se a variável EMAIL_HASH_SECRET faltar, o código volta a SHA-256 sem chave e registra um aviso; verificamos a presença dela a cada implantação. (3 min)</aside>
+</section>
+
+<!-- =========================================================
+     13 — CONTROLE DE ACESSO E LGPD
+     ========================================================= -->
+<section id="lgpd">
+  <div class="eyebrow">04 · Controle de acesso e LGPD</div>
+  <h2>Só o titular verificado <span class="hl-g">vê o próprio risco</span></h2>
+  <div class="states fragment rise" style="margin-bottom:.6em">
+    <div class="st"><i class="fa-solid fa-user-plus hl-b"></i>Cadastro<small>aceite da política</small></div><div class="ar"><i class="fa-solid fa-arrow-right"></i></div>
+    <div class="st"><i class="fa-solid fa-hourglass-half hl-a"></i>Pendente<small>link 24 h · 7 dias</small></div><div class="ar"><i class="fa-solid fa-arrow-right"></i></div>
+    <div class="st"><i class="fa-solid fa-envelope-circle-check hl-g"></i>Verificado<small>scan automático</small></div><div class="ar"><i class="fa-solid fa-arrow-right"></i></div>
+    <div class="st"><i class="fa-solid fa-id-badge hl-v"></i>Sessão<small>JWT 24 h · refresh 7 d<br>troca de senha encerra as demais</small></div><div class="ar"><i class="fa-solid fa-arrow-right"></i></div>
+    <div class="st"><i class="fa-solid fa-trash-can hl-r"></i>Exclusão<small>cascata + cache</small></div>
+  </div>
+  <div class="row">
+    <div class="card fragment rise" style="flex:1.5">
+      <table class="tbl lgpd">
+        <tr><th>LGPD</th><th>Como o SafeID atende</th></tr>
+        <tr><td>Transparência</td><td>IA traduz metadados técnicos em plano de ação claro</td></tr>
+        <tr><td>Necessidade</td><td>Só o e-mail da conta; sem consulta a e-mails de terceiros</td></tr>
+        <tr><td>Segurança</td><td>AES-256-GCM, HMAC, rede privada, menor privilégio, segredos no SSM</td></tr>
+        <tr><td>Art. 18, II e V</td><td>Acesso e portabilidade: cópia dos dados em JSON nas configurações</td></tr>
+        <tr><td>Art. 18, VI</td><td>Eliminação: exclusão da conta no próprio painel</td></tr>
+        <tr><td>Art. 18, IX</td><td>Revogação do monitoramento nas preferências ou em um clique no e-mail</td></tr>
+        <tr><td>Art. 6º, X</td><td>Consentimentos com data, Termos e Política versionados, PRs revisados</td></tr>
+      </table>
+    </div>
+    <div class="grid" style="flex:1;gap:.45em">
+      <div class="card fragment rise"><h3 class="small"><i class="fa-solid fa-file-lines hl-b"></i> Logs</h3><p class="xs muted" style="margin:0">JSON estruturado no CloudWatch (30 dias). Correlação por <span class="mono">userId</span>; e-mail só como prefixo mascarado.</p></div>
+      <div class="card fragment rise" style="border-color:rgba(245,158,11,.4)"><h3 class="small"><i class="fa-solid fa-triangle-exclamation hl-a"></i> Em aprovação</h3><p class="xs muted" style="margin:0">Relatório de impacto (RIPD) e plano de resposta a incidentes redigidos em versão preliminar (<span class="mono">docs/lgpd</span>). Controles técnicos <b style="color:#fff">apoiam</b>, não comprovam sozinhos, a conformidade.</p></div>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Kelvyn</b> — Ciclo de vida da conta (Figura 11) e o mapeamento LGPD. Diferenciar eliminação (art. 18, VI) de revogação do consentimento (art. 18, IX). Fechar com a honestidade sobre o que falta na governança. (2 min)</aside>
+</section>
+
+<!-- =========================================================
+     14 — INFRAESTRUTURA AWS
+     Conforme docs/Backend/ARQUITETURA_AWS.md e DEPLOY_PRODUCAO.md.
+     ========================================================= -->
+<section id="aws">
+  <div class="eyebrow">04 · Infraestrutura em nuvem</div>
+  <h2 style="margin-bottom:.25em">Em produção na <span class="hl-a">AWS</span>, com scripts versionados</h2>
+  <div class="row" style="align-items:flex-start">
+    <div style="flex:1.55" class="fragment rise">
+      <svg viewBox="0 0 780 400" role="img" aria-label="Arquitetura AWS do SafeID">
+        <defs><marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#60a5fa"/></marker></defs>
+        <rect class="zone" x="200" y="10" width="570" height="300" rx="16"/><text class="zlabel" x="216" y="32">AMAZON VPC</text>
+        <rect class="zone" x="470" y="50" width="285" height="245" rx="12"/><text class="zlabel" x="484" y="72">SUB-REDES PRIVADAS</text>
+        <g class="n hl"><rect x="10" y="135" width="150" height="66" rx="14"/><text x="85" y="164">Usuário</text><text class="s" x="85" y="184">navegador</text></g>
+        <g class="n"><rect x="10" y="20" width="150" height="70" rx="14"/><text x="85" y="49">CloudFront</text><text class="s" x="85" y="69">S3 privado (OAC)</text></g>
+        <path class="edge" d="M85 135 V92" marker-end="url(#ah2)"/>
+        <g class="n"><rect x="220" y="135" width="150" height="66" rx="14"/><text x="295" y="164">ALB</text><text class="s" x="295" y="184">TLS · ACM</text></g>
+        <path class="edge" d="M160 168 H218" marker-end="url(#ah2)"/>
+        <g class="n hl"><rect x="220" y="225" width="230" height="70" rx="14"/><text x="335" y="253">ECS Fargate · 1 task</text><text class="s" x="335" y="273">API+workers · 0,5 vCPU</text></g>
+        <path class="edge" d="M295 201 V223" marker-end="url(#ah2)"/>
+        <g class="n data"><rect x="490" y="90" width="250" height="62" rx="14"/><text x="615" y="117">RDS PostgreSQL 16</text><text class="s" x="615" y="137">t3.micro · cifrado · 7 d</text></g>
+        <g class="n data"><rect x="490" y="180" width="250" height="62" rx="14"/><text x="615" y="207">ElastiCache Redis</text><text class="s" x="615" y="227">cache · BullMQ · limiter</text></g>
+        <path class="edge" d="M450 250 C470 250 470 125 488 125" marker-end="url(#ah2)"/>
+        <path class="edge" d="M450 258 C470 258 470 215 488 212" marker-end="url(#ah2)"/>
+        <g class="n ext"><rect x="10" y="325" width="140" height="62" rx="12"/><text x="80" y="352">SES</text><text class="s" x="80" y="371">e-mails</text></g>
+        <g class="n ext"><rect x="165" y="325" width="140" height="62" rx="12"/><text x="235" y="352">SSM</text><text class="s" x="235" y="371">segredos</text></g>
+        <g class="n ext"><rect x="320" y="325" width="140" height="62" rx="12"/><text x="390" y="352">ECR</text><text class="s" x="390" y="371">imagem/commit</text></g>
+        <g class="n ext"><rect x="475" y="325" width="140" height="62" rx="12"/><text x="545" y="352">CloudWatch</text><text class="s" x="545" y="371">logs · alarmes</text></g>
+        <g class="n ext"><rect x="630" y="325" width="140" height="62" rx="12"/><text x="700" y="352">SNS</text><text class="s" x="700" y="371">alerta à equipe</text></g>
+      </svg>
+    </div>
+    <div style="flex:1" class="grid">
+      <div class="card fragment rise"><h3 class="small"><i class="fa-solid fa-shield-halved hl-g"></i> Menor privilégio</h3><p class="xs muted" style="margin:0">Contêiner só aceita o ALB; banco e Redis só aceitam o contêiner. A aplicação só pode enviar e-mail pelo domínio <span class="mono">safeid.app.br</span>.</p></div>
+      <div class="card fragment rise"><h3 class="small"><i class="fa-solid fa-dollar-sign hl-a"></i> Custo real</h3><p class="xs muted" style="margin:0"><b style="color:#fff">US$ 2,45–3,50/dia</b> (US$ 75–105/mês). Desde 27/10 o NAT fica desligado ("modo economia") e é religado para apresentações.</p></div>
+      <div class="card fragment rise" style="border-color:rgba(245,158,11,.4)"><h3 class="small"><i class="fa-solid fa-code-compare hl-a"></i> Desenho × implantação</h3><p class="xs muted" style="margin:0">Uma task só, sem autoescala; RDS e Redis sem Multi-AZ. Assumido como limitação (Seção 5.7).</p></div>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Lucas</b> — A arquitetura alvo foi desenhada na PI-1 (MVP em Railway e Vercel) e provisionada na PI-2, sem mudança de código graças ao Docker. Contar a decisão do modo economia: a task fica em sub-rede pública com IP próprio, mas o security group só aceita o ALB. (2–3 min)</aside>
+</section>
+
+<!-- =========================================================
+     15 — QUALIDADE E TESTES
+     Medição de 17/10/2026 (docs/Backend/COBERTURA_TESTES_ATUAL.md).
+     ========================================================= -->
+<section id="testes">
+  <div class="eyebrow">04 · Qualidade e testes</div>
+  <h2 style="margin-bottom:.45em">Nenhum Pull Request entra <span class="hl-g">sem passar no CI</span></h2>
+  <div class="pipe fragment rise" style="margin-bottom:.6em">
+    <div class="st"><i class="fa-solid fa-code-pull-request hl-b"></i>PR revisado<br><span class="tiny">branch protection</span></div><div class="ar"><i class="fa-solid fa-chevron-right"></i></div>
+    <div class="st"><i class="fa-solid fa-broom hl-b"></i>Lint + build<br><span class="tiny">TypeScript strict</span></div><div class="ar"><i class="fa-solid fa-chevron-right"></i></div>
+    <div class="st"><i class="fa-solid fa-vial hl-g"></i>Unitários<br><span class="tiny">Jest · fast-check</span></div><div class="ar"><i class="fa-solid fa-chevron-right"></i></div>
+    <div class="st"><i class="fa-solid fa-database hl-g"></i>Integração + E2E<br><span class="tiny">PostgreSQL real</span></div><div class="ar"><i class="fa-solid fa-chevron-right"></i></div>
+    <div class="st"><i class="fa-brands fa-react hl-g"></i>Componentes<br><span class="tiny">Vitest + RTL</span></div><div class="ar"><i class="fa-solid fa-chevron-right"></i></div>
+    <div class="st"><i class="fa-solid fa-user-shield hl-v"></i>CodeQL · Dependabot<br><span class="tiny">SAST e SCA</span></div><div class="ar"><i class="fa-solid fa-chevron-right"></i></div>
+    <div class="st"><i class="fa-solid fa-chart-simple hl-a"></i>Codecov<br><span class="tiny">relatório</span></div>
+  </div>
+  <div class="row">
+    <div class="card fragment rise" style="flex:1.2" id="covCard">
+      <h3 class="small"><i class="fa-solid fa-chart-bar hl-g"></i> Cobertura da suíte unitária do back-end <span class="tiny">· CI de 04/11/2026</span></h3>
+      <div class="cov"><span class="lb">Statements</span><div class="bar"><div class="fill" data-w="98.98"></div><div class="thr" style="left:80%"></div></div><span class="v">98,98%</span></div>
+      <div class="cov"><span class="lb">Branches</span><div class="bar"><div class="fill" data-w="90.9"></div><div class="thr" style="left:80%"></div></div><span class="v">90,90%</span></div>
+      <div class="cov"><span class="lb">Functions</span><div class="bar"><div class="fill" data-w="97.18"></div><div class="thr" style="left:85%"></div></div><span class="v">97,18%</span></div>
+      <div class="cov"><span class="lb">Lines</span><div class="bar"><div class="fill" data-w="99.13"></div><div class="thr" style="left:80%"></div></div><span class="v">99,13%</span></div>
+      <p class="tiny" style="margin:.4em 0 0">Traço branco = limite bloqueante no Jest (80%; functions 85%). <b style="color:#cbd5e1">36 suítes · 380 testes</b>, todos aprovados, mais 6 suítes de componentes no front-end.</p>
+    </div>
+    <div class="grid" style="flex:1;gap:.45em">
+      <div class="card fragment rise"><h3 class="small"><i class="fa-solid fa-circle-check hl-g"></i> Verificado no CI</h3><p class="xs muted" style="margin:0">Motor de risco por propriedades (fuzzing) e pelos exemplos do documento (74, 85 e 29), prompt sem e-mail, AES-GCM, estados do disjuntor, cadastro→verificação→login, exclusão, alertas únicos.</p></div>
+      <div class="card fragment rise" style="border-color:rgba(59,130,246,.4)"><h3 class="small"><i class="fa-solid fa-flask-vial hl-b"></i> Fora do CI (03/11)</h3><p class="xs muted" style="margin:0">Carga com <b style="color:#fff">k6</b> em produção, pentest com <b style="color:#fff">OWASP ZAP</b> e jornada no navegador com <b style="color:#fff">Playwright</b>. Resultados no próximo slide.</p></div>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Lucas</b> — Fluxo orientado a testes: o teste é escrito antes, falha, e só então vem a implementação. Cobertura mede caminhos executados, não ausência de defeitos. Os testes de carga, segurança e navegador rodam fora do CI, porque dependem da produção ou de uma cópia local no ar; os resultados estão no próximo slide. (2 min)</aside>
+</section>
+
+
+<!-- =========================================================
+     15b — CAMPANHA DE TESTES DE 03/11/2026 (docs/testes)
+     ========================================================= -->
+<section id="campanha">
+  <div class="eyebrow">04 · Validação de 03/11/2026</div>
+  <h2 style="margin-bottom:.45em">Testado em produção <span class="hl-g">e no navegador</span></h2>
+  <div class="grid g4" style="margin-bottom:.55em">
+    <div class="card kpi fragment rise"><div class="n hl-g">0,00%</div><div class="l">de erro em 204.487 requisições<br>com k6, até 300 usuários virtuais</div></div>
+    <div class="card kpi fragment rise"><div class="n hl-b">216 ms</div><div class="l">P95 no pico de 300 VUs<br>(meta &lt; 1,5 s)</div></div>
+    <div class="card kpi fragment rise"><div class="n hl-g">0</div><div class="l">achados altos ou críticos<br>em aberto no pentest</div></div>
+    <div class="card kpi fragment rise"><div class="n hl-v">32 / 32</div><div class="l">execuções E2E aprovadas<br>em 4 navegadores</div></div>
+  </div>
+  <div class="row">
+    <div class="card fragment rise" style="flex:1.15">
+      <h3 class="small"><i class="fa-solid fa-user-shield hl-g"></i> Pentest (OWASP ZAP + scripts próprios)</h3>
+      <table class="tbl" style="font-size:.42em">
+        <tr><th>Verificação</th><th class="r">Resultado</th></tr>
+        <tr><td>Verificações dirigidas em produção</td><td class="r">50 / 50</td></tr>
+        <tr><td>Autorização entre usuários (cópia local)</td><td class="r">11 / 11</td></tr>
+        <tr><td>Fuzzing: 400 requisições, 22 tipos de carga</td><td class="r">0 erro 5xx</td></tr>
+        <tr><td><b>S01</b> · 6 dependências altas no back-end</td><td class="r pos">corrigido (#123)</td></tr>
+        <tr><td><b>S07</b> · limite de login burlável por X-Forwarded-For</td><td class="r pos">corrigido (#127)</td></tr>
+      </table>
+    </div>
+    <div class="grid" style="flex:1;gap:.45em">
+      <div class="card fragment rise"><h3 class="small"><i class="fa-solid fa-envelope-circle-check hl-b"></i> Alerta real</h3><p class="xs muted" style="margin:0">Vazamento detectado pelo monitoramento, <b style="color:#fff">1 notificação</b> e e-mail entregue pelo SES em <b style="color:#fff">~3 s</b>.</p></div>
+      <div class="card fragment rise" style="border-color:rgba(245,158,11,.4)"><h3 class="small"><i class="fa-solid fa-triangle-exclamation hl-a"></i> Limites assumidos</h3><p class="xs muted" style="margin:0">Carga só em <span class="mono">/api/health</span> e na página inicial, de um computador; CPU do Fargate em 73% no pico. Pentest automatizado, sem terceiros; E2E em cópia local.</p></div>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Lucas</b> — Campanha de 03/11, com relatórios e dados brutos em docs/testes. Três metas da Tabela 2 (cache, motor e fila) não são mensuráveis por carga externa, porque essas rotas deixaram de existir com o fim da consulta manual: isso está explicado no documento. Os dois achados acionáveis do pentest foram corrigidos e reconfirmados em produção no mesmo dia. (2–3 min)</aside>
+</section>
+
+<!-- =========================================================
+     16 — O FUNCIONAMENTO NA PRÁTICA (demonstração ao vivo)
+     ========================================================= -->
+<section id="pratica">
+  <div class="eyebrow">05 · O funcionamento na prática</div>
+  <h2 style="margin-bottom:.4em">Da conta criada ao <span class="hl-g">plano de ação</span></h2>
+  <div class="flow">
+    <div class="card step fragment rise"><div class="num">01</div><h3>Cadastro</h3><p>E-mail e senha ou Google, com aceite da Política de Privacidade.</p><div class="bg">bcrypt · termsAcceptedAt</div></div>
+    <div class="card step fragment rise"><div class="num">02</div><h3>Verificação</h3><p>Link de uso único por e-mail; ao confirmar, o scan começa sozinho.</p><div class="bg">SES · fila BullMQ → HIBP</div></div>
+    <div class="card step fragment rise"><div class="num">03</div><h3>Score</h3><p>Termômetro de 0 a 100, faixa por extenso e lista de vazamentos.</p><div class="bg">motor de risco · RN08</div></div>
+    <div class="card step fragment rise"><div class="num">04</div><h3>Plano com IA</h3><p>Resumo e 4 a 6 passos em português, do mais ao menos urgente.</p><div class="bg">só metadados · fallback</div></div>
+    <div class="card step fragment rise"><div class="num">05</div><h3>Histórico e alertas</h3><p>Evolução do score e aviso de vazamento novo no painel e por e-mail.</p><div class="bg">AES-256-GCM · dedupeKey</div></div>
+    <div class="card step fragment rise"><div class="num">06</div><h3>Controle</h3><p>Exportar o plano em PDF, trocar a senha, baixar os dados ou excluir a conta.</p><div class="bg">LGPD art. 18, II, V e VI</div></div>
+  </div>
+  <div class="card live-row fragment rise">
+    <div><h3 style="margin:0"><i class="fa-solid fa-display hl-g"></i> Demonstração ao vivo</h3>
+      <p class="small muted" style="margin:.2em 0 0">Cadastro, verificação, score, plano de ação, histórico, cópia dos dados e exclusão em produção.</p></div>
+    <a class="cta" href="https://www.safeid.app.br" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir o SafeID</a>
+  </div>
+  <aside class="notes"><b>🎤 João</b> — Clicar em "Abrir o SafeID" e demonstrar (Alt+Tab para voltar). Usar uma conta de teste já criada e verificada para não depender do e-mail chegar na hora; mostrar o plano de ação e o PDF. Plano B se a rede falhar: o vídeo do último slide. (4 min)</aside>
+</section>
+
+<!-- =========================================================
+     17 — GESTÃO DO PROJETO
+     Quadro 7, Quadro 10 e Quadro 8 do documento.
+     ========================================================= -->
+<section id="gestao">
+  <div class="eyebrow">05 · Gestão do projeto</div>
+  <h2 style="margin-bottom:.4em">Scrum quinzenal sobre <span class="hl-b">macrofases</span></h2>
+  <div class="grid g4 fragment rise" style="margin-bottom:.55em">
+    <div class="card member"><span class="av" style="background:var(--green)">MP</span><div><b>Matheus Pereira</b><span>PO e Scrum Master · documentação e score</span></div></div>
+    <div class="card member"><span class="av" style="background:var(--blue-2)">LV</span><div><b>Lucas Vieira</b><span>Back-end · APIs, IA e infraestrutura</span></div></div>
+    <div class="card member"><span class="av" style="background:var(--violet)">JA</span><div><b>João Antônio</b><span>Front-end · UX, Figma e responsividade</span></div></div>
+    <div class="card member"><span class="av" style="background:var(--amber)">KG</span><div><b>Kelvyn Gabriel</b><span>DBA · segurança, pesos e LGPD</span></div></div>
+  </div>
+  <div class="row">
+    <div class="card fragment rise" style="flex:1.45">
+      <h3 class="small"><i class="fa-solid fa-calendar-days hl-b"></i> Cronograma 2026 (M1 = março · M10 = dezembro)</h3>
+      <div class="gantt" id="gantt"></div>
+      <div class="legend"><span><i style="background:var(--blue)"></i>planejado</span><span><i style="background:var(--green)"></i>antecipado na execução</span><span>M5: transição, sem desenvolvimento principal</span></div>
+    </div>
+    <div class="card fragment rise" style="flex:1">
+      <h3 class="small"><i class="fa-solid fa-triangle-exclamation hl-a"></i> Riscos prioritários (P × I)</h3>
+      <table class="tbl" style="font-size:.42em">
+        <tr><th>Risco</th><th class="r">P×I</th></tr>
+        <tr><td>Variação cambial sobre AWS, HIBP e IA</td><td class="r">12</td></tr>
+        <tr><td>Falhas de integração entre camadas</td><td class="r">12</td></tr>
+        <tr><td>Prazo: itens críticos no fim da Sprint</td><td class="r">12</td></tr>
+        <tr><td>Indisponibilidade ou contrato da HIBP</td><td class="r">12</td></tr>
+        <tr><td>Violação de dados do próprio SafeID</td><td class="r">10 <span class="tiny">(I = 5)</span></td></tr>
+      </table>
+      <p class="tiny" style="margin:.4em 0 0">Backlog: ~1.100 h estimadas para capacidade de 1.440–1.730 h.</p>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Matheus</b> — Papéis da equipe e dedicação uniforme de 10–12 h semanais. Cronograma: o provisionamento na AWS, planejado para M10, foi antecipado para M7–M8, tirando risco do último mês. Matriz de riscos com P e I numéricos e responsáveis no GitHub Projects. (2 min)</aside>
+</section>
+
+<!-- =========================================================
+     18 — VIABILIDADE FINANCEIRA (Apêndice C)
+     ========================================================= -->
+<section id="financeiro">
+  <div class="eyebrow">05 · Viabilidade financeira</div>
+  <h2 style="margin-bottom:.4em">Freemium sustentável, <span class="hl-a">com premissas assumidas</span></h2>
+  <div class="row">
+    <div class="card fragment rise" style="flex:1">
+      <h3 class="small"><i class="fa-solid fa-receipt hl-b"></i> OpEx mensal estimado <span class="tiny">· US$ 1 = R$ 5,20</span></h3>
+      <div class="opex"><span class="lb">AWS (teto, com NAT)</span><div class="bar"><div class="fill" style="width:100%"></div></div><span class="v">R$ 550</span></div>
+      <div class="opex"><span class="lb">Marketing</span><div class="bar"><div class="fill" style="width:72.7%"></div></div><span class="v">R$ 400</span></div>
+      <div class="opex"><span class="lb">SMS/WhatsApp (Pro)</span><div class="bar"><div class="fill" style="width:36.4%"></div></div><span class="v">R$ 200</span></div>
+      <div class="opex"><span class="lb">IA (60 mil chamadas)</span><div class="bar"><div class="fill" style="width:27.3%"></div></div><span class="v">R$ 150</span></div>
+      <div class="opex"><span class="lb">Manutenção e CI</span><div class="bar"><div class="fill" style="width:18.2%"></div></div><span class="v">R$ 100</span></div>
+      <div class="opex"><span class="lb">API HIBP</span><div class="bar"><div class="fill" style="width:4.5%"></div></div><span class="v">R$ 25</span></div>
+      <div class="opex" style="border-top:1px dashed rgba(148,163,184,.3);padding-top:.35em"><span class="lb"><b style="color:#fff">Total</b></span><span></span><span class="v"><b>R$ 1.425</b></span></div>
+      <p class="tiny" style="margin:.2em 0 0">Plano Pro: R$ 11,90/mês. Na fase acadêmica, tudo é gratuito.</p>
+    </div>
+    <div class="grid" style="flex:1.25;gap:.45em">
+      <div class="card fragment rise">
+        <h3 class="small"><i class="fa-solid fa-scale-unbalanced hl-g"></i> Cenários sobre a mesma base de usuários ativos</h3>
+        <table class="tbl" style="font-size:.42em">
+          <tr><th>Cenário</th><th class="r">Conversão</th><th class="r">Resultado M6</th><th class="r">Resultado M12</th><th class="r">Equilíbrio</th></tr>
+          <tr><td>Pessimista</td><td class="r">0,6%</td><td class="r neg">−R$ 354</td><td class="r pos">R$ 367</td><td class="r">M9</td></tr>
+          <tr><td>Realista</td><td class="r">2%</td><td class="r pos">R$ 2.145</td><td class="r pos">R$ 5.365</td><td class="r">M4</td></tr>
+          <tr><td>Otimista</td><td class="r">4,5%</td><td class="r pos">R$ 6.608</td><td class="r pos">R$ 14.290</td><td class="r">M2</td></tr>
+        </table>
+        <p class="tiny" style="margin:.4em 0 0">MAU: 15 mil no M6, 30 mil no M12. Sem impostos nem taxas de pagamento.</p>
+      </div>
+      <div class="key amber fragment rise" style="font-size:.6em"><b>Leitura crítica:</b> 1 ponto de conversão vale ~R$ 3.570/mês no M12, contra R$ 115 de 20% no câmbio. LTV/CAC de 12,5 a 29,2 está muito acima da referência de 3, o que indica <b>premissas otimistas</b>, não viabilidade comprovada.</div>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Matheus</b> — Três cenários sobre a mesma linha do tempo, variando só a conversão (benchmark freemium de 3–5%, ChartMogul 2026). A premissa mais frágil é o crescimento de usuários com só R$ 400 de marketing: anos 2 e 3 são limite superior. Mostrar que nós mesmos criticamos o LTV/CAC. (2 min)</aside>
+</section>
+
+<!-- =========================================================
+     19 — RESULTADOS E LIMITAÇÕES
+     ========================================================= -->
+<section id="resultados">
+  <div class="eyebrow">06 · Resultados e limitações</div>
+  <h2>O que entregamos e <span class="hl-a">o que assumimos</span></h2>
+  <div class="row">
+    <div class="card fragment rise" style="flex:1">
+      <h3 class="small"><i class="fa-solid fa-circle-check hl-g"></i> Necessidades atendidas</h3>
+      <table class="tbl" style="font-size:.44em">
+        <tr><td class="mono hl-g">N1</td><td>Conhecer as exposições</td><td><span class="pill ok" style="font-size:.85em">Atendida</span></td></tr>
+        <tr><td class="mono hl-g">N2</td><td>Compreender a gravidade</td><td><span class="pill ok" style="font-size:.85em">Atendida</span></td></tr>
+        <tr><td class="mono hl-g">N3</td><td>Saber como agir</td><td><span class="pill ok" style="font-size:.85em">Atendida</span></td></tr>
+        <tr><td class="mono hl-g">N4</td><td>Acompanhar a evolução</td><td><span class="pill ok" style="font-size:.85em">Atendida</span></td></tr>
+        <tr><td class="mono hl-a">N5</td><td>Preservar a privacidade</td><td><span class="pill part" style="font-size:.85em">Técnica ✓ · governança em aprovação</span></td></tr>
+      </table>
+      <div class="key" style="margin-top:.6em;font-size:.56em"><b>Em produção:</b> verificação de titularidade, scan assíncrono e resiliente, score determinístico, plano por IA, histórico cifrado, alertas, recuperação de senha, cópia dos dados e exclusão de conta.</div>
+    </div>
+    <div class="card fragment rise" style="flex:1.1">
+      <h3 class="small"><i class="fa-solid fa-triangle-exclamation hl-a"></i> Limitações declaradas (Seção 5.7)</h3>
+      <ul class="xs">
+        <li>Dependência de uma única fonte de <i>threat intelligence</i> (HIBP).</li>
+        <li>Sem testes com usuários reais nem validação de usabilidade.</li>
+        <li>Carga medida só em rotas simples, de um único computador; Playwright fora do CI.</li>
+        <li>Pentest automatizado pela equipe, sem teste manual por terceiros.</li>
+        <li>Ponto único de falha: API e workers no mesmo processo, uma task.</li>
+        <li>Circuit breaker com estado local, por processo.</li>
+        <li>Banco e Redis sem Multi-AZ; observabilidade inicial.</li>
+        <li>E-mail como único identificador; sem painel administrativo.</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Kelvyn</b> — Retomar N1–N5 do início. Apresentar as limitações como decisões conscientes e mapeadas, cada uma com item correspondente nos trabalhos futuros. (2 min)</aside>
+</section>
+
+<!-- =========================================================
+     20 — TRABALHOS FUTUROS (MoSCoW, Seção 6.3)
+     EDITE: responsáveis e prazos, se a equipe ajustar.
+     ========================================================= -->
+<section id="futuro">
+  <div class="eyebrow">06 · Trabalhos futuros</div>
+  <h2>Priorizados por <span class="hl-g">MoSCoW</span>, com dono e prazo</h2>
+  <div class="grid g4">
+    <div class="card mos fragment rise" style="border-color:rgba(239,68,68,.45)">
+      <h3><span class="hl-r">Must</span><small>até dez./2026</small></h3>
+      <ul>
+        <li><span class="hl-g">✓</span> Pentest e correção de achados graves <em>03/11</em></li>
+        <li><span class="hl-g">✓</span> Campanha de carga com k6 <em>03/11</em></li>
+        <li><span class="hl-g">✓</span> Testes com os valores exatos (74, 85 e 29) <em>04/11</em></li>
+        <li>Verificar EMAIL_HASH_SECRET em produção <em>Lucas</em></li>
+        <li>Aprovar RIPD e plano de resposta a incidentes <em>todos · 20/11</em></li>
+      </ul>
+    </div>
+    <div class="card mos fragment rise" style="border-color:rgba(245,158,11,.45)">
+      <h3><span class="hl-a">Should</span><small>1º sem./2027</small></h3>
+      <ul>
+        <li>Múltiplos identificadores (US07) <em>Kelvyn e João</em></li>
+        <li>Worker em serviço próprio e disjuntor no Redis <em>Lucas</em></li>
+        <li>maskEmail com HMAC e logs legados migrados <em>Lucas</em></li>
+        <li>Validação de usabilidade com usuários reais</li>
+        <li>Playwright no CI e carga em rotas autenticadas <em>Lucas</em></li>
+      </ul>
+    </div>
+    <div class="card mos fragment rise" style="border-color:rgba(59,130,246,.45)">
+      <h3><span class="hl-b">Could</span><small>sem prazo</small></h3>
+      <ul>
+        <li>Segunda fonte de <i>threat intelligence</i></li>
+        <li>Painel administrativo (US10)</li>
+        <li>Tema claro com axe-core</li>
+        <li>Métricas, rastreamento e Multi-AZ</li>
+      </ul>
+    </div>
+    <div class="card mos fragment rise">
+      <h3><span class="muted">Won't</span><small>nesta fase</small></h3>
+      <ul>
+        <li>Monitoramento de chaves PIX (sem fonte no HIBP)</li>
+        <li>Funcionalidades B2B2C com a Enetsec (dependem de acordo comercial)</li>
+      </ul>
+    </div>
+  </div>
+  <aside class="notes"><b>🎤 Lucas</b> — Três dos cinco itens Must foram concluídos em 03 e 04/11; faltam confirmar o segredo em produção e aprovar os documentos de LGPD. Cada limitação do slide anterior tem um item aqui. (1–2 min)</aside>
+</section>
+
+<!-- =========================================================
+     21 — CONCLUSÃO E PERGUNTAS
+     EDITE: para trocar o vídeo, altere VIDEO_ID no script do final.
+     ========================================================= -->
+<section id="conclusao">
+  <div class="eyebrow">Conclusão</div>
+  <h2>O legado do <span class="hl-g">SafeID</span></h2>
+  <div class="grid g3">
+    <div class="card fragment rise"><h3><span class="ic g"><i class="fa-solid fa-people-group"></i></span></h3><h3>Social</h3><ul class="small"><li>Ferramenta gratuita e em produção para o cidadão leigo.</li><li>Literacia digital: entender o risco e agir.</li></ul></div>
+    <div class="card fragment rise"><h3><span class="ic b"><i class="fa-solid fa-graduation-cap"></i></span></h3><h3>Acadêmico</h3><ul class="small"><li>Modelo de risco explicável, com pesos e parâmetros auditáveis.</li><li>Extensão com parceiro do setor e código aberto.</li></ul></div>
+    <div class="card fragment rise"><h3><span class="ic a"><i class="fa-solid fa-scale-balanced"></i></span></h3><h3>Normativo</h3><ul class="small"><li><i>Privacy by Design</i> e LGPD na prática.</li><li>IA usada com minimização de dados.</li></ul></div>
+  </div>
+  <div class="card qa fragment rise">
+    <div><div class="big">Obrigado! <span class="hl-g">Perguntas?</span></div>
+      <div class="small muted">www.safeid.app.br · github.com/Safe-ID/safeid-main</div></div>
+    <button class="cta" id="btnVideo" type="button"><i class="fa-brands fa-youtube"></i> Assistir ao vídeo</button>
+  </div>
+  <aside class="notes"><b>🎤 Kelvyn (perguntas: todos)</b> — Síntese: o SafeID mostra a viabilidade técnica de tornar operacional, para o cidadão, o direito à informação sobre a exposição de seus dados. Ressalvas: carga não medida e efetividade comunicacional ainda sem validação com usuários. Vídeo opcional (Esc para sair). Perguntas: cada um responde pela sua área. (1 min + perguntas)</aside>
+</section>
+
+</div>
+</div>
+
+<!-- ===================== SCRIPTS (CDN) ===================== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/reveal.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/notes/notes.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/5.1.0/plugin/highlight/highlight.min.js"></script>
+<script>
+/* Configuração do Reveal.js — tecla S abre as notas do apresentador. */
+Reveal.initialize({
+  hash: true, slideNumber: 'c/t', progress: true, controls: true, center: false,
+  transition: 'slide', backgroundTransition: 'fade',
+  width: 1280, height: 720, margin: 0.06,
+  plugins: [ RevealNotes, RevealHighlight ]
+});
+
+/* ---------- Contadores do slide de contexto ---------- */
+function countUp(el){
+  const to = parseFloat(el.dataset.to), dec = +(el.dataset.dec || 0), t0 = performance.now();
+  (function step(t){
+    const p = Math.min(1, (t - t0) / 1200), e = 1 - Math.pow(1 - p, 3);
+    el.textContent = (to * e).toFixed(dec).replace('.', ',');
+    if (p < 1) requestAnimationFrame(step);
+  })(t0);
+}
+Reveal.on('fragmentshown', e => {
+  e.fragments.forEach(f => {
+    f.querySelectorAll('.count').forEach(countUp);
+    if (f.id === 'covCard') f.querySelectorAll('.fill').forEach(x => x.style.width = x.dataset.w + '%');
+  });
+});
+Reveal.on('fragmenthidden', e => {
+  e.fragments.forEach(f => { if (f.id === 'covCard') f.querySelectorAll('.fill').forEach(x => x.style.width = '0'); });
+});
+
+/* ---------- Cronograma (Quadro 10) ---------- */
+(function(){
+  const rows = [
+    ['1. Concepção e requisitos', [1,2]],
+    ['2. Arquitetura e design', [3,4]],
+    ['3. Transição (M5)', [5]],
+    ['4. Back-end (PI-2)', [6,7,8]],
+    ['5. Front-end (PI-2)', [6,7,8]],
+    ['6. Integração com IA', [7,8]],
+    ['7. Qualidade e estabilização', [9]],
+    ['8. Implantação e DevOps', [10], [7,8]]
+  ];
+  const g = document.getElementById('gantt');
+  let html = '<div></div>';
+  for (let m = 1; m <= 10; m++) html += '<div class="h">M' + m + '</div>';
+  rows.forEach(([lbl, on, real]) => {
+    html += '<div class="lbl">' + lbl + '</div>';
+    for (let m = 1; m <= 10; m++) {
+      const cls = (real && real.includes(m)) ? 'c real' : on.includes(m) ? 'c on' : 'c';
+      const tip = (real && real.includes(m)) ? 'executado (antecipado)' : on.includes(m) ? 'planejado' : '';
+      html += '<div class="' + cls + '" title="' + lbl + ' · M' + m + (tip ? ' · ' + tip : '') + '"></div>';
+    }
+  });
+  g.innerHTML = html;
+})();
+
+/* ---------- Calculadora do Risk Score (Seção 2.4.1.4) ---------- */
+const BASE = [
+  { name: 'LojaX', sub: 'comércio eletrônico', age: 6,  cls: [['Passwords',10,1],['IP addresses',2,1],['Names',3,1],['Email addresses',2,0]] },
+  { name: 'ServicoY', sub: 'fórum', age: 36, cls: [['Password hints',7,1],['Usernames',3,1],['Email addresses',2,0]] },
+  { name: 'PlataformaZ', sub: 'aplicativo', age: 12, cls: [['Credit cards',10,1],['Phone numbers',5,1],['Email addresses',2,0]] }
+];
+let INC = JSON.parse(JSON.stringify(BASE));
+const T = m => m <= 24 ? 1 : m <= 60 ? 0.7 : 0.4;
+const fmt = (v, d = 1) => v.toFixed(d).replace('.', ',');
+const LV = s => s >= 76 ? ['Crítico', '#f87171'] : s >= 51 ? ['Alto', '#fb923c'] : s >= 26 ? ['Médio', '#facc15'] : ['Baixo', '#34d399'];
+const AGES = [[6,'há 6 meses'],[12,'há 12 meses'],[36,'há 36 meses'],[72,'há 72 meses']];
+function renderCalc(){
+  const box = document.getElementById('incs');
+  box.innerHTML = INC.map((inc, j) => {
+    const sum = inc.cls.filter(c => c[2]).reduce((a, c) => a + c[1], 0), t = T(inc.age);
+    return '<div class="card inc"><div class="hd"><b><i class="fa-solid fa-database hl-b"></i> ' + inc.name + ' <span class="tiny">' + inc.sub + '</span></b>' +
+      '<select data-j="' + j + '">' + AGES.map(a => '<option value="' + a[0] + '"' + (a[0] === inc.age ? ' selected' : '') + '>' + a[1] + ' · T=' + fmt(T(a[0])) + '</option>').join('') + '</select></div>' +
+      '<div class="chips">' + inc.cls.map((c, i) => '<span class="chip' + (c[2] ? ' on' : '') + '" data-j="' + j + '" data-i="' + i + '"><i class="fa-solid ' + (c[2] ? 'fa-check' : 'fa-plus') + '"></i>' + c[0] + ' · ' + c[1] + '</span>').join('') + '</div>' +
+      '<div class="sj">S' + (j + 1) + ' = ' + fmt(t) + ' × ' + sum + ' = <b style="color:#fff">' + fmt(t * sum) + '</b></div></div>';
+  }).join('');
+  const S = INC.map(inc => T(inc.age) * inc.cls.filter(c => c[2]).reduce((a, c) => a + c[1], 0));
+  const raw = S.reduce((a, b) => a + b, 0), cont = Math.min(100, raw / 50 * 100), score = Math.round(cont);
+  const [lv, col] = LV(score);
+  document.getElementById('gScore').textContent = score;
+  document.getElementById('gScore').style.color = col;
+  document.getElementById('gLvl').textContent = lv;
+  document.getElementById('gLvl').style.color = col;
+  document.getElementById('gNeedle').style.left = 'calc(' + score + '% - 2px)';
+  document.getElementById('gSteps').innerHTML =
+    'S<sub>bruto</sub> = ' + S.map(s => fmt(s)).join(' + ') + ' = <b>' + fmt(raw) + '</b><br>' +
+    'min(100, ' + fmt(raw) + ' / 50 × 100) = ' + fmt(cont) + ' → <b>' + score + '</b>';
+}
+document.getElementById('incs').addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  const it = INC[+c.dataset.j].cls[+c.dataset.i]; it[2] = it[2] ? 0 : 1; renderCalc();
+});
+document.getElementById('incs').addEventListener('change', e => {
+  if (e.target.tagName === 'SELECT') { INC[+e.target.dataset.j].age = +e.target.value; renderCalc(); }
+});
+document.getElementById('btnEmail').addEventListener('click', () => {
+  INC.forEach(inc => inc.cls.forEach(c => { if (c[0] === 'Email addresses') c[2] = 1; })); renderCalc();
+});
+document.getElementById('btnReset').addEventListener('click', () => { INC = JSON.parse(JSON.stringify(BASE)); renderCalc(); });
+renderCalc();
+
+/* ---------- Demonstração de criptografia (Web Crypto API) ---------- */
+const enc = new TextEncoder();
+const hex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const GLYPHS = 'abcdef0123456789';
+function scramble(el, finalText, ms = 900){
+  const t0 = performance.now();
+  (function step(t){
+    const p = Math.min(1, (t - t0) / ms), keep = Math.floor(finalText.length * p);
+    let s = finalText.slice(0, keep);
+    for (let i = keep; i < finalText.length; i++) s += GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+    el.textContent = s;
+    if (p < 1) requestAnimationFrame(step);
+  })(t0);
+}
+async function runCrypto(){
+  const msg = document.getElementById('cin').value || 'usuario@exemplo.com';
+  const outH = document.getElementById('out-hmac'), outA = document.getElementById('out-aes'), outD = document.getElementById('out-dec');
+  if (!window.crypto || !crypto.subtle){
+    outH.textContent = 'Web Crypto indisponível neste navegador (abra via https ou localhost).';
+    return;
+  }
+  const hk = await crypto.subtle.importKey('raw', enc.encode('chave-demo-banca'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = await crypto.subtle.sign('HMAC', hk, enc.encode(msg.trim().toLowerCase()));
+  scramble(outH, hex(mac));
+  const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const plain = JSON.stringify({ breaches: ['LojaX'], dataClasses: ['Passwords'] });
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(plain));
+  setTimeout(() => scramble(outA, 'enc:v1:' + hex(iv) + ':' + b64(ct), 1100), 350);
+  const back = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct);
+  setTimeout(() => { outD.textContent = new TextDecoder().decode(back); }, 1600);
+}
+document.getElementById('crun').addEventListener('click', runCrypto);
+document.getElementById('cin').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') runCrypto(); });
+Reveal.on('slidechanged', e => { if (e.currentSlide.id === 'cripto') setTimeout(runCrypto, 600); });
+</script>
+<!-- Vídeo do YouTube em tela cheia (botão do último slide) -->
+<div id="videoOverlay" role="dialog" aria-label="Vídeo do SafeID">
+  <div class="vbar">
+    <a id="vYt" target="_blank" rel="noopener">Abrir no YouTube ↗</a>
+    <button id="vClose" type="button">✕ Voltar aos slides</button>
+  </div>
+</div>
+<script>
+/* EDITE: ID do vídeo no YouTube (parte depois de "watch?v=") */
+const VIDEO_ID = 'GYTYK8He8w4';
+const ov = document.getElementById('videoOverlay');
+document.getElementById('vYt').href = 'https://www.youtube.com/watch?v=' + VIDEO_ID;
+function openVideo(){
+  const f = document.createElement('iframe');
+  f.src = 'https://www.youtube.com/embed/' + VIDEO_ID + '?autoplay=1&rel=0&modestbranding=1&playsinline=1';
+  f.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture';
+  f.allowFullscreen = true;
+  f.referrerPolicy = 'strict-origin-when-cross-origin';
+  ov.appendChild(f); ov.classList.add('on');
+  Reveal.configure({ keyboard: false });
+  if (ov.requestFullscreen) ov.requestFullscreen().catch(() => {});
+}
+function closeVideo(){
+  ov.classList.remove('on'); ov.querySelectorAll('iframe').forEach(f => f.remove());
+  Reveal.configure({ keyboard: true });
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+}
+document.getElementById('btnVideo').addEventListener('click', openVideo);
+document.getElementById('vClose').addEventListener('click', closeVideo);
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && ov.classList.contains('on')) closeVideo(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && ov.classList.contains('on')) closeVideo(); });
+</script>
+</body>
+</html>

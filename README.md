@@ -57,7 +57,7 @@ Diagramas: [arquitetura (draw.io)](assets/arquitetura_safeid.drawio) · [implant
 ```
 ├── client/     # Frontend React (veja client/README.md)
 ├── server/     # Backend NestJS (veja server/README.md)
-├── docs/       # Documentação do TCC, apresentações e manuais
+├── docs/       # Manuais, relatórios de teste e entregas (trabalho escrito e apresentações em docs/entregas)
 ├── assets/     # Diagramas
 └── .github/    # CI, CodeQL, Dependabot e template de PR
 ```
