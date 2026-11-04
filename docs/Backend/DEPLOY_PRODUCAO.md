@@ -57,7 +57,7 @@ Depois, na ordem (cada script pode rodar de novo sem duplicar nada):
 |---|---|---|---|
 | 1 | `.\create-network.ps1` | VPC, subnets públicas e privadas, security groups do banco e do Redis; grava os IDs no `.env.production` | — |
 | 2 | `.\create-nat-gateway.ps1` | Saída para a internet das subnets privadas (HIBP, IA, SES) | — |
-| 3 | `.\create-database.ps1` | RDS PostgreSQL 16 privado, criptografado, com backup de 7 dias | — |
+| 3 | `.\create-database.ps1` | RDS PostgreSQL 16 privado, criptografado, com backup de 1 dia em produção (`DB_BACKUP_RETENTION_DAYS`; padrão 7) | — |
 | 4 | `.\create-redis.ps1` | ElastiCache Redis com `noeviction` (exigência do BullMQ) | — |
 | 5 | `.\create-ses.ps1` | Domínio de e-mail, DKIM, MAIL FROM | Cadastrar os registros impressos no DNS; conferir com `-Action Status`; pedir a saída do sandbox |
 | 6 | `.\create-certificates.ps1` | Certificados HTTPS da API e do site | Cadastrar os CNAMEs impressos; esperar `ISSUED` em `-Action Status` |
