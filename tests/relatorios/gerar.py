@@ -13,7 +13,7 @@ RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 DADOS = os.path.join(RAIZ, "docs", "testes", "dados")
 HTML = os.path.join(RAIZ, "docs", "testes", "html")
 os.makedirs(HTML, exist_ok=True)
-COMMIT = "f9677df"
+COMMIT = "fbc4e58"
 DATA = "03/11/2026"
 
 
@@ -101,6 +101,7 @@ aut = carrega("autorizacao.json")
 audit = carrega("npm-audit-server.json")
 fuzz = carrega("fuzz.json")
 xff = carrega("xff-bypass.json")
+xff_ok = carrega("xff-corrigido.json")
 cats = {}
 for r in ver:
     cats.setdefault(r["categoria"], []).append(r["ok"])
@@ -124,8 +125,8 @@ for nome, alvo, modo in (("prod-www", "www.safeid.app.br (produção)", "Passivo
 
 aud = audit["resumo"]
 pagina("relatorio-pentest.html", "Relatório de teste: segurança (pentest)", f"""
-<div class="box"><b>Resultado: sem achado alto ou crítico em aberto.</b> O achado S01, com {6} pacotes altos nas dependências, foi corrigido pelo PR #123: o <code>npm audit --omit=dev</code> do back-end passou de 6 altos e 7 moderados para <b>0 altos e {aud['moderate']} moderados</b>, estes justificados. As varreduras, o fuzzing e os testes dirigidos não encontraram falha explorável. Resta o achado médio S07 (limite de login contornável por cabeçalho forjado), recomendado corrigir. O critério da Seção 6.3 do documento ("nenhum achado de severidade alta ou crítica em aberto") <b>passa a estar cumprido</b>.</div>
-<p><b>Nota:</b> a correção de dependências está na <code>main</code> ({COMMIT}), mas ainda não foi para produção, que roda a imagem anterior. O novo deploy a leva.</p>
+<div class="box"><b>Resultado: todos os achados corrigidos ou aceitos; nada alto, crítico ou médio em aberto.</b> As varreduras, o fuzzing e os testes dirigidos não encontraram falha explorável. Os dois achados acionáveis foram corrigidos e reconfirmados em produção: o S01 (6 dependências altas) pelo PR #123 e o S07 (limite de login contornável por cabeçalho forjado) pelo PR #127. Restam só itens de baixo risco, aceitos ou de infraestrutura. O critério da Seção 6.3 do documento ("nenhum achado de severidade alta ou crítica em aberto") <b>está cumprido</b>.</div>
+<p><b>Produção:</b> roda a imagem <code>{COMMIT}</code>, com as duas correções. Reconfirmado em 03/11/2026.</p>
 <h2>Escopo e autorização</h2><ul>
 <li>Autorizado pela equipe, dona do sistema, apenas sobre os domínios e a infraestrutura do próprio projeto.</li>
 <li><b>Em produção:</b> só testes de baixo impacto: varredura passiva, verificações dirigidas e a prova do S07, com poucas requisições.</li>
@@ -145,7 +146,7 @@ pagina("relatorio-pentest.html", "Relatório de teste: segurança (pentest)", f"
 <h2>Achados</h2>
 {tabela(["ID", "Severidade", "Achado", "Situação e recomendação"], [
 ["S01", "Alta", "npm audit: 6 pacotes altos e 7 moderados nas dependências de produção do back-end (na campanha anterior).", "<b>Resolvido (PR #123):</b> 0 altos e 3 moderados. Os moderados vêm de um único aviso de SSE no @nestjs/core, sem rota @Sse na aplicação."],
-["S07", "Média", "O limite de tentativas de login é contado pelo primeiro IP do X-Forwarded-For, que o cliente controla. Em produção, 12 tentativas com IP forjado diferente a cada vez não dispararam o 429.", "<b>Em aberto.</b> Confiar apenas no X-Forwarded-For escrito pelo ALB/CloudFront (número fixo de proxies), ou limitar também por e-mail/rota. Mitiga força bruta distribuída."],
+["S07", "Média", "O limite de tentativas de login era contado pelo primeiro IP do X-Forwarded-For, que o cliente controla. Antes da correção, 12 tentativas com IP forjado diferente não dispararam o 429.", "<b>Resolvido (PR #127):</b> passou a usar o IP que o proxy confiável (ALB) acrescenta no fim do cabeçalho (TRUSTED_PROXY_HOPS, padrão 1). Reconfirmado em produção: as tentativas forjadas voltam a bloquear."],
 ["S02", "Média", "CSP do site com style-src 'unsafe-inline'.", "Aceito: exigido por React e Tailwind. script-src é só 'self', o que limita o impacto."],
 ["S03", "Baixa", "Cabeçalhos COOP, COEP e CORP ausentes no site.", "Recomendado incluir COOP e CORP na política do CloudFront. COEP não é necessário."],
 ["S04", "Baixa", "GET /scan/:jobId de outro usuário responde 200 com corpo vazio.", "Sem vazamento: a consulta filtra por userId. Recomendado responder 404."],
@@ -153,8 +154,13 @@ pagina("relatorio-pentest.html", "Relatório de teste: segurança (pentest)", f"
 ["S06", "Baixa", "Redis sem TLS nem criptografia em repouso.", "Já conhecido, na rede privada. Dados do cache usam HMAC. Avaliar ao sair do plano atual."],
 ["—", "Descartados", "'HTTP Only Site' (efeito do ambiente local) e 'Timestamp Disclosure' (datas legítimas no JSON).", "Falsos positivos, sem ação."],
 ], [7, 11, 42, 40])}
-<h2>Prova do S07 (produção)</h2>
-<p>Do mesmo IP, a 6ª tentativa de login já recebe 429 ({', '.join(map(str, xff['sem_cabecalho_forjado']))}). Com um X-Forwarded-For diferente a cada tentativa, as 12 passam sem 429 ({', '.join(map(str, xff['com_cabecalho_forjado']))}). Evidência em <code>docs/testes/dados/xff-bypass.json</code>.</p>
+<h2>Prova do S07, antes e depois (produção)</h2>
+<p>Em ambos os casos, do mesmo IP a 6ª tentativa de login já recebe 429. A diferença está nas tentativas com um X-Forwarded-For forjado diferente a cada vez:</p>
+{tabela(["Momento", "Tentativas com IP forjado", "Leitura"], [
+["Antes (bypass)", ', '.join(map(str, xff['com_cabecalho_forjado'])), "Todas passavam: o cabeçalho forjado criava um cliente novo a cada vez"],
+["Depois (PR #127)", ', '.join(map(str, xff_ok['com_cabecalho_forjado'])), "Todas bloqueiam: o IP usado é o que o ALB escreve, não o forjado"],
+], [18, 44, 38])}
+<p>Evidências em <code>docs/testes/dados/xff-bypass.json</code> (antes) e <code>xff-corrigido.json</code> (depois).</p>
 <h2>Moderados restantes nas dependências</h2>
 {tabela(["Severidade", "Pacote", "Aviso", "Alcançável"], [[a["severidade"], a["pacote"], (a["titulo"] or "")[:70], "Não: exige endpoint @Sse, inexistente no código"] for a in audit["achados"]], [12, 16, 48, 24])}
 <p>Os alertas completos estão em <code>docs/testes/dados/npm-audit-server.json</code>.</p>
@@ -194,7 +200,7 @@ exec_lin = [[i + 1, num(r["metrics"]["http_reqs"]["values"]["count"]), f"{num(r[
 pagina("relatorio-carga-k6.html", "Relatório de teste: carga com k6", f"""
 <div class="box"><b>Resultado: metas medidas atingidas.</b> Foram {num(total)} requisições em 3 execuções, com {num(falhas, 2)}% de erro, nenhum alarme disparado e nenhum 5xx. As metas de cache, Motor de Risco e fila da Tabela 2 <b>não puderam ser medidas</b> pelo motivo explicado abaixo.</div>
 <h2>Objetivo</h2><p>Executar a campanha da Seção 5.5.3.2 do documento: aquecimento, patamar de 100 usuários virtuais por 5 minutos, pico de 300, recuperação, com 3 execuções e publicação da mediana e da amplitude dos P95.</p>
-<h2>Ambiente</h2><ul><li>Alvo: produção, em us-east-2, com 1 task Fargate (0,5 vCPU e 1 GB), RDS db.t3.micro e ElastiCache cache.t3.micro. Produção roda a imagem anterior ao PR #123; a medição não é afetada, por bater em rotas não tocadas por ele.</li><li>Gerador: k6 v2.3.0, em um único computador no Brasil. Script: <code>tests/load/k6-producao.js</code>.</li><li>Execuções entre 18:01 e 18:37 UTC, com 1 minuto de intervalo. Cada usuário virtual faz 1 acesso por segundo: <code>GET /api/health</code> e, a cada 5 iterações, a página inicial.</li></ul>
+<h2>Ambiente</h2><ul><li>Alvo: produção, em us-east-2, com 1 task Fargate (0,5 vCPU e 1 GB), RDS db.t3.micro e ElastiCache cache.t3.micro. A medição foi em uma imagem anterior; a rota <code>/api/health</code> não mudou desde então, então vale para a versão em produção.</li><li>Gerador: k6 v2.3.0, em um único computador no Brasil. Script: <code>tests/load/k6-producao.js</code>.</li><li>Execuções entre 18:01 e 18:37 UTC, com 1 minuto de intervalo. Cada usuário virtual faz 1 acesso por segundo: <code>GET /api/health</code> e, a cada 5 iterações, a página inicial.</li></ul>
 <h2>Resultados da API (GET /api/health)</h2>
 {tabela(["Fase", "P95 (mediana)", "P95 (amplitude)", "Meta", "Vazão", "Erro máx.", "Situação"], lin, [24, 13, 18, 11, 11, 9, 14])}
 <h2>Site no CloudFront</h2>
