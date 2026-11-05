@@ -1188,7 +1188,7 @@ HTTP/1.1 200 OK
       <div class="crypto-io"><span class="lbl">Decifrado com a mesma chave</span><span class="out a" id="out-dec">—</span></div>
     </div>
   </div>
-  <aside class="notes"><b>🎤 Lucas</b> — Rodar a demonstração: mudar uma letra e mostrar que o hash muda inteiro (efeito avalanche); cada execução do AES gera um texto cifrado diferente por causa do IV aleatório. Ponto de atenção honesto: se a variável EMAIL_HASH_SECRET faltar, o código volta a SHA-256 sem chave e registra um aviso; verificamos a presença dela a cada implantação. (3 min)</aside>
+  <aside class="notes"><b>🎤 Lucas</b> — Rodar a demonstração: mudar uma letra e mostrar que o hash muda inteiro (efeito avalanche); cada execução do AES gera um texto cifrado diferente por causa do IV aleatório. Se perguntarem pela chave do HMAC: a EMAIL_HASH_SECRET está no arquivo de ambiente de produção e o script de implantação a envia ao SSM (confirmado em 05/11). Sem ela, o código voltaria a SHA-256 sem chave e registraria um aviso. (3 min)</aside>
 </section>
 
 <!-- =========================================================
@@ -1473,7 +1473,7 @@ HTTP/1.1 200 OK
         <li><span class="hl-g">✓</span> Campanha de carga com k6 <em>03/11</em></li>
         <li><span class="hl-g">✓</span> Testes com os valores exatos (74, 85 e 29) <em>04/11</em></li>
         <li><span class="hl-g">✓</span> RIPD e plano de resposta a incidentes <em>04/11</em></li>
-        <li>Verificar EMAIL_HASH_SECRET em produção <em>Lucas · 12/11</em></li>
+        <li><span class="hl-g">✓</span> EMAIL_HASH_SECRET confirmada em produção <em>05/11</em></li>
       </ul>
     </div>
     <div class="card mos fragment rise" style="border-color:rgba(245,158,11,.45)">
@@ -1503,7 +1503,7 @@ HTTP/1.1 200 OK
       </ul>
     </div>
   </div>
-  <aside class="notes"><b>🎤 Lucas</b> — O projeto acaba nesta apresentação. Os itens Must foram concluídos, exceto confirmar o segredo em produção até 12/11. Should, Could e Won’t ficam só como recomendação para quem continuar o SafeID, sem dono nem prazo. (1–2 min)</aside>
+  <aside class="notes"><b>🎤 Lucas</b> — O projeto acaba nesta apresentação. Todos os itens Must foram concluídos antes da apresentação. Should, Could e Won’t ficam só como recomendação para quem continuar o SafeID, sem dono nem prazo. (1–2 min)</aside>
 </section>
 
 <!-- =========================================================
