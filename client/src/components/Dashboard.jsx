@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { W, translateDataClass, severityFromWeight, classificationLabel, plural } from "./safeidData";
 import RiskCircle from "./RiskCircle";
 import BreachCard from "./BreachCard";
@@ -34,6 +34,7 @@ export default function Dashboard({ user, onDeleteAccount }) {
   const [actionError, setActionError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [tab, setTab] = useState("overview");
+  const tabRefs = useRef({});
   const [pct, setPct] = useState(0);
 
   useEffect(() => {
@@ -109,6 +110,29 @@ export default function Dashboard({ user, onDeleteAccount }) {
       : Array.isArray(rawBreachData?.data)
         ? rawBreachData.data
         : [];
+
+  const tabs = [
+    { id: "overview", label: "Visão Geral" },
+    { id: "breaches", label: `Vazamentos (${breachData.length})` },
+    { id: "ai", label: "✦ Plano IA" },
+  ];
+
+  // Setas, Home e End trocam de aba e levam o foco junto (padrão de abas do WAI-ARIA)
+  const onTabKeyDown = (event) => {
+    const index = tabs.findIndex((t) => t.id === tab);
+    const next = {
+      ArrowRight: (index + 1) % tabs.length,
+      ArrowDown: (index + 1) % tabs.length,
+      ArrowLeft: (index - 1 + tabs.length) % tabs.length,
+      ArrowUp: (index - 1 + tabs.length) % tabs.length,
+      Home: 0,
+      End: tabs.length - 1,
+    }[event.key];
+    if (next === undefined) return;
+    event.preventDefault();
+    setTab(tabs[next].id);
+    tabRefs.current[tabs[next].id]?.focus();
+  };
 
   const breachTimeline = [...breachData].sort((a, b) => {
     const aDate = new Date(a?.BreachDate || a?.date || a?.createdAt || 0).getTime();
@@ -311,12 +335,18 @@ export default function Dashboard({ user, onDeleteAccount }) {
           )}
 
           <div role="tablist" aria-label="Seções do painel" className="flex flex-col sm:flex-row gap-1 bg-safe-card border border-safe-border rounded-xl p-1.5 mb-6">
-            {[{ id: "overview", label: "Visão Geral" }, { id: "breaches", label: `Vazamentos (${breachData.length})` }, { id: "ai", label: "✦ Plano IA" }].map(t => (
+            {tabs.map(t => (
               <button 
                 key={t.id} 
+                ref={(el) => { tabRefs.current[t.id] = el; }}
+                id={`aba-${t.id}`}
                 type="button"
                 role="tab"
                 aria-selected={tab === t.id}
+                aria-controls={`painel-${t.id}`}
+                // Só a aba ativa entra no Tab; as outras se alcançam pelas setas (padrão WAI-ARIA)
+                tabIndex={tab === t.id ? 0 : -1}
+                onKeyDown={onTabKeyDown}
                 onClick={() => setTab(t.id)} 
                 className={`flex-1 py-2.5 px-4 rounded-lg text-sm transition-all cursor-pointer ${
                   tab === t.id 
@@ -330,7 +360,7 @@ export default function Dashboard({ user, onDeleteAccount }) {
           </div>
 
           {tab === "overview" && (
-            <div className="animate-fade-in">
+            <div role="tabpanel" id="painel-overview" aria-labelledby="aba-overview" className="animate-fade-in">
               <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-4 mb-6">
                 <div className="bg-safe-card border border-safe-border rounded-2xl p-8 flex flex-col items-center justify-center">
                   <RiskCircle val={riskScore} size={220} label={scanStatus === "pending" || scanStatus === "unverified" ? "PENDENTE" : undefined} />
@@ -360,6 +390,7 @@ export default function Dashboard({ user, onDeleteAccount }) {
                 <div className="text-safe-dim text-[11px] font-semibold tracking-[1.2px] mb-[18px]">DADOS EXPOSTOS</div>
                 {Object.entries(dataClassCounts).sort((a, b) => b[1] - a[1]).map(([type, count]) => {
                   const w = W[type] || 2;
+                  const severityLabel = severityFromWeight(w).label;
                   const colClass = w >= 8 ? "text-safe-danger" : w >= 5 ? "text-safe-warn" : "text-safe-secondary";
                   const bgColorClass = w >= 8 ? "bg-safe-danger" : w >= 5 ? "bg-safe-warn" : "bg-safe-secondary";
                   const p = breachData.length ? Math.round((count / breachData.length) * 100) : 0;
@@ -369,6 +400,7 @@ export default function Dashboard({ user, onDeleteAccount }) {
                       <div className="flex justify-between mb-[6px]">
                         <span className="text-safe-muted text-[13px]">{translateDataClass(type)}</span>
                         <div className="flex gap-[8px] items-center">
+                          <span className={`${colClass} text-[11px]`}>{severityLabel.replace("Gravidade ", "")}</span>
                           <span className="text-safe-dim text-[12px]">{count}/{breachData.length || 1}</span>
                           <span className={`${colClass} text-[12px] font-semibold`}>{p}%</span>
                         </div>
@@ -401,7 +433,7 @@ export default function Dashboard({ user, onDeleteAccount }) {
                           <div className="flex items-center gap-[10px] flex-wrap">
                             {logoPath ? (
                               <div className="w-[30px] h-[30px] rounded-[8px] overflow-hidden bg-safe-hover border border-safe-borderL shrink-0">
-                                <img src={logoPath} alt="vazamento" className="w-full h-full object-cover" onError={e => e.currentTarget.style.display = "none"} />
+                                <img src={logoPath} alt="" className="w-full h-full object-cover" onError={e => e.currentTarget.style.display = "none"} />
                               </div>
                             ) : (
                               <div className={`w-[30px] h-[30px] rounded-[8px] ${itemSeverity.chip} border flex items-center justify-center text-[13px] font-bold shrink-0`}>
@@ -418,6 +450,7 @@ export default function Dashboard({ user, onDeleteAccount }) {
                               return (
                                 <span key={dataClass} className={`${severity.softChip} border text-[10px] py-[2px] px-[8px] rounded-full`}>
                                   {translateDataClass(dataClass)}
+                                  <span className="sr-only">, {severity.label.toLowerCase()}</span>
                                 </span>
                               );
                             })}
@@ -434,7 +467,7 @@ export default function Dashboard({ user, onDeleteAccount }) {
           )}
 
           {tab === "breaches" && (
-            <div className="animate-fade-in flex flex-col gap-[10px]">
+            <div role="tabpanel" id="painel-breaches" aria-labelledby="aba-breaches" className="animate-fade-in flex flex-col gap-[10px]">
               {breachData.length ? breachData.map((item, i) => <BreachCard key={item.id || item.Name || item.Title || i} item={item} idx={i} />) : (
                 <div className="bg-safe-card border border-safe-border rounded-[14px] py-[18px] px-[20px] text-safe-dim">
                   Nenhum histórico disponível ainda.
@@ -444,7 +477,7 @@ export default function Dashboard({ user, onDeleteAccount }) {
           )}
 
           {tab === "ai" && (
-            <div className="animate-fade-in">
+            <div role="tabpanel" id="painel-ai" aria-labelledby="aba-ai" className="animate-fade-in">
               <AIPanel recommendation={recommendation} mitigationSteps={mitigationSteps} urgencyLevel={urgencyLevel} updatedAt={updatedAt} classification={classificationText} riskScore={riskScore} onExportPdf={exportPlanPdf} />
               <PrintablePlan
                 email={profile?.email}

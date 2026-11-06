@@ -106,7 +106,8 @@ export default function ScoreHistoryChart({ refreshKey }) {
               height={VIEW_H}
               viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
               className="block max-w-full overflow-visible"
-              role="img"
+              // Grupo, não imagem: uma imagem esconderia os pontos focáveis do leitor de tela
+              role="group"
               aria-label={`Evolução do score de risco em ${points.length} análises, de ${points[0].riskScore} para ${last.riskScore} de 100`}
               onMouseLeave={() => setActive(null)}
             >
@@ -144,9 +145,11 @@ export default function ScoreHistoryChart({ refreshKey }) {
                     r="14"
                     fill="transparent"
                     tabIndex={0}
-                    role="button"
+                    // Cada ponto só mostra o detalhe ao receber foco; não é botão porque não executa ação
+                    role="img"
                     aria-label={`${formatDateTime(p.createdAt)}: score ${p.riskScore}, ${CLASSIFICATION_LABELS[p.classification] || p.classification}, ${SOURCE_LABELS[p.source] || "análise"}`}
-                    className="cursor-pointer outline-none"
+                    className="cursor-pointer outline-none focus-visible:stroke-safe-text"
+                    strokeWidth="2"
                     onMouseEnter={() => setActive(i)}
                     onFocus={() => setActive(i)}
                     onBlur={() => setActive(null)}

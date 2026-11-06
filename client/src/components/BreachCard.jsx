@@ -53,7 +53,8 @@ export default function BreachCard({ item, idx }) {
             <div className="w-10 h-10 rounded-xl overflow-hidden bg-safe-hover border border-safe-borderL flex items-center justify-center shrink-0">
               <img
                 src={logoPath}
-                alt={`${title || "vazamento"} logo`}
+                // O nome do vazamento já aparece ao lado: o logo é decorativo
+                alt=""
                 className="w-full h-full object-cover block"
                 onError={(e) => e.currentTarget.style.display = "none"}
               />
@@ -93,6 +94,7 @@ export default function BreachCard({ item, idx }) {
               return (
                 <span key={cls} className={`${severity.chip} border text-[11px] font-medium px-2.5 py-1 rounded-full`}>
                   {translateDataClass(cls)}
+                  <span className="sr-only">, {severity.label.toLowerCase()}</span>
                 </span>
               );
             }) : isHistory ? [
@@ -109,6 +111,7 @@ export default function BreachCard({ item, idx }) {
               return (
                 <span key={cls} className={`${severity.chip} border text-[11px] font-medium px-2.5 py-1 rounded-full`}>
                   {translateDataClass(cls)}
+                  <span className="sr-only">, {severity.label.toLowerCase()}</span>
                 </span>
               );
             })}
