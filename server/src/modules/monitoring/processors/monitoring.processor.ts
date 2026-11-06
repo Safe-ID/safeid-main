@@ -22,6 +22,7 @@ import { runsWorkers } from '../../../shared/config/app-role';
 import { log } from '../../../shared/utils/logger';
 import { closeQuietly } from '../../../shared/utils/shutdown';
 import { CatalogMonitorService, CatalogSyncOrigin } from '../services/catalog-monitor.service';
+import { logRedisErrors } from '../../../infra/cache/redis-errors';
 
 const MONITORING_CONCURRENCY = 2;
 
@@ -54,6 +55,7 @@ export class MonitoringProcessor implements OnModuleInit, OnModuleDestroy {
       connection: this.connection,
       concurrency: MONITORING_CONCURRENCY,
     });
+    logRedisErrors(this.worker, 'worker:monitoring');
 
     this.worker.on('failed', (job: Job | undefined, error: Error) => {
       log('warn', 'MonitoringProcessor', 'monitoring.job_failed', {

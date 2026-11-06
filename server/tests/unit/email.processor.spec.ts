@@ -10,6 +10,7 @@ jest.mock('bullmq', () => ({
 jest.mock('ioredis', () =>
   jest.fn().mockImplementation(function (this: any) {
     this.quit = jest.fn(async () => 'OK');
+    this.on = jest.fn(() => this);
   }),
 );
 

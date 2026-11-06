@@ -10,6 +10,7 @@ import { HibpClientLike } from '../http/hibp.types';
 import { closeQuietly } from '../../shared/utils/shutdown';
 import { createBullConnection } from './redis-connection';
 import { log } from '../../shared/utils/logger';
+import { logRedisErrors } from '../cache/redis-errors';
 import {
   EMAIL_QUEUE,
   HIBP_CATALOG_CLIENT,
@@ -72,39 +73,48 @@ function isMockEnabled(): boolean {
       useFactory: (connection: Redis) =>
         // Os jobs check-hibp guardam o e-mail em texto e o resultado do HIBP.
         // São apagados pouco depois de terminar (o scan lê o resultado em até 20 s).
-        new Queue(QUEUE_HIBP, {
-          connection,
-          defaultJobOptions: {
-            removeOnComplete: { age: 60 },
-            removeOnFail: { age: 10 * 60 },
-          },
-        }),
+        logRedisErrors(
+          new Queue(QUEUE_HIBP, {
+            connection,
+            defaultJobOptions: {
+              removeOnComplete: { age: 60 },
+              removeOnFail: { age: 10 * 60 },
+            },
+          }),
+          'queue:hibp',
+        ),
     },
     {
       provide: MONITORING_QUEUE,
       inject: [REDIS_QUEUE_CONNECTION],
       // Jobs do monitoramento carregam só userId e nomes de vazamentos
       useFactory: (connection: Redis) =>
-        new Queue(QUEUE_MONITORING, {
-          connection,
-          defaultJobOptions: {
-            removeOnComplete: { age: 3600, count: 1000 },
-            removeOnFail: { age: SEVEN_DAYS_S },
-          },
-        }),
+        logRedisErrors(
+          new Queue(QUEUE_MONITORING, {
+            connection,
+            defaultJobOptions: {
+              removeOnComplete: { age: 3600, count: 1000 },
+              removeOnFail: { age: SEVEN_DAYS_S },
+            },
+          }),
+          'queue:monitoring',
+        ),
     },
     {
       provide: EMAIL_QUEUE,
       inject: [REDIS_QUEUE_CONNECTION],
       // O e-mail de verificação carrega o token: o job some assim que termina
       useFactory: (connection: Redis) =>
-        new Queue(QUEUE_EMAIL, {
-          connection,
-          defaultJobOptions: {
-            removeOnComplete: true,
-            removeOnFail: { age: SEVEN_DAYS_S },
-          },
-        }),
+        logRedisErrors(
+          new Queue(QUEUE_EMAIL, {
+            connection,
+            defaultJobOptions: {
+              removeOnComplete: true,
+              removeOnFail: { age: SEVEN_DAYS_S },
+            },
+          }),
+          'queue:email',
+        ),
     },
     HibpPlanService,
   ],

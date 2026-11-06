@@ -18,6 +18,7 @@ import { createBullConnection } from '../../../infra/queue/redis-connection';
 import { runsWorkers } from '../../../shared/config/app-role';
 import { log } from '../../../shared/utils/logger';
 import { closeQuietly } from '../../../shared/utils/shutdown';
+import { logRedisErrors } from '../../../infra/cache/redis-errors';
 
 /**
  * Worker da fila hibp-check: única porta de saída para consultas autenticadas na HIBP.
@@ -163,6 +164,8 @@ export class HibpProcessor implements OnModuleInit, OnModuleDestroy {
       concurrency: limits.concurrency,
       limiter: { max: 1, duration: limits.limiterDurationMs },
     });
+    // Sem listener de 'error', o BullMQ imprime a falha de conexão em texto
+    logRedisErrors(worker, 'worker:hibp');
 
     worker.on('failed', (job: Job | undefined, error: Error) => {
       log('warn', 'HibpProcessor', 'hibp.job_failed', {

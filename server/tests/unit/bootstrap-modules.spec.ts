@@ -6,6 +6,7 @@ jest.mock('ioredis', () => {
     this.config = config;
     this.connect = jest.fn();
     this.quit = jest.fn();
+    this.on = jest.fn(() => this);
   });
 });
 
@@ -13,6 +14,7 @@ jest.mock('bullmq', () => ({
   Queue: jest.fn().mockImplementation(() => ({
     add: jest.fn(),
     close: jest.fn(),
+    on: jest.fn(),
   })),
   Worker: jest.fn().mockImplementation(() => ({
     on: jest.fn(),
