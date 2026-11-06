@@ -189,7 +189,7 @@ export class ScanService {
   private createRepository() {
     return {
       create: async (scan: any) => {
-        console.log('[ScanRepository] Creating scan with data:', {
+        log('info', 'ScanRepository', 'scan.create', {
           jobId: scan.jobId,
           userId: scan.userId,
           riskScore: scan.riskScore,
@@ -217,7 +217,7 @@ export class ScanService {
             source: scan.source ?? 'MANUAL',
           },
         });
-        console.log('[ScanRepository] Scan created successfully:', created.jobId);
+        log('info', 'ScanRepository', 'scan.created', { jobId: created.jobId });
         return created;
       },
       findById: async (id: string) => {

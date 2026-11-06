@@ -139,7 +139,7 @@ describe('HibpClient', () => {
       await expect(noKey.checkAccount('user@example.com')).resolves.toEqual([]);
       await expect(noKey.checkAccount('user@example.com')).resolves.toEqual([]);
       expect(
-        warnSpy.mock.calls.filter(call => String(call[0]).includes('HIBP_API_KEY not configured')),
+        warnSpy.mock.calls.filter(call => String(call[0]).includes('"event":"hibp.key_missing"')),
       ).toHaveLength(1);
 
       const client = createClient();

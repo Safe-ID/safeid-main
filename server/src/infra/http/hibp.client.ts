@@ -92,7 +92,7 @@ export class HibpClient implements HibpClientLike {
   async checkAccount(email: string): Promise<any[]> {
     if (!this.hasApiKey) {
       if (!this.missingApiKeyWarned) {
-        console.warn('[HIBP Client] HIBP_API_KEY not configured. Returning empty result in degraded mode.');
+        log('warn', 'HibpClient', 'hibp.key_missing', { variable: 'HIBP_API_KEY', degraded: true });
         this.missingApiKeyWarned = true;
       }
 

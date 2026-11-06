@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { createHash } from 'crypto';
-import { log, maskEmail } from '../../src/shared/utils/logger';
+import { log } from '../../src/shared/utils/logger';
 
 describe('structured logger', () => {
   const originalLevel = process.env.LOG_LEVEL;
@@ -81,13 +80,5 @@ describe('structured logger', () => {
     process.env.LOG_LEVEL = 'verbose';
     log('debug', 'Ctx', 'debug.skipped');
     expect(logSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('masks e-mails as the first 8 chars of the SHA-256 of the normalized address', () => {
-    const expected = createHash('sha256').update('user@example.com').digest('hex').substring(0, 8);
-
-    expect(maskEmail(' User@Example.com ')).toBe(expected);
-    expect(maskEmail('user@example.com')).toHaveLength(8);
-    expect(maskEmail('user@example.com')).not.toContain('@');
   });
 });

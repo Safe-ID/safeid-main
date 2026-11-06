@@ -22,6 +22,7 @@ import { ScanResult, ScanSource } from '../entities/scan-result.entity';
 import { anonymizeSensitiveBreaches } from '../../shared/utils/sensitive-breaches';
 import { IScanHistoryRepository } from '../repositories/scan-history.repository';
 
+import { log } from '../../shared/utils/logger';
 interface HIBPBreach {
   Name: string;
   Title: string;
@@ -82,7 +83,7 @@ export class ExecuteRiskScanUseCase {
       const cachedResult = await this.cacheService.get(`scan:${emailHash}`);
       
       if (cachedResult) {
-        console.log(`[Cache HIT] ${emailHash}`);
+        log('info', 'ExecuteRiskScan', 'scan.cache_hit', { userId: input.userId, emailHash: emailHash.substring(0, 8) });
         return {
           jobId,
           ...JSON.parse(cachedResult),
@@ -91,7 +92,7 @@ export class ExecuteRiskScanUseCase {
         };
       }
 
-      console.log(`[Cache MISS] Enfileirando no BullMQ: ${emailHash}`);
+      log('info', 'ExecuteRiskScan', 'scan.cache_miss', { userId: input.userId, emailHash: emailHash.substring(0, 8) });
 
       // 2. Enfileira job HIBP. Sem priority = prioridade máxima no BullMQ: o scan interativo
       // passa na frente dos monitor-check (priority 10) da varredura
@@ -113,7 +114,7 @@ export class ExecuteRiskScanUseCase {
         jobId,
       });
     } catch (error) {
-      console.error(`[ExecuteRiskScan Error] ${error}`);
+      log('error', 'ExecuteRiskScan', 'scan.failed', { userId: input.userId, error });
       throw error;
     }
   }
@@ -143,7 +144,7 @@ export class ExecuteRiskScanUseCase {
       try {
         aiResult = await this.getRecommendation(breaches, riskCalc);
       } catch (error) {
-        console.warn('[ExecuteRiskScan] AI recommendation unavailable, continuing without it:', error);
+        log('warn', 'ExecuteRiskScan', 'scan.ai_unavailable', { userId: input.userId, error });
         aiResult = undefined;
       }
     }
@@ -170,10 +171,10 @@ export class ExecuteRiskScanUseCase {
       updatedAt: new Date(),
     };
 
-    console.log('[ExecuteRiskScan] Creating scan result:', {
+    log('info', 'ExecuteRiskScan', 'scan.persist', {
       jobId,
       userId: input.userId,
-      emailHash: emailHash.substring(0, 8) + '...',
+      emailHash: emailHash.substring(0, 8),
       riskScore: riskCalc.totalScore,
       classification: riskCalc.classification,
       source: input.source,
@@ -225,11 +226,11 @@ export class ExecuteRiskScanUseCase {
     try {
       const cached = await this.cacheService.get(cacheKey);
       if (cached) {
-        console.log('[AI Cache HIT] Reutilizando recomendação');
+        log('info', 'ExecuteRiskScan', 'ai.cache_hit');
         return JSON.parse(cached) as AIRecommendation;
       }
     } catch (error) {
-      console.warn('[ExecuteRiskScan] AI cache read failed, calling the model:', error);
+      log('warn', 'ExecuteRiskScan', 'ai.cache_read_failed', { error });
     }
 
     const aiResult = await this.aiEngine.generateRecommendation({
@@ -243,7 +244,7 @@ export class ExecuteRiskScanUseCase {
       try {
         await this.cacheService.setex(cacheKey, AI_RECOMMENDATION_TTL, JSON.stringify(aiResult));
       } catch (error) {
-        console.warn('[ExecuteRiskScan] AI cache write failed:', error);
+        log('warn', 'ExecuteRiskScan', 'ai.cache_write_failed', { error });
       }
     }
 

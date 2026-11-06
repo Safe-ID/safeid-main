@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { EmailMessage, EmailSender } from './email-sender.interface';
-import { log, maskEmail } from '../../shared/utils/logger';
+import { log } from '../../shared/utils/logger';
+import { maskEmail } from '../../shared/crypto/email-hash';
 
 const MAX_KEPT_MESSAGES = 100;
 

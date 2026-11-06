@@ -6,6 +6,7 @@
 
 import { EventEmitter } from 'events';
 import { BreachedAccountOptions, HibpBreach, HibpClientLike, HibpSubscriptionStatus } from './hibp.types';
+import { log } from '../../shared/utils/logger';
 
 function defaultBreaches(): Record<string, HibpBreach[]> {
   return {
@@ -56,7 +57,7 @@ export class MockHibpClient extends EventEmitter implements HibpClientLike {
 
   async checkAccount(email: string): Promise<any[]> {
     const breaches = await this.lookup(email);
-    console.log(`[MockHibpClient] Checking account: ${breaches.length} breach(es) found`);
+    log('info', 'MockHibpClient', 'hibp.mock_check', { breaches: breaches.length });
     return breaches;
   }
 
@@ -89,14 +90,14 @@ export class MockHibpClient extends EventEmitter implements HibpClientLike {
 
   on(event: string, listener: any): this {
     if (event === 'open') {
-      console.log('[MockHibpClient] Circuit breaker opened (mock)');
+      log('info', 'MockHibpClient', 'hibp.mock_circuit_open');
     } else if (event === 'close') {
-      console.log('[MockHibpClient] Circuit breaker closed (mock)');
+      log('info', 'MockHibpClient', 'hibp.mock_circuit_closed');
     }
     return super.on(event, listener);
   }
 
   async shutdown(): Promise<void> {
-    console.log('[MockHibpClient] Shutdown');
+    log('info', 'MockHibpClient', 'hibp.mock_shutdown');
   }
 }

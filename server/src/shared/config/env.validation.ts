@@ -4,6 +4,8 @@
  * estiver faltando ou ainda com o valor de exemplo. Não impede o app de subir.
  */
 
+import { log } from '../utils/logger';
+
 type EnvConfig = Record<string, unknown>;
 
 // Segredos que precisam existir em qualquer ambiente
@@ -63,9 +65,10 @@ export function validateEnv(config: EnvConfig): EnvConfig {
   const problems = findEnvProblems(config);
 
   if (problems.length > 0) {
-    console.warn(
-      `[Config] Atenção: ${problems.join('; ')}. Confira o arquivo .env (use o .env.example como modelo).`,
-    );
+    log('warn', 'Config', 'config.problems', {
+      problems,
+      hint: 'Confira o arquivo .env (use o .env.example como modelo).',
+    });
   }
 
   return config;

@@ -354,7 +354,7 @@ export class AuthService {
     try {
       await this.scanService.submitScan(userId, { email }, 'SIGNUP');
     } catch (error) {
-      console.error('[AuthService] Initial scan failed:', error);
+      log('error', 'AuthService', 'auth.initial_scan_failed', { userId, error });
       await this.scanService.persistFallbackSnapshot(userId, email);
     }
   }
@@ -471,7 +471,7 @@ export class AuthService {
     try {
       await this.scanService.clearCachedScan(user.email);
     } catch (error) {
-      console.warn('[AuthService] Could not clear cached scan after account deletion:', error);
+      log('warn', 'AuthService', 'auth.delete_cache_clear_failed', { userId, error });
     }
 
     return {
