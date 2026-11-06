@@ -1,6 +1,7 @@
 import { SESv2Client, SendEmailCommand } from '@aws-sdk/client-sesv2';
 import { EmailMessage, EmailSender } from './email-sender.interface';
-import { log, maskEmail } from '../../shared/utils/logger';
+import { log } from '../../shared/utils/logger';
+import { maskEmail } from '../../shared/crypto/email-hash';
 
 export interface SesEmailSenderOptions {
   region: string;

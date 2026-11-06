@@ -161,7 +161,7 @@ O `RiskEngine` soma os pesos das Data Classes expostas em cada vazamento e multi
 
 - Health check em `GET /api/health` (PostgreSQL e Redis, 503 se algum falhar; usado pelo `HEALTHCHECK` do Docker e pelo ALB)
 - Diagnóstico das filas, agendamentos e workers em `GET /api/health/jobs` (header `X-Admin-Token`)
-- Logs estruturados: uma linha JSON por evento (`{ ts, level, ctx, event, ... }`) pelo logger de [`src/shared/utils/logger.ts`](src/shared/utils/logger.ts), com nível em `LOG_LEVEL` e `maskEmail` para nunca registrar e-mail em texto
+- Logs estruturados: uma linha JSON por evento (`{ ts, level, ctx, event, ... }`) pelo logger de [`src/shared/utils/logger.ts`](src/shared/utils/logger.ts), com nível em `LOG_LEVEL`; o ESLint barra `console.*` fora dele. Para identificar um e-mail no log, use `maskEmail` de [`src/shared/crypto/email-hash.ts`](src/shared/crypto/email-hash.ts) (8 primeiros caracteres do HMAC com `EMAIL_HASH_SECRET`)
 
 ## 📚 Documentação
 

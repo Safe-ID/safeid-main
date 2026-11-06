@@ -1,9 +1,8 @@
-import { createHash } from 'crypto';
-
 /**
  * Logger estruturado: escreve uma linha JSON por evento ({ ts, level, ctx, event, ...fields }).
  * No CloudWatch, cada linha vira um evento pesquisável e serve de base para metric filters.
- * Nunca passe e-mail em texto nos campos: use userId ou maskEmail(email).
+ * Nunca passe e-mail em texto nos campos: use userId ou maskEmail(email) de shared/crypto/email-hash.
+ * Fora deste arquivo, não use console.*: a linha sai sem estrutura e nenhum alarme a enxerga.
  */
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -59,11 +58,4 @@ export function log(
   } else {
     console.log(line);
   }
-}
-
-/**
- * Identificador de e-mail seguro para logs: os 8 primeiros caracteres do SHA-256
- */
-export function maskEmail(email: string): string {
-  return createHash('sha256').update((email || '').trim().toLowerCase()).digest('hex').substring(0, 8);
 }

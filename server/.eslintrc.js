@@ -38,4 +38,15 @@ module.exports = {
     '@typescript-eslint/restrict-template-expressions': 'off',
     '@typescript-eslint/unbound-method': 'off',
   },
+  overrides: [
+    {
+      // Na aplicação, todo registro passa pelo logger estruturado (shared/utils/logger):
+      // linha solta de console.* não vira JSON, então nenhum metric filter nem alarme a enxerga
+      files: ['src/**/*.ts'],
+      excludedFiles: ['src/shared/utils/logger.ts'],
+      rules: {
+        'no-console': 'error',
+      },
+    },
+  ],
 };

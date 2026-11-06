@@ -101,7 +101,7 @@ Shutdown gracioso: a aplicação chama enableShutdownHooks e, ao receber o SIGTE
 
 Pool de conexões do Prisma: a DATABASE_URL de produção leva connection_limit=10&pool_timeout=20. Durante um deploy rodam 2 tasks, ou seja, até 20 conexões, bem abaixo do limite do db.t3.micro.
 
-Logs estruturados e retenção: o código novo escreve uma linha JSON por evento ({ ts, level, ctx, event, ...campos }) pelo logger de server/src/shared/utils/logger.ts, que também oferece maskEmail para nunca registrar e-mail em texto. O log group /ecs/safeid-cluster guarda 30 dias (antes não havia expiração).
+Logs estruturados e retenção: toda a API escreve uma linha JSON por evento ({ ts, level, ctx, event, ...campos }) pelo logger de server/src/shared/utils/logger.ts; a regra no-console do ESLint barra console.* fora dele. O e-mail nunca vai em texto: maskEmail (server/src/shared/crypto/email-hash.ts) registra os 8 primeiros caracteres do HMAC com EMAIL_HASH_SECRET, o mesmo do emailHash do banco. O log group /ecs/safeid-cluster guarda 30 dias (antes não havia expiração).
 
 Alertas: o tópico SNS safeid-alerts envia e-mail para o endereço do projeto (ALERTS_EMAIL). Alarmes de infraestrutura: safeid-redis-memory (DatabaseMemoryUsagePercentage acima de 80% por 15 min) e safeid-rds-storage (FreeStorageSpace abaixo de 2 GB). Os alarmes do monitoramento de vazamentos estão na seção 10.
 

@@ -76,15 +76,15 @@ async function bootstrap() {
   applyServerTimeouts(app.getHttpServer());
 
   await app.listen(port, () => {
-    console.log(`🚀 SafeID Backend iniciado em http://localhost:${port}`);
-    if (process.env.SWAGGER_ENABLED === 'true') {
-      console.log(`📚 Swagger disponível em http://localhost:${port}/${process.env.SWAGGER_PATH || 'api/docs'}`);
-    }
-    console.log(`🌍 Ambiente: ${nodeEnv}`);
+    log('info', 'Bootstrap', 'app.started', {
+      port,
+      env: nodeEnv,
+      swaggerPath: process.env.SWAGGER_ENABLED === 'true' ? `/${process.env.SWAGGER_PATH || 'api/docs'}` : null,
+    });
   });
 }
 
 bootstrap().catch((err) => {
-  console.error('❌ Erro ao iniciar a aplicação:', err);
+  log('error', 'Bootstrap', 'app.start_failed', { error: err });
   process.exit(1);
 });

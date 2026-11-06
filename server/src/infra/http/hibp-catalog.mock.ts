@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
 import { HibpBreach, HibpCatalogClientLike } from './hibp.types';
+import { log } from '../../shared/utils/logger';
 
 /**
  * Catálogo HIBP simulado, lido de uma fixture JSON (HIBP_CATALOG_FIXTURE ou
@@ -20,7 +21,7 @@ export class MockHibpCatalogClient implements HibpCatalogClientLike {
 
   private loadFixture(): HibpBreach[] {
     if (!existsSync(this.fixturePath)) {
-      console.warn('[MockHibpCatalogClient] Fixture não encontrada, catálogo vazio.');
+      log('warn', 'MockHibpCatalogClient', 'hibp.mock_fixture_missing');
       return [];
     }
 

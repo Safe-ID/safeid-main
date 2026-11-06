@@ -1,4 +1,5 @@
 import { createHash, createHmac } from 'crypto';
+import { log } from '../utils/logger';
 
 let missingSecretWarned = false;
 
@@ -13,11 +14,20 @@ export function hashEmail(email: string): string {
 
   if (!secret) {
     if (!missingSecretWarned) {
-      console.warn('[ExecuteRiskScan] EMAIL_HASH_SECRET não configurada, usando SHA-256 sem chave.');
+      log('warn', 'EmailHash', 'email_hash.secret_missing', { variable: 'EMAIL_HASH_SECRET', fallback: 'sha256' });
       missingSecretWarned = true;
     }
     return createHash('sha256').update(normalizedEmail).digest('hex');
   }
 
   return createHmac('sha256', secret).update(normalizedEmail).digest('hex');
+}
+
+/**
+ * Identificador de e-mail para os logs: os 8 primeiros caracteres do hashEmail.
+ * É o mesmo HMAC com chave do banco, então quem lê o log não confirma um e-mail
+ * conhecido sem a EMAIL_HASH_SECRET, e quem investiga cruza a linha com o emailHash.
+ */
+export function maskEmail(email: string): string {
+  return hashEmail((email || '').trim()).substring(0, 8);
 }

@@ -88,8 +88,8 @@ Escala: probabilidade (P) e impacto (I) de 1 a 5; nível = P × I. A probabilida
 | R5 | Uso do SafeID para descobrir vazamentos de outra pessoa | 1 | 4 | 4 | Sem consulta pública; verificação de titularidade do e-mail; respostas iguais no reenvio de verificação e na recuperação de senha |
 | R6 | Exposição de vazamento sensível a terceiros (IA, caixa de e-mail compartilhada) | 2 | 4 | 8 | Nome de vazamento sensível não vai para a IA nem para o e-mail de alerta, só para o painel após login |
 | R7 | Tratamento pelo provedor de IA além da finalidade | 2 | 3 | 6 | Nenhum identificador pessoal no payload; cache de recomendações de 7 dias reduz chamadas |
-| R8 | E-mail do titular em registros técnicos | 2 | 2 | 4 | Logs com `userId` e e-mail mascarado (8 caracteres do SHA-256); retenção de 30 dias; acesso restrito à conta AWS da equipe |
-| R9 | Chave de hash ausente em produção, tornando o hash do e-mail reversível por dicionário | 3 | 3 | 9 | Aviso no log quando a variável falta; verificação prevista (item Must da Seção 6.3) |
+| R8 | E-mail do titular em registros técnicos | 2 | 2 | 4 | Logs só em JSON pelo logger estruturado, com `userId` e e-mail mascarado (8 primeiros caracteres do HMAC com `EMAIL_HASH_SECRET`, sem a chave não se confirma um e-mail conhecido); retenção de 30 dias; acesso restrito à conta AWS da equipe |
+| R9 | Chave de hash ausente em produção, tornando o hash do e-mail reversível por dicionário | 3 | 3 | 9 | Aviso no log quando a variável falta; presença confirmada no SSM e na task definition de produção em 04/11/2026, sem nenhum aviso de ausência nos logs |
 | R10 | Menores de idade usando o serviço | 2 | 3 | 6 | Declaração de idade no cadastro; exclusão da conta ao saber de menor (Política, seção 11) |
 | R11 | Dados mantidos após a exclusão da conta | 2 | 2 | 4 | Exclusão física em cascata e limpeza do cache; backups expiram em 1 dia |
 | R12 | Cache Redis sem TLS nem criptografia em repouso | 2 | 2 | 4 | Rede privada; chaves do cache usam o hash do e-mail (achado S06 do pentest, aceito) |
@@ -103,7 +103,8 @@ O projeto se encerra com a apresentação final, em 13/11/2026. Por isso, as med
 | Medida | Riscos | Responsável | Prazo | Situação |
 |---|---|---|---|---|
 | Publicar o [plano de resposta a incidentes](PLANO_RESPOSTA_INCIDENTES.md) | R1, R2 | Matheus Pereira | 04/11/2026 | Concluído |
-| Confirmar a presença de `EMAIL_HASH_SECRET` no SSM de produção | R9 | Lucas Vieira | 12/11/2026 | Pendente |
+| Confirmar a presença de `EMAIL_HASH_SECRET` no SSM de produção | R9 | Lucas Vieira | 12/11/2026 | Concluído em 04/11/2026 |
+| Trocar o `maskEmail` (SHA-256 sem chave) por HMAC truncado e levar todos os registros da API ao logger estruturado | R8 | Lucas Vieira | 12/11/2026 | Concluído em 06/11/2026 |
 | Conferir os termos de tratamento de dados dos operadores (AWS, Microsoft e HIBP) e registrar a região de processamento da IA | R7 | Matheus Pereira | 12/11/2026 | Pendente |
 
 ### 5.2 Recomendações para uma eventual continuidade
@@ -113,7 +114,6 @@ Sem responsável nem prazo. Enquanto não forem feitas, o risco correspondente f
 | Medida | Riscos |
 |---|---|
 | Tornar `EMAIL_HASH_SECRET` obrigatória no script de implantação | R9 |
-| Trocar o `maskEmail` (SHA-256 sem chave) por HMAC truncado nos logs | R8 |
 | Rotação periódica dos segredos JWT, com procedimento documentado | R2, R4 |
 | Redis com TLS e criptografia em repouso | R12 |
 | Responder 404 para a análise de outro usuário, hoje 200 com corpo vazio (S04) | R3 |

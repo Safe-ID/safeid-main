@@ -5,6 +5,7 @@
  */
 
 import { Aes256GcmPayload, decryptAes256Gcm, encryptAes256Gcm } from './aes-256-gcm';
+import { log } from '../utils/logger';
 
 // Marca os valores criptografados para diferenciar dos registros antigos em JSON
 const ENCRYPTED_PREFIX = 'enc:v1:';
@@ -29,7 +30,7 @@ export function sealBreachData(data: unknown): string | null {
 
   if (!key) {
     if (!missingKeyWarned) {
-      console.warn('[BreachDataCipher] ENCRYPTION_KEY não configurada, dados de vazamento gravados sem criptografia.');
+      log('warn', 'BreachDataCipher', 'breach_data.key_missing', { variable: 'ENCRYPTION_KEY', encrypted: false });
       missingKeyWarned = true;
     }
     return json;
@@ -59,7 +60,7 @@ export function openBreachData(value: unknown): unknown {
 
     const key = getKey();
     if (!key) {
-      console.error('[BreachDataCipher] Dado criptografado encontrado, mas ENCRYPTION_KEY não está configurada.');
+      log('error', 'BreachDataCipher', 'breach_data.key_missing_for_read', { variable: 'ENCRYPTION_KEY' });
       return null;
     }
 
@@ -69,7 +70,7 @@ export function openBreachData(value: unknown): unknown {
 
     return JSON.parse(decryptAes256Gcm(payload, key));
   } catch (error) {
-    console.error('[BreachDataCipher] Não foi possível ler os dados de vazamento:', error);
+    log('error', 'BreachDataCipher', 'breach_data.read_failed', { error });
     return null;
   }
 }

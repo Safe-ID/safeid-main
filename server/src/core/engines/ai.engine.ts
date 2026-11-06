@@ -7,6 +7,7 @@
 
 import OpenAI from 'openai';
 
+import { log } from '../../shared/utils/logger';
 interface HIBPBreach {
   Name: string;
   Title: string;
@@ -117,7 +118,7 @@ export class AIEngine {
     this.timeoutMs = envTimeout > 0 ? envTimeout : DEFAULT_TIMEOUT_MS;
 
     if (!this.endpoint) {
-      console.warn('[AIEngine] Aviso: Variável de ambiente AI_ENDPOINT não está definida.');
+      log('warn', 'AIEngine', 'ai.endpoint_missing', { variable: 'AI_ENDPOINT' });
     }
 
     const key = (apiKey || '').trim();
@@ -144,7 +145,7 @@ export class AIEngine {
     classification?: RiskClassification;
   }): Promise<AIRecommendation> {
     if (!this.openaiClient) {
-      console.warn('[AIEngine] Cliente de IA não configurado, usando resposta padrão.');
+      log('warn', 'AIEngine', 'ai.not_configured', { fallback: true });
       return this.buildFallbackRecommendation(context);
     }
 
@@ -177,11 +178,11 @@ export class AIEngine {
       const jsonMatch = textContent.match(/\{[\s\S]*\}/);
       const jsonStr = jsonMatch ? jsonMatch[0] : textContent;
       const recommendation = this.validateRecommendation(JSON.parse(jsonStr));
-      console.log(`[AIEngine] Recomendação gerada pelo modelo ${this.modelName} em ${Date.now() - startedAt}ms`);
+      log('info', 'AIEngine', 'ai.recommendation_done', { model: this.modelName, durationMs: Date.now() - startedAt });
       return { ...recommendation, source: 'ai' };
 
     } catch (error) {
-      console.error(`[AIEngine] Falha no modelo ${this.modelName} após ${Date.now() - startedAt}ms, usando resposta padrão:`, error);
+      log('error', 'AIEngine', 'ai.recommendation_failed', { model: this.modelName, durationMs: Date.now() - startedAt, fallback: true, error });
       return this.buildFallbackRecommendation(context);
     }
   }

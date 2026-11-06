@@ -9,6 +9,7 @@ import { HibpPlanService } from '../http/hibp-plan.service';
 import { HibpClientLike } from '../http/hibp.types';
 import { closeQuietly } from '../../shared/utils/shutdown';
 import { createBullConnection } from './redis-connection';
+import { log } from '../../shared/utils/logger';
 import {
   EMAIL_QUEUE,
   HIBP_CATALOG_CLIENT,
@@ -47,9 +48,7 @@ function isMockEnabled(): boolean {
         }
 
         if (isMockEnabled()) {
-          console.log(
-            '[QueueModule] ⚠️  Using MOCK HIBP client because HIBP_USE_MOCK=true.'
-          );
+          log('info', 'QueueModule', 'hibp.mock_enabled', { variable: 'HIBP_USE_MOCK' });
           return new MockHibpClient();
         }
 
