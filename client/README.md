@@ -59,6 +59,7 @@ Os testes interagem como o usuário: encontram campos pelo rótulo e botões pel
 - `RiskCircle`: o rótulo de cada faixa de risco nos limites exatos (26, 51 e 76), as mesmas do `RiskEngine` do backend;
 - `Auth`: as validações do cadastro, o envio com e sem os alertas, a tela "Confirme seu email" e o login (sucesso, conta não verificada e erro);
 - `NotificationBell`: o contador e o "99+", abrir e ler uma notificação, marcar todas como lidas, fechar com Esc e o aviso ao painel quando chega notificação nova.
+- `acessibilidade`: o [axe-core](https://github.com/dequelabs/axe-core) roda em cada tela (página inicial, cadastro, login, textos legais, 404, as três abas do painel e as notificações) com as regras WCAG 2.1 A e AA e exige zero violações; também cobre o teclado nas abas, o foco do sino, o título e o foco ao trocar de tela.
 
 ## 🗂️ Estrutura
 
@@ -99,6 +100,18 @@ O botão **Exportar PDF** na aba Plano IA abre a janela de impressão do navegad
 O PDF traz o e-mail da conta, a data da análise e a da impressão, cards com score, classificação, vazamentos e urgência (com uma faixa de cor por nível), o resumo, os passos como checklist para marcar, a tabela de vazamentos com a gravidade de cada um e o contato da parceira ENETSEC. Senhas vazadas nunca aparecem, porque o SafeID não as recebe. O nome sugerido do arquivo é `SafeID-plano-de-acao-AAAA-MM-DD`.
 
 O layout é uma tabela cujo `<thead>` (espaço do topo) e `<tfoot>` (rodapé com site e data) se repetem em cada página, com `@page { margin: 0 }`. Assim as margens saem iguais mesmo se a pessoa escolher "Margens: nenhuma" na janela de impressão. As cores usam `print-color-adjust: exact` e sempre vêm acompanhadas do texto do nível, então o documento continua legível em preto e branco.
+
+## ♿ Acessibilidade
+
+Meta: WCAG 2.1 nível AA.
+
+- **Contraste:** as cores de texto do tema passam de 4,5:1 sobre os fundos (`safe-dim` 5,1:1 e branco sobre `safe-primary` 4,84:1). Ao criar uma cor nova de texto, confira a razão antes de usar.
+- **Cor não é a única informação:** a gravidade dos dados expostos também aparece em texto (`SEVERITY_CLASSES[...].label`), e os pontos do gráfico mudam de forma.
+- **Teclado:** foco sempre visível (`:focus-visible` em `src/main.css`), atalho "Pular para o conteúdo", abas no padrão WAI-ARIA (setas, Home e End) e Esc fecha as notificações devolvendo o foco ao sino.
+- **Leitor de tela:** cada tela tem um `h1` e um título de aba próprio, e o foco vai para o conteúdo ao trocar de tela; mensagens usam `role="alert"`/`role="status"`; o gráfico tem descrição e a opção "Ver como tabela".
+- **Movimento:** com "reduzir movimento" ligado no sistema, animações e transições são desligadas.
+
+O teste `acessibilidade.test.jsx` roda no CI junto com os outros. No jsdom o axe não calcula contraste, por isso as cores foram conferidas no navegador com o axe completo.
 
 ## 🎨 Estilo
 

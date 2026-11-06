@@ -41,7 +41,7 @@ function AwaitingVerification({ email, onBack }) {
         ✉
       </div>
       <div>
-        <h2 className="text-safe-text text-xl font-bold tracking-tight mb-2">Confirme seu email</h2>
+        <h1 className="text-safe-text text-xl font-bold tracking-tight mb-2">Confirme seu email</h1>
         <p className="text-safe-muted text-sm leading-relaxed">
           Enviamos um link de confirmação para <span className="text-safe-secondary font-semibold [overflow-wrap:anywhere]">{email}</span>.
           Abra o email e clique no link para ativar sua conta. O link vale por 24 horas.
@@ -104,7 +104,7 @@ function ForgotPassword({ initialEmail, onBack }) {
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
       <div className="text-center">
-        <h2 className="text-safe-text text-xl font-bold tracking-tight mb-2">Esqueci minha senha</h2>
+        <h1 className="text-safe-text text-xl font-bold tracking-tight mb-2">Esqueci minha senha</h1>
         <p className="text-safe-muted text-sm leading-relaxed">Informe o email da conta. Enviaremos um link para criar uma nova senha, válido por 1 hora.</p>
       </div>
       {!message && (
@@ -214,9 +214,9 @@ export default function Auth({ mode, notice, onSuccess, onSwitch, onGoToLogin })
                     <path d="M8 1L2 3.5v4C2 11 5 14 8 15c3-1 6-4 6-7.5v-4L8 1z" />
                   </svg>
                 </div>
-                <h2 className="text-safe-text text-xl sm:text-2xl font-bold tracking-tight mb-1.5 font-[system-ui,sans-serif]">
+                <h1 className="text-safe-text text-xl sm:text-2xl font-bold tracking-tight mb-1.5 font-[system-ui,sans-serif]">
                   {isReg ? "Criar sua conta" : "Entrar no SafeID"}
-                </h2>
+                </h1>
                 <p className="text-safe-dim text-[13px]">
                   {isReg ? "Monitore sua identidade digital gratuitamente" : "Bem-vindo de volta"}
                 </p>

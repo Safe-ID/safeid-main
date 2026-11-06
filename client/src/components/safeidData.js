@@ -1,16 +1,17 @@
+// Mesma paleta do tailwind.config.js (tons ajustados para contraste WCAG AA)
 export const C = {
   bg: "#040C1A",
   bgCard: "#071220",
   bgHover: "#0B1A2E",
   border: "#152338",
   borderL: "#1E3554",
-  primary: "#1A6FFF",
+  primary: "#1868F5",
   primaryD: "#1255CC",
   secondary: "#38BDF8",
   accent: "#86EFAC",
   text: "#EEF4FF",
   muted: "#7A9DC0",
-  dim: "#3A5A80",
+  dim: "#6488B0",
   danger: "#F87171",
   warn: "#FCD34D",
 };
@@ -30,18 +31,22 @@ export const W = {
 
 // Classes completas por gravidade. O Tailwind só gera classes que aparecem
 // escritas por inteiro no código, então elas não podem ser montadas com `bg-${cor}`.
+// `label` dá a gravidade em texto: ela não pode depender só da cor (WCAG 1.4.1).
 export const SEVERITY_CLASSES = {
   danger: {
+    label: "Gravidade alta",
     chip: "bg-safe-danger/10 border-safe-danger/30 text-safe-danger",
     softChip: "bg-safe-danger/10 border-safe-danger/20 text-safe-danger",
     dot: "bg-safe-danger shadow-safe-danger/50",
   },
   warn: {
+    label: "Gravidade média",
     chip: "bg-safe-warn/10 border-safe-warn/30 text-safe-warn",
     softChip: "bg-safe-warn/10 border-safe-warn/20 text-safe-warn",
     dot: "bg-safe-warn shadow-safe-warn/50",
   },
   secondary: {
+    label: "Gravidade baixa",
     chip: "bg-safe-secondary/10 border-safe-secondary/30 text-safe-secondary",
     softChip: "bg-safe-secondary/10 border-safe-secondary/20 text-safe-secondary",
     dot: "bg-safe-secondary shadow-safe-secondary/50",

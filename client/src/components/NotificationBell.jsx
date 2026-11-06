@@ -13,6 +13,7 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const lastCount = useRef(null);
   const containerRef = useRef(null);
+  const buttonRef = useRef(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -54,7 +55,11 @@ export default function NotificationBell() {
       if (containerRef.current && !containerRef.current.contains(event.target)) setOpen(false);
     };
     const onKey = (event) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        // O foco volta ao sino, em vez de se perder no topo da página
+        buttonRef.current?.focus();
+      }
     };
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
@@ -73,6 +78,7 @@ export default function NotificationBell() {
   return (
     <div ref={containerRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         aria-label={label}
         aria-expanded={open}
@@ -85,7 +91,7 @@ export default function NotificationBell() {
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
         </svg>
         {count > 0 && (
-          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-safe-danger text-white text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-safe-danger text-safe-bg text-[10px] font-bold flex items-center justify-center">
             {count > 99 ? "99+" : count}
           </span>
         )}

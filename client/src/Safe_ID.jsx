@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Navbar from "./components/Navbar";
 import Landing from "./components/Landing";
 import Auth from "./components/Auth";
@@ -63,6 +63,17 @@ function pageFromPath() {
 function resetPath() {
   if (pageFromPath()) window.history.replaceState({}, document.title, "/");
 }
+// Título da aba de cada tela: é o que o leitor de tela anuncia ao trocar de página (WCAG 2.4.2)
+const DEFAULT_TITLE = "SafeID: seu email apareceu em algum vazamento?";
+const PAGE_TITLES = {
+  login: "Entrar · SafeID",
+  register: "Criar conta · SafeID",
+  dashboard: "Painel · SafeID",
+  privacy: "Política de Privacidade · SafeID",
+  terms: "Termos de Uso · SafeID",
+  "not-found": "Página não encontrada · SafeID",
+  "reset-password": "Nova senha · SafeID",
+};
 
 export default function SafeID() {
   const [page, setPage] = useState(() => pageFromPath() ?? "landing");
@@ -75,6 +86,18 @@ export default function SafeID() {
   // Página de onde a pessoa abriu um texto legal, para o botão Voltar
   const [legalReturn, setLegalReturn] = useState("landing");
   const legalExit = user ? "dashboard" : legalReturn;
+  const mainRef = useRef(null);
+  const previousPage = useRef(page);
+
+  // A cada troca de tela: atualiza o título e leva o foco ao conteúdo, para o teclado e o
+  // leitor de tela não ficarem no botão que sumiu (WCAG 2.4.3). Na primeira carga, não mexe no foco
+  useEffect(() => {
+    document.title = PAGE_TITLES[page] ?? DEFAULT_TITLE;
+    if (previousPage.current !== page) {
+      previousPage.current = page;
+      mainRef.current?.focus();
+    }
+  }, [page]);
 
   const openLegal = (target) => {
     if (!isAddressedPage(page)) setLegalReturn(page);
@@ -212,13 +235,19 @@ export default function SafeID() {
   return (
     <div className="min-h-screen bg-[radial-gradient(ellipse_90%_60%_at_50%_-5%,#0D2545_0%,#040C1A_55%)] font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] text-safe-text flex flex-col">
       <style>{`
-        ::placeholder { color: #253F60; }
         input { caret-color: #38BDF8; }
       `}</style>
 
+      <a
+        href="#conteudo"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:rounded-lg focus:bg-safe-card focus:border focus:border-safe-secondary focus:px-4 focus:py-2 focus:text-sm focus:text-safe-text"
+      >
+        Pular para o conteúdo
+      </a>
+
       <Navbar user={user} onSignOut={onOut} onNav={goTo} />
 
-      <main className="flex-1">
+      <main id="conteudo" ref={mainRef} tabIndex={-1} className="flex-1 focus:outline-none">
         {booting && (
           <div className="py-16 px-6 text-center text-safe-muted">
             Carregando sessão...

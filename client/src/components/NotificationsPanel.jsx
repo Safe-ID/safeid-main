@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { fetchNotifications, markAllNotificationsRead, markNotificationRead } from "../lib/api";
 
 function formatDate(value) {
@@ -12,6 +12,12 @@ function formatDate(value) {
  */
 export default function NotificationsPanel({ onChanged, onOpenBreaches, onClose }) {
   const [items, setItems] = useState([]);
+  const panelRef = useRef(null);
+
+  // Ao abrir, o foco entra no painel: o leitor de tela anuncia "Notificações" e o Tab segue por dentro
+  useEffect(() => {
+    panelRef.current?.focus();
+  }, []);
   const [nextCursor, setNextCursor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -82,9 +88,11 @@ export default function NotificationsPanel({ onChanged, onOpenBreaches, onClose 
 
   return (
     <div
+      ref={panelRef}
+      tabIndex={-1}
       role="dialog"
       aria-label="Notificações"
-      className="fixed left-4 right-4 top-[68px] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[360px] bg-safe-card border border-safe-borderL rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] overflow-hidden z-50"
+      className="outline-none fixed left-4 right-4 top-[68px] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[360px] bg-safe-card border border-safe-borderL rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.5)] overflow-hidden z-50"
     >
       <div className="flex items-center justify-between px-4 py-3 border-b border-safe-border">
         <span className="text-safe-text text-sm font-semibold">Notificações</span>

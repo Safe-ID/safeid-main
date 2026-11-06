@@ -13,13 +13,15 @@ export default {
           hover: "#0B1A2E",
           border: "#152338",
           borderL: "#1E3554",
-          primary: "#1A6FFF",
+          // Texto branco sobre o azul precisa de 4,5:1 (WCAG AA): #1868F5 dá 4,84:1
+          primary: "#1868F5",
           primaryD: "#1255CC",
           secondary: "#38BDF8",
           accent: "#86EFAC",
           text: "#EEF4FF",
           muted: "#7A9DC0",
-          dim: "#3A5A80",
+          // Texto secundário: 5,1:1 sobre o card (WCAG AA pede 4,5:1; o tom antigo dava 2,65:1)
+          dim: "#6488B0",
           danger: "#F87171",
           warn: "#FCD34D",
         }

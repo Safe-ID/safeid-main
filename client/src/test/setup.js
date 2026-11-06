@@ -7,3 +7,9 @@ afterEach(() => {
   cleanup()
   localStorage.clear()
 })
+
+// O jsdom não implementa canvas; o axe-core consulta getContext e só precisa de um null
+HTMLCanvasElement.prototype.getContext = () => null
+
+// O index.html real declara o idioma; o jsdom começa sem ele
+document.documentElement.lang = 'pt-BR'
