@@ -89,7 +89,7 @@ Escala: probabilidade (P) e impacto (I) de 1 a 5; nível = P × I. A probabilida
 | R6 | Exposição de vazamento sensível a terceiros (IA, caixa de e-mail compartilhada) | 2 | 4 | 8 | Nome de vazamento sensível não vai para a IA nem para o e-mail de alerta, só para o painel após login |
 | R7 | Tratamento pelo provedor de IA além da finalidade | 2 | 3 | 6 | Nenhum identificador pessoal no payload; cache de recomendações de 7 dias reduz chamadas |
 | R8 | E-mail do titular em registros técnicos | 2 | 2 | 4 | Logs só em JSON pelo logger estruturado, com `userId` e e-mail mascarado (8 primeiros caracteres do HMAC com `EMAIL_HASH_SECRET`, sem a chave não se confirma um e-mail conhecido); retenção de 30 dias; acesso restrito à conta AWS da equipe |
-| R9 | Chave de hash ausente em produção, tornando o hash do e-mail reversível por dicionário | 3 | 3 | 9 | Aviso no log quando a variável falta; presença confirmada no SSM e na task definition de produção em 04/11/2026, sem nenhum aviso de ausência nos logs |
+| R9 | Chave de hash ausente em produção, tornando o hash do e-mail reversível por dicionário | 1 | 3 | 3 | Chave definida no arquivo de ambiente de produção e enviada ao SSM pelo script de implantação (confirmado em 05/11/2026); aviso no log quando a variável falta |
 | R10 | Menores de idade usando o serviço | 2 | 3 | 6 | Declaração de idade no cadastro; exclusão da conta ao saber de menor (Política, seção 11) |
 | R11 | Dados mantidos após a exclusão da conta | 2 | 2 | 4 | Exclusão física em cascata e limpeza do cache; backups expiram em 1 dia |
 | R12 | Cache Redis sem TLS nem criptografia em repouso | 2 | 2 | 4 | Rede privada; chaves do cache usam o hash do e-mail (achado S06 do pentest, aceito) |
@@ -103,7 +103,7 @@ O projeto se encerra com a apresentação final, em 13/11/2026. Por isso, as med
 | Medida | Riscos | Responsável | Prazo | Situação |
 |---|---|---|---|---|
 | Publicar o [plano de resposta a incidentes](PLANO_RESPOSTA_INCIDENTES.md) | R1, R2 | Matheus Pereira | 04/11/2026 | Concluído |
-| Confirmar a presença de `EMAIL_HASH_SECRET` no SSM de produção | R9 | Lucas Vieira | 12/11/2026 | Concluído em 04/11/2026 |
+| Confirmar a presença de `EMAIL_HASH_SECRET` em produção | R9 | Lucas Vieira | 12/11/2026 | Concluído em 05/11/2026 |
 | Trocar o `maskEmail` (SHA-256 sem chave) por HMAC truncado e levar todos os registros da API ao logger estruturado | R8 | Lucas Vieira | 12/11/2026 | Concluído em 06/11/2026 |
 | Conferir os termos de tratamento de dados dos operadores (AWS, Microsoft e HIBP) e registrar a região de processamento da IA | R7 | Matheus Pereira | 12/11/2026 | Pendente |
 
