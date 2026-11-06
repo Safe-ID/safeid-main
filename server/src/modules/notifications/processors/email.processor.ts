@@ -21,6 +21,7 @@ import { getApiPublicUrl, getFrontendUrl } from '../../../shared/config/urls';
 import { signUnsubscribeToken } from '../../../shared/crypto/unsubscribe-token';
 import { log } from '../../../shared/utils/logger';
 import { closeQuietly } from '../../../shared/utils/shutdown';
+import { logRedisErrors } from '../../../infra/cache/redis-errors';
 
 function sesMaxPerSecond(): number {
   const value = Number(process.env.SES_MAX_PER_SECOND);
@@ -59,6 +60,7 @@ export class EmailProcessor implements OnModuleInit, OnModuleDestroy {
       concurrency: maxPerSecond,
       limiter: { max: maxPerSecond, duration: 1000 },
     });
+    logRedisErrors(this.worker, 'worker:email');
 
     this.worker.on('failed', (job: Job | undefined, error: Error) => {
       const attempts = job?.opts?.attempts ?? 1;

@@ -1,6 +1,7 @@
 import { Module, Global, Inject, OnApplicationShutdown } from '@nestjs/common';
 import Redis from 'ioredis';
 import { closeQuietly } from '../../shared/utils/shutdown';
+import { logRedisErrors } from './redis-errors';
 
 @Global()
 @Module({
@@ -8,10 +9,13 @@ import { closeQuietly } from '../../shared/utils/shutdown';
     {
       provide: 'REDIS_CLIENT',
       useFactory: () => {
-        return new Redis({
-          host: process.env.REDIS_HOST || 'localhost',
-          port: parseInt(process.env.REDIS_PORT || '6379'),
-        });
+        return logRedisErrors(
+          new Redis({
+            host: process.env.REDIS_HOST || 'localhost',
+            port: parseInt(process.env.REDIS_PORT || '6379'),
+          }),
+          'cache',
+        );
       },
     },
   ],
