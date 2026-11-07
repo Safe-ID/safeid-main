@@ -4,6 +4,7 @@ import Navbar from "./components/Navbar";
 import Landing from "./components/Landing";
 import Auth from "./components/Auth";
 import Dashboard from "./components/Dashboard";
+import AccountPage from "./components/AccountPage";
 import Privacy from "./components/Privacy";
 import ResetPassword from "./components/ResetPassword";
 import Terms from "./components/Terms";
@@ -67,7 +68,9 @@ function resetPath() {
 }
 // Telas que o botão voltar do navegador pode reabrir pela memória do histórico (os textos
 // legais e a página não encontrada já têm o próprio endereço)
-const HISTORY_PAGES = new Set(["landing", "login", "register", "dashboard"]);
+const HISTORY_PAGES = new Set(["landing", "login", "register", "dashboard", "account"]);
+// Telas que só existem com sessão
+const PRIVATE_PAGES = new Set(["dashboard", "account"]);
 
 /**
  * Troca de tela com transição suave quando o navegador sabe fazer (View Transitions).
@@ -92,6 +95,7 @@ const PAGE_TITLES = {
   login: "Entrar · SafeID",
   register: "Criar conta · SafeID",
   dashboard: "Painel · SafeID",
+  account: "Editar cadastro · SafeID",
   privacy: "Política de Privacidade · SafeID",
   terms: "Termos de Uso · SafeID",
   "not-found": "Página não encontrada · SafeID",
@@ -108,6 +112,11 @@ export default function SafeID() {
   const [landingNotice, setLandingNotice] = useState(null);
   // Página de onde a pessoa abriu um texto legal, para o botão Voltar
   const [legalReturn, setLegalReturn] = useState("landing");
+  // Editar cadastro: seção pedida (menu do avatar) e um contador que reabre a página nela
+  const [accountSection, setAccountSection] = useState("perfil");
+  const [accountVisit, setAccountVisit] = useState(0);
+  // Aba em que o painel abre ao voltar do cadastro (ex.: notificação clicada lá)
+  const [dashboardTab, setDashboardTab] = useState(null);
   const legalExit = user ? "dashboard" : legalReturn;
   const mainRef = useRef(null);
   const previousPage = useRef(page);
@@ -155,7 +164,7 @@ export default function SafeID() {
         const remembered = event.state?.safeidPage;
         next = HISTORY_PAGES.has(remembered) ? remembered : legalExit;
         if (user && (next === "landing" || next === "login" || next === "register")) next = "dashboard";
-        if (!user && next === "dashboard") next = "landing";
+        if (!user && PRIVATE_PAGES.has(next)) next = "landing";
       }
       withTransition(() => setPage(next));
     };
@@ -198,7 +207,26 @@ export default function SafeID() {
     window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
   }, []);
-  const onAccountDeleted = () => { clearToken(); setUser(null); setPage("landing"); };
+  const openAccount = (section = "perfil") => {
+    setAccountSection(section);
+    setAccountVisit((n) => n + 1);
+    setDashboardTab(null);
+    goTo("account");
+  };
+  const backToDashboard = (tab) => {
+    setDashboardTab(typeof tab === "string" ? tab : null);
+    goTo("dashboard");
+  };
+  // Conta excluída: a sessão acaba e a página inicial confirma o que aconteceu
+  const onAccountDeleted = () => {
+    clearToken();
+    resetPath();
+    withTransition(() => {
+      setUser(null);
+      setPage("landing");
+      setLandingNotice({ tone: "info", text: "Sua conta foi excluída e os dados ligados a ela foram apagados do SafeID." });
+    });
+  };
   const onOut = () => {
     clearToken();
     resetPath();
@@ -303,7 +331,7 @@ export default function SafeID() {
         Pular para o conteúdo
       </a>
 
-      <Navbar user={user} onSignOut={onOut} onNav={goTo} overlay={!booting && page === "landing" && !landingNotice} />
+      <Navbar user={user} onSignOut={onOut} onNav={goTo} onAccount={openAccount} overlay={!booting && page === "landing" && !landingNotice} />
 
       <main id="conteudo" ref={mainRef} tabIndex={-1} className="flex-1 focus:outline-none">
         {booting && (
@@ -348,7 +376,16 @@ export default function SafeID() {
             }}
           />
         )}
-        {!booting && page === "dashboard" && isAuthenticated && <Dashboard user={user} onDeleteAccount={onAccountDeleted} />}
+        {!booting && page === "dashboard" && isAuthenticated && <Dashboard user={user} initialTab={dashboardTab} />}
+        {!booting && page === "account" && isAuthenticated && (
+          <AccountPage
+            key={accountVisit}
+            user={user}
+            initialSection={accountSection}
+            onBack={backToDashboard}
+            onAccountDeleted={onAccountDeleted}
+          />
+        )}
       </main>
 
       {/* No painel também: é o caminho da pessoa logada até a Política de Privacidade (LGPD) */}

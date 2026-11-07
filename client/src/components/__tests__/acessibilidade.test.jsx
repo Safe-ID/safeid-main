@@ -116,7 +116,7 @@ describe('acessibilidade (axe-core)', () => {
     it('painel: visão geral, vazamentos e plano', async () => {
       const user = userEvent.setup()
       render(<SafeID />)
-      await screen.findByText('2 vazamentos detectados')
+      await screen.findByText(/2 vazamentos encontrados para/)
       await screen.findByText(/2 análises/)
       expect(await auditar('painel - visão geral')).toEqual([])
 
@@ -131,7 +131,7 @@ describe('acessibilidade (axe-core)', () => {
     it('abas do painel seguem o padrão do teclado (setas, Home e End)', async () => {
       const user = userEvent.setup()
       render(<SafeID />)
-      await screen.findByText('2 vazamentos detectados')
+      await screen.findByText(/2 vazamentos encontrados para/)
 
       const visao = await screen.findByRole('tab', { name: 'Visão Geral' })
       expect(visao).toHaveAttribute('aria-controls', 'painel-overview')
@@ -153,7 +153,7 @@ describe('acessibilidade (axe-core)', () => {
 
     it('gravidade dos dados expostos aparece em texto, não só na cor', async () => {
       render(<SafeID />)
-      await screen.findByText('2 vazamentos detectados')
+      await screen.findByText(/2 vazamentos encontrados para/)
       // Senhas pesam 10 no motor de risco: gravidade alta
       expect((await screen.findAllByText('alta')).length).toBeGreaterThan(0)
     })
@@ -161,7 +161,7 @@ describe('acessibilidade (axe-core)', () => {
     it('o painel de notificações recebe o foco e o Esc devolve ao sino', async () => {
       const user = userEvent.setup()
       render(<SafeID />)
-      await screen.findByText('2 vazamentos detectados')
+      await screen.findByText(/2 vazamentos encontrados para/)
       const sino = screen.getByRole('button', { name: /notifica/i })
 
       await user.click(sino)
@@ -175,7 +175,7 @@ describe('acessibilidade (axe-core)', () => {
     it('notificações abertas', async () => {
       const user = userEvent.setup()
       render(<SafeID />)
-      await screen.findByText('2 vazamentos detectados')
+      await screen.findByText(/2 vazamentos encontrados para/)
       await user.click(screen.getByRole('button', { name: /notifica/i }))
       await screen.findByText('Novo vazamento')
       expect(await auditar('notificações')).toEqual([])

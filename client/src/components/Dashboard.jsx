@@ -5,16 +5,13 @@ import BreachCard from "./BreachCard";
 import AIPanel from "./AIPanel";
 import PrintablePlan from "./PrintablePlan";
 import MonitoringSettings from "./MonitoringSettings";
-import AccountSettings from "./AccountSettings";
 import ScoreHistoryChart from "./ScoreHistoryChart";
 import {
   NOTIFICATIONS_UPDATED_EVENT,
   OPEN_DASHBOARD_TAB_EVENT,
-  deleteAccount,
   fetchMe,
 } from "../lib/api";
-import CometSky from "./brand/CometSky";
-import LockMark from "./brand/LockMark";
+import SkyHeader from "./brand/SkyHeader";
 
 // Ícones de traço no estilo da marca (no lugar de emojis, que mudam de cara em cada aparelho)
 function LineIcon({ children, className = "w-6 h-6" }) {
@@ -46,14 +43,11 @@ function getLogoInitial(item) {
   return label.trim().charAt(0).toUpperCase() || "V";
 }
 
-export default function Dashboard({ user, onDeleteAccount }) {
+export default function Dashboard({ user, initialTab }) {
   const [profile, setProfile] = useState(user);
   const [loading, setLoading] = useState(true);
-  const headerLockRef = useRef(null);
   const [error, setError] = useState("");
-  const [actionError, setActionError] = useState("");
-  const [deleting, setDeleting] = useState(false);
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState(initialTab || "overview");
   const tabRefs = useRef({});
   const [pct, setPct] = useState(0);
 
@@ -192,19 +186,13 @@ export default function Dashboard({ user, onDeleteAccount }) {
         ? "breached"
         : "clean";
 
-  const STATUS_BADGES = {
-    pending: { label: "Ainda não verificado", className: "bg-safe-card border-safe-borderL text-safe-muted", dot: "bg-safe-muted" },
-    unverified: { label: "Verificação pendente", className: "bg-safe-warn/15 border-safe-warn/40 text-safe-warn", dot: "bg-safe-warn" },
-    breached: { label: `${plural(totalBreaches, "vazamento")} ${totalBreaches === 1 ? "detectado" : "detectados"}`, className: "bg-safe-danger/15 border-safe-danger/40 text-safe-danger", dot: "bg-safe-danger" },
-    clean: { label: "Nenhum vazamento encontrado", className: "bg-safe-accent/15 border-safe-accent/40 text-safe-accent", dot: "bg-safe-accent" },
-  };
-  const statusBadge = STATUS_BADGES[scanStatus];
-
   // Sem resultado válido, o backend tenta o scan de novo sozinho de hora em hora:
   // o painel confere a cada 2 minutos para mostrar o resultado assim que ele chegar
   const waitingForScan = scanStatus === "pending" || scanStatus === "unverified";
   // Cadeado do cabeçalho aberto enquanto o painel carrega ou a primeira análise não terminou
   const analyzing = loading || scanStatus === "pending";
+  // Resultado válido na tela: os astros seguem em órbita (calma) em volta do cadeado trancado
+  const resultReady = !loading && !error && (scanStatus === "clean" || scanStatus === "breached");
   useEffect(() => {
     if (loading || error || !waitingForScan) return undefined;
     const timer = setInterval(async () => {
@@ -221,63 +209,34 @@ export default function Dashboard({ user, onDeleteAccount }) {
   const alertsOff = profile?.monitoringEnabled === false;
   const lastResultDate = updatedAt ? new Date(updatedAt).toLocaleDateString("pt-BR") : null;
 
-  const handleDeleteAccount = async () => {
-    const confirmed = window.confirm("Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.");
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      setDeleting(true);
-      setActionError("");
-      await deleteAccount();
-      onDeleteAccount();
-    } catch (err) {
-      setActionError(err.message || "Não foi possível excluir a conta.");
-    } finally {
-      setDeleting(false);
-    }
-  };
-
   return (
     <div className="w-full max-w-4xl mx-auto pt-6 sm:pt-10 px-4 sm:px-6 pb-20">
-      {/* Cabeçalho com o mesmo céu da página inicial e o cadeado trancado da marca */}
-      <div className="relative isolate overflow-hidden mb-8 animate-slide-up rounded-3xl border border-safe-borderL bg-safe-card/70 px-5 py-6 sm:px-8 sm:py-8">
-        {/* Enquanto a análise está em andamento, os cometas giram em volta do cadeado aberto;
-            quando o resultado chega, eles se dispersam e o cadeado tranca */}
-        <CometSky ordered={analyzing} anchorRef={headerLockRef} burst={false} radius={64} className={`-z-10 transition-opacity duration-700 ${analyzing ? "opacity-90" : "opacity-50"}`} />
-        <div ref={headerLockRef} className="absolute right-4 top-5 sm:right-8 sm:top-1/2 sm:-translate-y-1/2 w-9 h-11 sm:w-12 sm:h-14">
-          <LockMark orbits={!analyzing} locked={!analyzing} className="w-full h-full" />
-        </div>
-        <span className="sr-only" role="status">{analyzing ? "Analisando o seu email." : ""}</span>
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between flex-wrap gap-4 pr-12 sm:pr-20">
-          <div className="min-w-0 max-w-full">
-            <p className="text-safe-dim text-sm mb-1 capitalize">
-              {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
-            </p>
-            <h1 className="text-safe-text text-2xl sm:text-3xl font-serif font-medium tracking-tight [overflow-wrap:anywhere]">
-              Olá, {greetingName}
-            </h1>
-            <p className="text-safe-muted text-base mt-1 [overflow-wrap:anywhere]">
-              Monitorando: <span className="text-safe-secondary">{profile?.email}</span>
-            </p>
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-3 mt-4 sm:mt-0">
-            <div className={`flex items-center gap-2 border rounded-xl py-2 px-4 h-fit ${statusBadge.className}`}>
-              <span className={`w-2 h-2 rounded-full inline-block ${statusBadge.dot}`} />
-              <span className="text-sm font-semibold">{statusBadge.label}</span>
-            </div>
-            <button
-              onClick={handleDeleteAccount}
-              disabled={deleting}
-              className="bg-transparent border border-safe-danger/50 rounded-xl text-safe-danger py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-danger/10 disabled:cursor-wait disabled:opacity-70"
-            >
-              {deleting ? "Excluindo..." : "Excluir conta"}
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Boas-vindas com o céu da página inicial. O resultado da análise fica em destaque no card
+          logo abaixo, e a exclusão da conta mora em "Editar cadastro" (menu do avatar, na barra).
+          Enquanto a análise está em andamento, os cometas giram em volta do cadeado aberto;
+          quando o resultado chega, o cadeado tranca, os astros celebram com um giro rápido e
+          depois seguem orbitando devagar. De tempos em tempos um cometa solto é resgatado para a
+          órbita: o monitoramento pega vazamentos novos. Sem resultado válido (erro/não verificado), dispersam */}
+      <SkyHeader
+        ordered={analyzing || resultReady}
+        celebrate={resultReady}
+        capture={resultReady}
+        speed={resultReady ? 0.45 : 1}
+        locked={!analyzing}
+        lockSide="left"
+        skyClass={analyzing ? "opacity-90" : resultReady ? "opacity-75" : "opacity-50"}
+        status={analyzing ? "Analisando o seu email." : ""}
+      >
+        <p className="text-safe-dim text-sm mb-1 capitalize">
+          {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
+        </p>
+        <h1 className="text-safe-text text-2xl sm:text-3xl font-serif font-medium tracking-tight [overflow-wrap:anywhere]">
+          Olá, {greetingName}
+        </h1>
+        <p className="text-safe-muted text-base mt-1 [overflow-wrap:anywhere]">
+          Monitorando: <span className="text-safe-secondary">{profile?.email}</span>
+        </p>
+      </SkyHeader>
 
       {loading && (
         <div className="bg-safe-card border border-safe-border rounded-2xl p-6 mb-6">
@@ -325,13 +284,6 @@ export default function Dashboard({ user, onDeleteAccount }) {
         <div className="bg-gradient-to-br from-[#180808] to-[#200A0A] border border-safe-danger/40 rounded-2xl p-5 mb-6">
           <div className="text-safe-danger font-semibold text-base">Não foi possível carregar o dashboard</div>
           <div className="text-safe-dim text-sm mt-2">{error}</div>
-        </div>
-      )}
-
-      {!loading && actionError && (
-        <div className="bg-gradient-to-br from-[#180808] to-[#200A0A] border border-safe-danger/40 rounded-2xl p-5 mb-6">
-          <div className="text-safe-danger font-semibold text-base">Ação indisponível</div>
-          <div className="text-safe-dim text-sm mt-2">{actionError}</div>
         </div>
       )}
 
@@ -555,7 +507,6 @@ export default function Dashboard({ user, onDeleteAccount }) {
 
           {/* Ligar os alertas agenda uma checagem imediata no backend */}
           <MonitoringSettings onChange={(status) => setProfile((current) => ({ ...current, monitoringEnabled: status.enabled }))} />
-          <AccountSettings hasPassword={profile?.hasPassword !== false} />
         </>
       )}
     </div>

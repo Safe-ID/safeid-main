@@ -53,7 +53,7 @@ describe('SafeID logado', () => {
   it('mostra classificação e plural em português e quebra o email longo', async () => {
     render(<SafeID />)
 
-    expect(await screen.findByText('1 vazamento detectado')).toBeInTheDocument()
+    expect(await screen.findByText(/1 vazamento encontrado para/)).toBeInTheDocument()
     expect(await screen.findByText('Médio')).toBeInTheDocument()
     // Um vazamento com 0 contas não pode deixar um "0" solto na linha do tempo
     expect(screen.queryByText(/contas$/)).not.toBeInTheDocument()
@@ -72,7 +72,7 @@ describe('painel sem verificação manual', () => {
     vi.mocked(fetchMe).mockResolvedValue({ ...profile, monitoringEnabled: true })
     render(<SafeID />)
 
-    expect(await screen.findByText('1 vazamento detectado')).toBeInTheDocument()
+    expect(await screen.findByText(/1 vazamento encontrado para/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /verificar novamente/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/alertas estão desligados/i)).not.toBeInTheDocument()
   })

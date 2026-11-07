@@ -18,8 +18,14 @@ const CHANGE_ERRORS = {
   SAME_PASSWORD: "A nova senha precisa ser diferente da atual.",
 };
 
-/** Dados da conta: troca de senha e cópia dos dados (LGPD, art. 18, V) */
-export default function AccountSettings({ hasPassword }) {
+/**
+ * Dados da conta: troca de senha e cópia dos dados (LGPD, art. 18, V).
+ * `only` mostra só uma parte ("password" ou "data"), com o título `title`: é assim que a
+ * página Editar cadastro separa cada uma na sua seção. Sem `only`, mostra as duas.
+ */
+export default function AccountSettings({ hasPassword, only, title = "Sua conta", className = "mt-6" }) {
+  const showPassword = only !== "data";
+  const showData = only !== "password";
   const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
@@ -68,10 +74,11 @@ export default function AccountSettings({ hasPassword }) {
   const btnClass = "bg-safe-primary/10 border border-safe-primary/30 text-safe-secondary rounded-lg py-2 px-3.5 text-xs font-semibold hover:bg-safe-primary/20 transition-colors cursor-pointer disabled:cursor-wait disabled:opacity-60";
 
   return (
-    <section aria-labelledby="account-settings-title" className="bg-safe-card border border-safe-border rounded-2xl p-5 sm:p-6 mt-6">
-      <h2 id="account-settings-title" className="text-safe-text font-semibold text-base m-0 mb-4">Sua conta</h2>
+    <section aria-labelledby="account-settings-title" className={`bg-safe-card border border-safe-border rounded-2xl p-5 sm:p-6 ${className}`}>
+      <h2 id="account-settings-title" className="text-safe-text font-semibold text-base m-0 mb-4">{title}</h2>
 
       <div className="flex flex-col gap-5">
+        {showPassword && (
         <div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="min-w-0">
@@ -113,8 +120,10 @@ export default function AccountSettings({ hasPassword }) {
             </form>
           )}
         </div>
+        )}
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-safe-border pt-5">
+        {showData && (
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${showPassword ? "border-t border-safe-border pt-5" : ""}`}>
           <div className="min-w-0">
             <div className="text-safe-text text-sm font-semibold">Seus dados</div>
             <p className="text-safe-muted text-sm mt-1 m-0">Baixe uma cópia em JSON da sua conta, das análises, dos vazamentos e das notificações.</p>
@@ -124,6 +133,7 @@ export default function AccountSettings({ hasPassword }) {
             {exporting ? "Gerando..." : "Baixar meus dados"}
           </button>
         </div>
+        )}
       </div>
     </section>
   );

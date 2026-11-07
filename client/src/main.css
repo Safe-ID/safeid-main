@@ -69,11 +69,13 @@ body {
 }
 @media (min-width: 640px) {
   .safe-cover-lock { width: 96px; }
-  .safe-lockup-row { flex-direction: row; justify-content: center; gap: 28px; }
-  .safe-lockup-phrase { order: 0; text-align: right; transform: translateX(24px); }
+  /* Frase | linha | SafeID com a linha no eixo do cadeado: colunas laterais iguais (1fr), senão
+     a frase, mais larga que a palavra, empurra o conjunto e a linha sai do centro */
+  .safe-lockup-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; width: 100%; max-width: 1080px; gap: 28px; }
+  .safe-lockup-phrase { order: 0; justify-self: end; text-align: right; transform: translateX(24px); }
   .safe-lockup-div { display: block; order: 1; width: 1px; height: 0; background: #6FE3B4; opacity: .7; transition: height .6s cubic-bezier(.2, .8, .2, 1); }
   .is-settled .safe-lockup-div { height: 72px; }
-  .safe-lockup-word { order: 2; transform: translateX(-24px); }
+  .safe-lockup-word { order: 2; justify-self: start; transform: translateX(-24px); }
 }
 @media (min-width: 900px) { .safe-cover-lock { width: 118px; } }
 
