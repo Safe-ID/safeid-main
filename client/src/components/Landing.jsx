@@ -2,7 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import CometSky from "./brand/CometSky";
 import LockMark from "./brand/LockMark";
 import useReveal from "./brand/useReveal";
+import useScrollLock from "./brand/useScrollLock";
 import { CipherWord, Countdown, RiskThermometer } from "./brand/StatAnimations";
+
+// Depois que o cadeado tranca, os textos da capa entram em até ~1,3 s (transições em main.css)
+const LOCKUP_REVEAL_MS = 1400;
+// Limite da trava de rolagem: a montagem leva ~3 s; se o céu não terminar (aba em segundo
+// plano, navegador lento), a página é liberada mesmo assim
+const INTRO_MAX_MS = 6000;
 
 const STEPS = [
   {
@@ -71,6 +78,17 @@ export default function Landing({ onNav, overlapNav = true }) {
     () => window.scrollY > 6 || Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches),
   );
   const [settled, setSettled] = useState(false);
+  // A primeira montagem da capa prende a rolagem até terminar, para ninguém descer a página
+  // antes de os textos aparecerem. Quem já chega rolado ou pediu menos movimento não é preso
+  const [introDone, setIntroDone] = useState(scrolled);
+  const assembling = scrolled && !introDone;
+  useScrollLock(assembling);
+
+  useEffect(() => {
+    if (!assembling) return undefined;
+    const timer = window.setTimeout(() => setIntroDone(true), settled ? LOCKUP_REVEAL_MS : INTRO_MAX_MS);
+    return () => window.clearTimeout(timer);
+  }, [assembling, settled]);
   const [statsRef, statsShown] = useReveal();
   const [finalRef, finalShown] = useReveal();
 
