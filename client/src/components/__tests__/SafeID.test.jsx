@@ -53,7 +53,7 @@ describe('SafeID logado', () => {
   it('mostra classificação e plural em português e quebra o email longo', async () => {
     render(<SafeID />)
 
-    expect(await screen.findByText('1 vazamento detectado')).toBeInTheDocument()
+    expect(await screen.findByText(/1 vazamento encontrado para/)).toBeInTheDocument()
     expect(await screen.findByText('Médio')).toBeInTheDocument()
     // Um vazamento com 0 contas não pode deixar um "0" solto na linha do tempo
     expect(screen.queryByText(/contas$/)).not.toBeInTheDocument()
@@ -72,7 +72,7 @@ describe('painel sem verificação manual', () => {
     vi.mocked(fetchMe).mockResolvedValue({ ...profile, monitoringEnabled: true })
     render(<SafeID />)
 
-    expect(await screen.findByText('1 vazamento detectado')).toBeInTheDocument()
+    expect(await screen.findByText(/1 vazamento encontrado para/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /verificar novamente/i })).not.toBeInTheDocument()
     expect(screen.queryByText(/alertas estão desligados/i)).not.toBeInTheDocument()
   })
@@ -226,5 +226,59 @@ describe('textos do painel', () => {
     expect(plural(1, 'vazamento')).toBe('1 vazamento')
     expect(plural(0, 'vazamento')).toBe('0 vazamentos')
     expect(plural(3, 'vazamento')).toBe('3 vazamentos')
+  })
+})
+
+describe('botões voltar e avançar do navegador', () => {
+  beforeEach(() => {
+    window.history.replaceState(null, '', '/')
+    vi.mocked(fetchMe).mockResolvedValue(profile)
+  })
+
+  const landingTitle = () => screen.queryByRole('heading', { level: 1, name: /A informação que protege/ })
+  const loginTitle = () => screen.queryByRole('heading', { level: 1, name: 'Entrar no SafeID' })
+
+  it('voltar sai do login para a página inicial e avançar reabre o login', async () => {
+    vi.mocked(getToken).mockReturnValue(null)
+    const user = userEvent.setup()
+    render(<SafeID />)
+    await waitFor(() => expect(landingTitle()).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: 'Entrar', exact: true }))
+    expect(loginTitle()).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/')
+
+    window.history.back()
+    await waitFor(() => expect(landingTitle()).toBeInTheDocument())
+    expect(loginTitle()).not.toBeInTheDocument()
+
+    window.history.forward()
+    await waitFor(() => expect(loginTitle()).toBeInTheDocument())
+    expect(landingTitle()).not.toBeInTheDocument()
+  })
+
+  it('sem sessão, uma entrada antiga do painel abre a página inicial', async () => {
+    vi.mocked(getToken).mockReturnValue(null)
+    const user = userEvent.setup()
+    render(<SafeID />)
+    await waitFor(() => expect(landingTitle()).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'Entrar', exact: true }))
+
+    window.history.replaceState({ safeidPage: 'dashboard' }, '', '/')
+    window.dispatchEvent(new PopStateEvent('popstate', { state: { safeidPage: 'dashboard' } }))
+
+    await waitFor(() => expect(landingTitle()).toBeInTheDocument())
+  })
+
+  it('logado, uma entrada antiga do login mantém o painel', async () => {
+    vi.mocked(getToken).mockReturnValue('token')
+    render(<SafeID />)
+    expect(await screen.findByRole('heading', { level: 1, name: /Olá, w+/ })).toBeInTheDocument()
+
+    window.history.replaceState({ safeidPage: 'login' }, '', '/')
+    window.dispatchEvent(new PopStateEvent('popstate', { state: { safeidPage: 'login' } }))
+
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: /Olá, w+/ })).toBeInTheDocument())
+    expect(loginTitle()).not.toBeInTheDocument()
   })
 })

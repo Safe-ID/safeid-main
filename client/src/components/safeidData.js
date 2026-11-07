@@ -1,17 +1,17 @@
 // Mesma paleta do tailwind.config.js (tons ajustados para contraste WCAG AA)
 export const C = {
-  bg: "#040C1A",
-  bgCard: "#071220",
-  bgHover: "#0B1A2E",
-  border: "#152338",
-  borderL: "#1E3554",
-  primary: "#1868F5",
-  primaryD: "#1255CC",
-  secondary: "#38BDF8",
-  accent: "#86EFAC",
-  text: "#EEF4FF",
-  muted: "#7A9DC0",
-  dim: "#6488B0",
+  bg: "#0A0F1C",
+  bgCard: "#0F1626",
+  bgHover: "#131C30",
+  border: "#1E2840",
+  borderL: "#2A3654",
+  primary: "#1A7F5C",
+  primaryD: "#16704F",
+  secondary: "#4CC99A",
+  accent: "#6FE3B4",
+  text: "#EEF1F7",
+  muted: "#A3ACC2",
+  dim: "#8690AA",
   danger: "#F87171",
   warn: "#FCD34D",
 };
@@ -231,6 +231,29 @@ export function translateDataClass(value) {
 
 // Faixas do RiskEngine em português (a API devolve LOW, MODERATE, HIGH, CRITICAL)
 export const CLASSIFICATION_LABELS = { LOW: "Baixo", MODERATE: "Médio", HIGH: "Alto", CRITICAL: "Crítico" };
+
+// Cinco níveis do score com uma cor cada: os mesmos na página inicial (termômetro), no círculo
+// do painel e nos cartões. Faixas do RiskEngine: LOW < 26 ≤ MODERATE < 51 ≤ HIGH < 76 ≤ CRITICAL.
+// Todas as cores passam de 5:1 sobre o card escuro (WCAG AA).
+export const RISK_LEVELS = [
+  { key: "SAFE", label: "Seguro", value: 0, color: "#4CC99A" },
+  { key: "LOW", label: "Baixo", value: 25, color: "#7CC4E8" },
+  { key: "MODERATE", label: "Médio", value: 50, color: "#E8C15A" },
+  { key: "HIGH", label: "Alto", value: 75, color: "#F08A4B" },
+  { key: "CRITICAL", label: "Crítico", value: 100, color: "#F0605D" },
+];
+
+/** Nível do score (0 é "Seguro"; o resto segue as faixas do backend) */
+export function riskLevel(score) {
+  const s = Number(score) || 0;
+  const key = s <= 0 ? "SAFE" : s < 26 ? "LOW" : s < 51 ? "MODERATE" : s < 76 ? "HIGH" : "CRITICAL";
+  return RISK_LEVELS.find((level) => level.key === key);
+}
+
+/** Nível pela classificação que a API devolve (LOW, MODERATE, HIGH, CRITICAL) */
+export function riskLevelByClassification(classification) {
+  return RISK_LEVELS.find((level) => level.key === classification) ?? null;
+}
 
 export function classificationLabel(value) {
   return CLASSIFICATION_LABELS[value] || value;

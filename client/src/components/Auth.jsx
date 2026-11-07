@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { API_BASE_URL, clearToken, forgotPassword, login, resendVerification, setAuthTokens, signup } from "../lib/api";
 import { LEGAL_PATHS } from "../lib/legal";
+import CometSky from "./brand/CometSky";
+import LockMark from "./brand/LockMark";
 
 const RESEND_COOLDOWN_S = 60;
 
@@ -41,7 +43,7 @@ function AwaitingVerification({ email, onBack }) {
         ✉
       </div>
       <div>
-        <h1 className="text-safe-text text-xl font-bold tracking-tight mb-2">Confirme seu email</h1>
+        <h1 className="text-safe-text text-xl font-serif font-medium tracking-tight mb-2">Confirme seu email</h1>
         <p className="text-safe-muted text-sm leading-relaxed">
           Enviamos um link de confirmação para <span className="text-safe-secondary font-semibold [overflow-wrap:anywhere]">{email}</span>.
           Abra o email e clique no link para ativar sua conta. O link vale por 24 horas.
@@ -104,19 +106,19 @@ function ForgotPassword({ initialEmail, onBack }) {
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
       <div className="text-center">
-        <h1 className="text-safe-text text-xl font-bold tracking-tight mb-2">Esqueci minha senha</h1>
+        <h1 className="text-safe-text text-xl font-serif font-medium tracking-tight mb-2">Esqueci minha senha</h1>
         <p className="text-safe-muted text-sm leading-relaxed">Informe o email da conta. Enviaremos um link para criar uma nova senha, válido por 1 hora.</p>
       </div>
       {!message && (
         <div>
           <label htmlFor="forgot-email" className="block text-safe-dim text-[11px] font-semibold mb-1.5 tracking-wide">EMAIL</label>
-          <input id="forgot-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="w-full bg-[#040C1A] border border-safe-border rounded-xl text-safe-text py-3 px-3.5 text-sm outline-none transition-colors focus:border-safe-primary" />
+          <input id="forgot-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className="w-full bg-safe-bg border border-safe-border rounded-xl text-safe-text py-3 px-3.5 text-sm outline-none transition-colors focus:border-safe-secondary" />
         </div>
       )}
       {message && <div role="status" className="bg-safe-secondary/10 border border-safe-secondary/25 rounded-xl py-2.5 px-3.5 text-safe-secondary text-[13px]">{message} Confira também a caixa de spam.</div>}
       {err && <div role="alert" className="bg-safe-danger/10 border border-safe-danger/25 rounded-xl py-2.5 px-3.5 text-safe-danger text-[13px]">{err}</div>}
       {!message && (
-        <button type="submit" disabled={sending} className="rounded-xl text-white py-3.5 text-sm font-semibold bg-gradient-to-br from-safe-primary to-safe-primaryD cursor-pointer disabled:cursor-wait disabled:opacity-70">
+        <button type="submit" disabled={sending} className="rounded-full text-white py-3.5 text-sm font-semibold bg-safe-primary hover:bg-safe-primaryD cursor-pointer disabled:cursor-wait disabled:opacity-70">
           {sending ? "Enviando..." : "Enviar link"}
         </button>
       )}
@@ -196,12 +198,14 @@ export default function Auth({ mode, notice, onSuccess, onSwitch, onGoToLogin })
     if (isReg) onGoToLogin?.();
   };
 
-  const inpClass = "w-full bg-[#040C1A] border border-safe-border rounded-xl text-safe-text py-3 px-3.5 text-sm outline-none transition-colors focus:border-safe-primary";
+  const inpClass = "w-full bg-safe-bg border border-safe-border rounded-xl text-safe-text py-3 px-3.5 text-sm outline-none transition-colors focus:border-safe-secondary";
 
   return (
-    <div className="min-h-[calc(100vh-60px)] flex items-center justify-center p-4 sm:p-6">
+    <div className="relative isolate min-h-[calc(100svh-64px)] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+      {/* Mesmo céu da página inicial: cometas e estrelas atrás do formulário */}
+      <CometSky burst={false} className="-z-10" />
       <div className="w-full max-w-[420px] animate-slide-up">
-        <div className="bg-safe-card border border-safe-borderL rounded-2xl p-6 sm:p-8 shadow-[0_0_60px_rgba(26,111,255,0.05)]">
+        <div className="bg-safe-card/85 backdrop-blur-md border border-safe-borderL rounded-2xl p-6 sm:p-8">
           {awaitingEmail ? (
             <AwaitingVerification email={awaitingEmail} onBack={backToLogin} />
           ) : forgot ? (
@@ -209,12 +213,9 @@ export default function Auth({ mode, notice, onSuccess, onSwitch, onGoToLogin })
           ) : (
             <>
               <div className="text-center mb-7">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-safe-primary to-safe-secondary flex items-center justify-center mx-auto mb-4">
-                  <svg width="20" height="20" viewBox="0 0 16 16" fill="white">
-                    <path d="M8 1L2 3.5v4C2 11 5 14 8 15c3-1 6-4 6-7.5v-4L8 1z" />
-                  </svg>
-                </div>
-                <h1 className="text-safe-text text-xl sm:text-2xl font-bold tracking-tight mb-1.5 font-[system-ui,sans-serif]">
+                {/* O cadeado tranca enquanto a conta é criada ou a sessão é aberta */}
+                <LockMark orbits locked={loading} className="w-11 h-[52px] mx-auto mb-5" />
+                <h1 className="text-safe-text text-xl sm:text-2xl font-serif font-medium tracking-tight mb-1.5">
                   {isReg ? "Criar sua conta" : "Entrar no SafeID"}
                 </h1>
                 <p className="text-safe-dim text-[13px]">
@@ -293,8 +294,8 @@ export default function Auth({ mode, notice, onSuccess, onSwitch, onGoToLogin })
                 )}
 
                 <button onClick={submit} disabled={loading}
-                  className={`mt-1 rounded-xl text-white py-3.5 text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
-                    loading ? "bg-safe-border cursor-wait" : "bg-gradient-to-br from-safe-primary to-safe-primaryD cursor-pointer shadow-[0_0_20px_rgba(26,111,255,0.2)] hover:shadow-[0_0_30px_rgba(26,111,255,0.3)]"
+                  className={`mt-1 rounded-full text-white py-3.5 text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${
+                    loading ? "bg-safe-border cursor-wait" : "bg-safe-primary hover:bg-safe-primaryD cursor-pointer"
                   }`}>
                   {loading
                     ? <><div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin" />{isReg ? "Criando conta..." : "Entrando..."}</>
@@ -303,7 +304,7 @@ export default function Auth({ mode, notice, onSuccess, onSwitch, onGoToLogin })
 
                 <button
                   onClick={loginWithGoogle}
-                  className="rounded-xl border border-safe-border bg-transparent py-3 text-sm font-semibold text-safe-text transition-colors hover:bg-safe-hover"
+                  className="rounded-full border border-safe-borderL bg-transparent py-3 text-sm font-semibold text-safe-text transition-colors hover:bg-safe-hover"
                 >
                   {isReg ? "Continuar com Google" : "Entrar com Google"}
                 </button>
