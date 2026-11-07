@@ -233,9 +233,9 @@ export default function SafeID() {
   const isAuthenticated = Boolean(user);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_90%_60%_at_50%_-5%,#0D2545_0%,#040C1A_55%)] font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe_UI',sans-serif] text-safe-text flex flex-col">
+    <div className="min-h-screen bg-safe-bg font-sans text-safe-text flex flex-col">
       <style>{`
-        input { caret-color: #38BDF8; }
+        input { caret-color: #6FE3B4; }
       `}</style>
 
       <a
@@ -245,7 +245,7 @@ export default function SafeID() {
         Pular para o conteúdo
       </a>
 
-      <Navbar user={user} onSignOut={onOut} onNav={goTo} />
+      <Navbar user={user} onSignOut={onOut} onNav={goTo} overlay={!booting && page === "landing" && !landingNotice} />
 
       <main id="conteudo" ref={mainRef} tabIndex={-1} className="flex-1 focus:outline-none">
         {booting && (
@@ -269,7 +269,7 @@ export default function SafeID() {
             </div>
           </div>
         )}
-        {!booting && page === "landing" && <Landing onNav={goTo} />}
+        {!booting && page === "landing" && <Landing onNav={goTo} overlapNav={!landingNotice} />}
         {!booting && page === "register" && <Auth mode="register" onSuccess={(u) => onAuth(u)} onSwitch={() => setPage("login")} onGoToLogin={() => setPage("login")} />}
         {!booting && page === "login" && <Auth mode="login" notice={notice} onSuccess={(u) => onAuth(u)} onSwitch={() => { setNotice(""); setPage("register"); }} />}
         {!booting && page === "privacy" && <Privacy onBack={closeLegal} />}
@@ -295,7 +295,7 @@ export default function SafeID() {
       {/* No painel também: é o caminho da pessoa logada até a Política de Privacidade (LGPD) */}
       {!booting && (
         <footer className="border-t border-safe-border py-5 px-6 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-safe-dim text-xs text-center">
-          <div><span className="text-safe-secondary font-bold">SafeID</span> · IFSP São Paulo · TADS 2026</div>
+          <div><span className="text-safe-text font-semibold">Safe<span className="text-safe-secondary">ID</span></span> · IFSP São Paulo · TADS 2026</div>
           <div className="flex flex-wrap justify-center gap-x-5 gap-y-2">
             {[{ key: "privacy", label: "Privacidade" }, { key: "terms", label: "Termos de Uso" }].map(({ key, label }) => (
               <a

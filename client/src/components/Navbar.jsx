@@ -1,36 +1,44 @@
+import { useEffect, useState } from "react";
 import NotificationBell from "./NotificationBell";
+import LockMark from "./brand/LockMark";
 
-export default function Navbar({ user, onSignOut, onNav }) {
+export default function Navbar({ user, onSignOut, onNav, overlay = false }) {
   const initial = user?.email?.charAt(0)?.toUpperCase() || "U";
   const displayName = user?.email || "Convidado";
+  // Na capa da página inicial a barra fica transparente e sem a logo (a capa já mostra a marca)
+  const [atTop, setAtTop] = useState(true);
+  useEffect(() => {
+    if (!overlay) return undefined;
+    const onScroll = () => setAtTop(window.scrollY < window.innerHeight * 0.9);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [overlay]);
+  const overCover = overlay && atTop;
 
   return (
-    <nav className="w-full flex items-center justify-between py-4 px-6 md:px-12 border-b border-safe-border bg-safe-bg/90 backdrop-blur-md sticky top-0 z-50">
+    <nav className={`w-full h-16 flex items-center justify-between px-4 sm:px-8 md:px-12 border-b sticky top-0 z-50 transition-colors duration-300 ${overCover ? "border-transparent bg-transparent" : "border-safe-border bg-safe-bg/90 backdrop-blur-md"}`}>
       <div
         role="link"
         tabIndex={0}
         aria-label={user ? "SafeID, ir para o painel" : "SafeID, ir para a página inicial"}
         onClick={() => onNav("landing")}
         onKeyDown={(e) => e.key === "Enter" && onNav("landing")}
-        className="flex items-center gap-3 shrink-0 cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-safe-secondary"
+        className={`flex items-center gap-2.5 shrink-0 cursor-pointer rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-safe-secondary transition-opacity duration-300 ${overCover ? "invisible opacity-0" : "opacity-100"}`}
       >
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-safe-primary to-safe-secondary flex items-center justify-center">
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="white">
-            <path d="M8 1L2 3.5v4C2 11 5 14 8 15c3-1 6-4 6-7.5v-4L8 1z" />
-          </svg>
-        </div>
-        <span className="font-bold text-lg tracking-tight text-safe-text">
+        <LockMark orbits className="w-6 h-7" />
+        <span className="font-semibold text-lg tracking-tight text-safe-text">
           Safe<span className="text-safe-secondary">ID</span>
         </span>
       </div>
 
-      <div className="flex gap-3 items-center min-w-0">
+      <div className="flex gap-2 sm:gap-3 items-center min-w-0">
         {!user ? (
           <>
-            <button onClick={() => onNav("login")} className="bg-transparent border border-safe-borderL rounded-lg text-safe-muted py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-hover">
+            <button onClick={() => onNav("login")} className="bg-transparent border border-safe-borderL rounded-full text-safe-text py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-hover">
               Entrar
             </button>
-            <button onClick={() => onNav("register")} className="bg-gradient-to-br from-safe-primary to-safe-primaryD border-none rounded-lg text-white py-2 px-4 text-sm font-semibold cursor-pointer transition-opacity hover:opacity-90">
+            <button onClick={() => onNav("register")} className="bg-safe-primary hover:bg-safe-primaryD border-none rounded-full text-white py-2 px-4 text-sm font-semibold cursor-pointer transition-colors">
               Criar conta
             </button>
           </>
@@ -38,12 +46,12 @@ export default function Navbar({ user, onSignOut, onNav }) {
           <>
             <NotificationBell />
             <div className="hidden sm:flex items-center gap-2 min-w-0">
-              <div className="w-8 h-8 shrink-0 rounded-full bg-gradient-to-br from-safe-primary to-safe-secondary flex items-center justify-center text-xs font-bold text-white">
+              <div className="w-8 h-8 shrink-0 rounded-full bg-safe-primary border border-safe-secondary/40 flex items-center justify-center text-xs font-bold text-white">
                 {initial}
               </div>
               <span className="text-safe-muted text-sm truncate max-w-[220px]" title={displayName}>{displayName}</span>
             </div>
-            <button onClick={onSignOut} className="shrink-0 bg-transparent border border-safe-border rounded-lg text-safe-dim py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-hover hover:text-safe-muted">
+            <button onClick={onSignOut} className="shrink-0 bg-transparent border border-safe-borderL rounded-full text-safe-muted py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-hover hover:text-safe-muted">
               Sair
             </button>
           </>

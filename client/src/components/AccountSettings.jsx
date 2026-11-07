@@ -64,7 +64,7 @@ export default function AccountSettings({ hasPassword }) {
     }
   };
 
-  const inpClass = "w-full bg-[#040C1A] border border-safe-border rounded-xl text-safe-text py-2.5 px-3.5 text-sm outline-none transition-colors focus:border-safe-primary";
+  const inpClass = "w-full bg-safe-bg border border-safe-border rounded-xl text-safe-text py-2.5 px-3.5 text-sm outline-none transition-colors focus:border-safe-secondary";
   const btnClass = "bg-safe-primary/10 border border-safe-primary/30 text-safe-secondary rounded-lg py-2 px-3.5 text-xs font-semibold hover:bg-safe-primary/20 transition-colors cursor-pointer disabled:cursor-wait disabled:opacity-60";
 
   return (

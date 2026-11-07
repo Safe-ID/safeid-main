@@ -13,6 +13,8 @@ import {
   deleteAccount,
   fetchMe,
 } from "../lib/api";
+import CometSky from "./brand/CometSky";
+import LockMark from "./brand/LockMark";
 
 function resolveLogoPath(logoPath) {
   if (!logoPath || typeof logoPath !== "string") return "";
@@ -218,14 +220,17 @@ export default function Dashboard({ user, onDeleteAccount }) {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto pt-10 px-6 pb-20">
-      <div className="mb-8 animate-slide-up">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between flex-wrap gap-4">
+    <div className="w-full max-w-4xl mx-auto pt-6 sm:pt-10 px-4 sm:px-6 pb-20">
+      {/* Cabeçalho com o mesmo céu da página inicial e o cadeado trancado da marca */}
+      <div className="relative isolate overflow-hidden mb-8 animate-slide-up rounded-3xl border border-safe-borderL bg-safe-card/70 px-5 py-6 sm:px-8 sm:py-8">
+        <CometSky burst={false} className="-z-10 opacity-50" />
+        <LockMark orbits className="hidden sm:block absolute right-8 top-1/2 -translate-y-1/2 w-12 h-14 opacity-90" />
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between flex-wrap gap-4 sm:pr-20">
           <div className="min-w-0 max-w-full">
             <p className="text-safe-dim text-sm mb-1 capitalize">
               {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
             </p>
-            <h1 className="text-safe-text text-2xl sm:text-3xl font-bold tracking-tight font-[system-ui,sans-serif] [overflow-wrap:anywhere]">
+            <h1 className="text-safe-text text-2xl sm:text-3xl font-serif font-medium tracking-tight [overflow-wrap:anywhere]">
               Olá, {greetingName} 👋
             </h1>
             <p className="text-safe-muted text-base mt-1 [overflow-wrap:anywhere]">
@@ -256,7 +261,7 @@ export default function Dashboard({ user, onDeleteAccount }) {
             <span className="text-safe-secondary text-sm font-semibold">{pct}%</span>
           </div>
           <div className="h-1.5 bg-safe-border rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-safe-primary to-safe-secondary rounded-full transition-all duration-150 ease-out" style={{ width: `${pct}%` }} />
+            <div className="h-full bg-gradient-to-r from-safe-primary to-safe-accent rounded-full transition-all duration-150 ease-out" style={{ width: `${pct}%` }} />
           </div>
           <p className="text-safe-dim text-xs mt-3">Buscando o resultado mais recente da sua análise</p>
         </div>
@@ -312,7 +317,7 @@ export default function Dashboard({ user, onDeleteAccount }) {
                 <div className="text-safe-danger font-semibold text-base [overflow-wrap:anywhere]">
                   {plural(totalBreaches, "vazamento")} {totalBreaches === 1 ? "encontrado" : "encontrados"} para {profile?.email}
                 </div>
-                <div className="text-[#7A3030] text-sm mt-1">Seus dados circulam em repositórios de ameaças. Ação imediata recomendada.</div>
+                <div className="text-[#E4A0A0] text-sm mt-1">Seus dados circulam em repositórios de ameaças. Ação imediata recomendada.</div>
               </div>
             </div>
           )}

@@ -13,7 +13,7 @@ export default function AIPanel({ recommendation, mitigationSteps = [], urgencyL
   const hasBreaches = typeof riskScore === "number" && riskScore > 0;
 
   return (
-    <div className="bg-gradient-to-br from-safe-card to-[#0A1A30] border border-safe-borderL rounded-2xl p-5 sm:p-6">
+    <div className="bg-safe-card border border-safe-borderL rounded-2xl p-5 sm:p-6">
       <div className="flex items-center gap-3 mb-5">
         <div className="w-8 h-8 rounded-lg bg-safe-accent/10 border border-safe-accent/30 flex items-center justify-center text-safe-accent text-sm shrink-0">
           ✦
