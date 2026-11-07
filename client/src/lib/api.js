@@ -180,6 +180,24 @@ export async function fetchScanHistory() {
   return request("/api/v1/scan/history", { method: "GET" });
 }
 
+// Limite da rota de descrições por consulta
+const DESCRIPTIONS_BATCH = 50;
+
+/**
+ * Descrições dos vazamentos (Have I Been Pwned), por nome: { [Name]: { segments, lang } }.
+ * Vêm em trechos { text, href?, em?, strong? } para montar sem HTML; lang "pt" é tradução automática.
+ */
+export async function fetchBreachDescriptions(names) {
+  const unique = [...new Set((names || []).filter((name) => typeof name === "string" && name.trim()))];
+  const result = {};
+  for (let i = 0; i < unique.length; i += DESCRIPTIONS_BATCH) {
+    const batch = unique.slice(i, i + DESCRIPTIONS_BATCH);
+    const data = await request(`/api/v1/breaches/descriptions?names=${encodeURIComponent(batch.join(","))}`, { method: "GET" });
+    Object.assign(result, data);
+  }
+  return result;
+}
+
 export async function fetchScanDetail(jobId) {
   return request(`/api/v1/scan/${jobId}`, { method: "GET" });
 }

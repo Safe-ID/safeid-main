@@ -69,6 +69,12 @@ test('jornada completa da conta, do cadastro à exclusão', async ({ page }) => 
     await expect(page.getByText(/\d+\/100/).first()).toBeVisible({ timeout: 45_000 });
     await page.getByRole('tab', { name: /Vazamentos/ }).click();
     await expect(page.getByText('Equifax').first()).toBeVisible();
+    // O cartão abre a descrição do vazamento, com a atribuição exigida pela licença da HIBP
+    const cartao = page.getByRole('button', { name: /Equifax/ }).first();
+    await cartao.click();
+    await expect(cartao).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByText('O que aconteceu').first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /Have I Been Pwned/ }).first()).toHaveAttribute('href', 'https://haveibeenpwned.com/');
     await page.getByRole('tab', { name: /Plano IA/ }).click();
     await expect(page.getByRole('button', { name: 'Exportar PDF' })).toBeVisible();
   });

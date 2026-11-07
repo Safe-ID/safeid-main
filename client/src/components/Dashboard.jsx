@@ -9,6 +9,7 @@ import ScoreHistoryChart from "./ScoreHistoryChart";
 import {
   NOTIFICATIONS_UPDATED_EVENT,
   OPEN_DASHBOARD_TAB_EVENT,
+  fetchBreachDescriptions,
   fetchMe,
 } from "../lib/api";
 import SkyHeader from "./brand/SkyHeader";
@@ -147,6 +148,19 @@ export default function Dashboard({ user, initialTab }) {
     setTab(tabs[next].id);
     tabRefs.current[tabs[next].id]?.focus();
   };
+
+  // Descrições da HIBP ("O que aconteceu"): só quando a aba Vazamentos abre, para não pesar no painel.
+  // Se a busca falhar, os cartões continuam como antes, sem o bloco
+  const [descriptions, setDescriptions] = useState({});
+  const descriptionNames = breachData.map((item) => item?.Name).filter(Boolean).join(",");
+  useEffect(() => {
+    if (tab !== "breaches" || !descriptionNames) return undefined;
+    let active = true;
+    fetchBreachDescriptions(descriptionNames.split(","))
+      .then((data) => { if (active) setDescriptions(data || {}); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [tab, descriptionNames]);
 
   const breachTimeline = [...breachData].sort((a, b) => {
     const aDate = new Date(a?.BreachDate || a?.date || a?.createdAt || 0).getTime();
@@ -481,7 +495,7 @@ export default function Dashboard({ user, initialTab }) {
 
           {tab === "breaches" && (
             <div role="tabpanel" id="painel-breaches" aria-labelledby="aba-breaches" className="animate-fade-in flex flex-col gap-[10px]">
-              {breachData.length ? breachData.map((item, i) => <BreachCard key={item.id || item.Name || item.Title || i} item={item} idx={i} />) : (
+              {breachData.length ? breachData.map((item, i) => <BreachCard key={item.id || item.Name || item.Title || i} item={item} idx={i} description={descriptions[item?.Name]} />) : (
                 <div className="bg-safe-card border border-safe-border rounded-[14px] py-[18px] px-[20px] text-safe-dim">
                   Nenhum histórico disponível ainda.
                 </div>
