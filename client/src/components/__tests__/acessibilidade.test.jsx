@@ -17,6 +17,12 @@ vi.mock('../../lib/api', async (importOriginal) => ({
   ]),
   fetchMonitoringStatus: vi.fn(async () => ({ enabled: true, lastMonitoredAt: '2026-11-01T12:00:00.000Z' })),
   fetchUnreadCount: vi.fn(async () => ({ count: 1 })),
+  fetchBreachDescriptions: vi.fn(async () => ({
+    Adobe: {
+      lang: 'pt',
+      segments: [{ text: 'Em 2013, contas da Adobe vazaram com senhas ' }, { text: 'criptografadas', em: true }, { text: '. ' }, { text: 'Leia mais', href: 'https://example.com/adobe' }],
+    },
+  })),
   fetchNotifications: vi.fn(async () => ({
     items: [{ id: 1, type: 'NEW_BREACH', title: 'Novo vazamento', message: 'Seu e-mail apareceu em Adobe.', read: false, createdAt: '2026-11-01T12:00:00.000Z', breachName: 'Adobe' }],
     nextCursor: null,
@@ -123,6 +129,12 @@ describe('acessibilidade (axe-core)', () => {
       const abas = await screen.findByRole('tablist')
       await user.click(within(abas).getByRole('tab', { name: /Vazamentos/ }))
       expect(await auditar('painel - vazamentos')).toEqual([])
+
+      // Cartão aberto com a descrição traduzida e o link da HIBP
+      await user.click(screen.getByRole('button', { name: /^Adobe/ }))
+      await screen.findByText('O que aconteceu')
+      expect(screen.getByRole('link', { name: /Leia mais/ })).toBeInTheDocument()
+      expect(await auditar('painel - vazamento aberto')).toEqual([])
 
       await user.click(within(abas).getByRole('tab', { name: /Plano/ }))
       expect(await auditar('painel - plano')).toEqual([])

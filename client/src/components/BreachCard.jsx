@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { W, translateDataClass, severityFromWeight, plural } from "./safeidData";
+import BreachDescription from "./BreachDescription";
 
 function resolveLogoPath(logoPath) {
   if (!logoPath || typeof logoPath !== "string") return "";
@@ -14,8 +15,9 @@ function getLogoInitial(item, title) {
   return label.trim().charAt(0).toUpperCase() || "V";
 }
 
-export default function BreachCard({ item, idx }) {
+export default function BreachCard({ item, idx, description }) {
   const [open, setOpen] = useState(false);
+  const panelId = useId();
   const isBreachData = Boolean(item?.Name || item?.Title || item?.BreachDate || item?.DataClasses);
   const isHistory = Boolean(item?.createdAt) && !isBreachData;
   const breachDate = item?.BreachDate || item?.date || item?.createdAt;
@@ -34,20 +36,17 @@ export default function BreachCard({ item, idx }) {
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      aria-expanded={open}
-      onClick={() => setOpen(!open)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          setOpen(!open);
-        }
-      }}
-      className={`bg-safe-card border rounded-2xl p-4 sm:p-4.5 cursor-pointer transition-all duration-200 hover:bg-safe-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-safe-secondary ${open ? 'border-safe-borderL' : 'border-safe-border'}`}
+      className={`bg-safe-card border rounded-2xl p-4 sm:p-4.5 transition-all duration-200 hover:bg-safe-hover ${open ? 'border-safe-borderL' : 'border-safe-border'}`}
       style={{ animation: `slideUp 0.4s ease ${idx * 70}ms both` }}
     >
-      <div className="flex items-center justify-between gap-3">
+      {/* Só o cabeçalho é o botão: a área aberta tem links (descrição), que não podem ficar dentro dele */}
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between gap-3 bg-transparent border-none p-0 m-0 text-left cursor-pointer rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-safe-secondary"
+      >
         <div className="flex items-center gap-3 min-w-0">
           {logoPath ? (
             <div className="w-10 h-10 rounded-xl overflow-hidden bg-safe-hover border border-safe-borderL flex items-center justify-center shrink-0">
@@ -81,10 +80,10 @@ export default function BreachCard({ item, idx }) {
             <path d="M2 5l5 5 5-5" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
           </svg>
         </div>
-      </div>
-      
+      </button>
+
       {open && (
-        <div className="mt-3.5 pt-3.5 border-t border-safe-border animate-fade-in">
+        <div id={panelId} className="mt-3.5 pt-3.5 border-t border-safe-border animate-fade-in">
           <div className="text-[10px] text-safe-dim mb-2.5 tracking-[1px] font-semibold uppercase">
             {isBreachData ? "DADOS EXPOSTOS" : isHistory ? "DETALHES DO SCAN" : "DADOS EXPOSTOS"}
           </div>
@@ -121,6 +120,7 @@ export default function BreachCard({ item, idx }) {
               {item.IsVerified ? "Vazamento verificado pelo HIBP." : "Vazamento não verificado."}
             </div>
           )}
+          {isBreachData && <BreachDescription name={item.Name} description={description} />}
           {isHistory && item.recommendation && (
             <div className="mt-3 text-safe-muted text-[13px] leading-relaxed whitespace-pre-wrap">
               {item.recommendation}
