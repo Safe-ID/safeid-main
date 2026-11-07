@@ -6,7 +6,7 @@ function formatDateTime(value) {
 }
 
 /** Liga/desliga os alertas de vazamento e mostra a última verificação automática */
-export default function MonitoringSettings({ onChange }) {
+export default function MonitoringSettings({ onChange, className = "mt-6" }) {
   const [status, setStatus] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -38,7 +38,7 @@ export default function MonitoringSettings({ onChange }) {
   const lastCheck = formatDateTime(status?.lastMonitoredAt);
 
   return (
-    <section id="alertas" aria-labelledby="monitoring-settings-title" className="bg-safe-card border border-safe-border rounded-2xl p-5 sm:p-6 mt-6">
+    <section id="alertas" aria-labelledby="monitoring-settings-title" className={`bg-safe-card border border-safe-border rounded-2xl p-5 sm:p-6 ${className}`}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 id="monitoring-settings-title" className="text-safe-text font-semibold text-base m-0">

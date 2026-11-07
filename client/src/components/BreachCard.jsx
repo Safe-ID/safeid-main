@@ -30,7 +30,7 @@ export default function BreachCard({ item, idx }) {
       : `${new Date(item.date).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })} · ${(item.count / 1e6).toFixed(0)}M contas`;
 
   // Fallbacks de cor customizada nativa para a logo default quando não há imagem
-  const dynamicColor = isBreachData ? "#38BDF8" : item.color || "#38BDF8";
+  const dynamicColor = isBreachData ? "#4CC99A" : item.color || "#4CC99A";
 
   return (
     <div

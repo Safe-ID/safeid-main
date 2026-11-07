@@ -4,13 +4,13 @@ export default function LegalDocument({ eyebrow, title, intro, sections, onBack 
       <button
         type="button"
         onClick={onBack}
-        className="bg-transparent border border-safe-border rounded-lg text-safe-dim py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-hover hover:text-safe-muted mb-8"
+        className="bg-transparent border border-safe-borderL rounded-full text-safe-muted py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-hover hover:text-safe-muted mb-8"
       >
         ← Voltar
       </button>
 
-      <div className="text-safe-dim text-xs font-semibold tracking-widest mb-2">{eyebrow}</div>
-      <h1 className="text-safe-text text-3xl font-bold tracking-tight font-[system-ui,sans-serif] mb-3">
+      <div className="text-safe-secondary text-xs font-semibold tracking-widest mb-2">{eyebrow}</div>
+      <h1 className="text-safe-text text-3xl sm:text-4xl font-serif font-medium tracking-tight mb-3">
         {title}
       </h1>
       <p className="text-safe-muted text-base leading-relaxed mb-10">{intro}</p>

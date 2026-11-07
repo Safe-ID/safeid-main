@@ -1,18 +1,34 @@
 import { useState, useEffect, useRef } from "react";
-import { W, translateDataClass, severityFromWeight, classificationLabel, plural } from "./safeidData";
+import { W, translateDataClass, severityFromWeight, classificationLabel, plural, riskLevel, riskLevelByClassification } from "./safeidData";
 import RiskCircle from "./RiskCircle";
 import BreachCard from "./BreachCard";
 import AIPanel from "./AIPanel";
 import PrintablePlan from "./PrintablePlan";
 import MonitoringSettings from "./MonitoringSettings";
-import AccountSettings from "./AccountSettings";
 import ScoreHistoryChart from "./ScoreHistoryChart";
 import {
   NOTIFICATIONS_UPDATED_EVENT,
   OPEN_DASHBOARD_TAB_EVENT,
-  deleteAccount,
   fetchMe,
 } from "../lib/api";
+import SkyHeader from "./brand/SkyHeader";
+
+// Ícones de traço no estilo da marca (no lugar de emojis, que mudam de cara em cada aparelho)
+function LineIcon({ children, className = "w-6 h-6" }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {children}
+    </svg>
+  );
+}
+const ICONS = {
+  gauge: <><path d="M4 18a8 8 0 1 1 16 0" /><path d="M12 18l4-5" /><circle cx="12" cy="18" r="1.2" /></>,
+  levels: <><path d="M5 19v-4M10 19v-7M15 19v-10M20 19V5" /></>,
+  breach: <><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z" /><path d="M12 8v5M12 16h.01" /></>,
+  calendar: <><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16" /></>,
+  check: <><path d="M5 12.5l4.5 4.5L19 7.5" /></>,
+  alert: <><path d="M12 4 2.5 20h19z" /><path d="M12 10v4.5M12 17.5h.01" /></>,
+};
 
 function resolveLogoPath(logoPath) {
   if (!logoPath || typeof logoPath !== "string") return "";
@@ -27,13 +43,11 @@ function getLogoInitial(item) {
   return label.trim().charAt(0).toUpperCase() || "V";
 }
 
-export default function Dashboard({ user, onDeleteAccount }) {
+export default function Dashboard({ user, initialTab }) {
   const [profile, setProfile] = useState(user);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [actionError, setActionError] = useState("");
-  const [deleting, setDeleting] = useState(false);
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState(initialTab || "overview");
   const tabRefs = useRef({});
   const [pct, setPct] = useState(0);
 
@@ -172,17 +186,13 @@ export default function Dashboard({ user, onDeleteAccount }) {
         ? "breached"
         : "clean";
 
-  const STATUS_BADGES = {
-    pending: { label: "Ainda não verificado", className: "bg-safe-card border-safe-borderL text-safe-muted", dot: "bg-safe-muted" },
-    unverified: { label: "Verificação pendente", className: "bg-safe-warn/15 border-safe-warn/40 text-safe-warn", dot: "bg-safe-warn" },
-    breached: { label: `${plural(totalBreaches, "vazamento")} ${totalBreaches === 1 ? "detectado" : "detectados"}`, className: "bg-safe-danger/15 border-safe-danger/40 text-safe-danger", dot: "bg-safe-danger" },
-    clean: { label: "Nenhum vazamento encontrado", className: "bg-safe-accent/15 border-safe-accent/40 text-safe-accent", dot: "bg-safe-accent" },
-  };
-  const statusBadge = STATUS_BADGES[scanStatus];
-
   // Sem resultado válido, o backend tenta o scan de novo sozinho de hora em hora:
   // o painel confere a cada 2 minutos para mostrar o resultado assim que ele chegar
   const waitingForScan = scanStatus === "pending" || scanStatus === "unverified";
+  // Cadeado do cabeçalho aberto enquanto o painel carrega ou a primeira análise não terminou
+  const analyzing = loading || scanStatus === "pending";
+  // Resultado válido na tela: os astros seguem em órbita (calma) em volta do cadeado trancado
+  const resultReady = !loading && !error && (scanStatus === "clean" || scanStatus === "breached");
   useEffect(() => {
     if (loading || error || !waitingForScan) return undefined;
     const timer = setInterval(async () => {
@@ -199,55 +209,34 @@ export default function Dashboard({ user, onDeleteAccount }) {
   const alertsOff = profile?.monitoringEnabled === false;
   const lastResultDate = updatedAt ? new Date(updatedAt).toLocaleDateString("pt-BR") : null;
 
-  const handleDeleteAccount = async () => {
-    const confirmed = window.confirm("Tem certeza que deseja excluir sua conta? Esta ação não pode ser desfeita.");
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      setDeleting(true);
-      setActionError("");
-      await deleteAccount();
-      onDeleteAccount();
-    } catch (err) {
-      setActionError(err.message || "Não foi possível excluir a conta.");
-    } finally {
-      setDeleting(false);
-    }
-  };
-
   return (
-    <div className="w-full max-w-4xl mx-auto pt-10 px-6 pb-20">
-      <div className="mb-8 animate-slide-up">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between flex-wrap gap-4">
-          <div className="min-w-0 max-w-full">
-            <p className="text-safe-dim text-sm mb-1 capitalize">
-              {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
-            </p>
-            <h1 className="text-safe-text text-2xl sm:text-3xl font-bold tracking-tight font-[system-ui,sans-serif] [overflow-wrap:anywhere]">
-              Olá, {greetingName} 👋
-            </h1>
-            <p className="text-safe-muted text-base mt-1 [overflow-wrap:anywhere]">
-              Monitorando: <span className="text-safe-secondary">{profile?.email}</span>
-            </p>
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-3 mt-4 sm:mt-0">
-            <div className={`flex items-center gap-2 border rounded-xl py-2 px-4 h-fit ${statusBadge.className}`}>
-              <span className={`w-2 h-2 rounded-full inline-block ${statusBadge.dot}`} />
-              <span className="text-sm font-semibold">{statusBadge.label}</span>
-            </div>
-            <button
-              onClick={handleDeleteAccount}
-              disabled={deleting}
-              className="bg-transparent border border-safe-danger/50 rounded-xl text-safe-danger py-2 px-4 text-sm cursor-pointer transition-colors hover:bg-safe-danger/10 disabled:cursor-wait disabled:opacity-70"
-            >
-              {deleting ? "Excluindo..." : "Excluir conta"}
-            </button>
-          </div>
-        </div>
-      </div>
+    <div className="w-full max-w-4xl mx-auto pt-6 sm:pt-10 px-4 sm:px-6 pb-20">
+      {/* Boas-vindas com o céu da página inicial. O resultado da análise fica em destaque no card
+          logo abaixo, e a exclusão da conta mora em "Editar cadastro" (menu do avatar, na barra).
+          Enquanto a análise está em andamento, os cometas giram em volta do cadeado aberto;
+          quando o resultado chega, o cadeado tranca, os astros celebram com um giro rápido e
+          depois seguem orbitando devagar. De tempos em tempos um cometa solto é resgatado para a
+          órbita: o monitoramento pega vazamentos novos. Sem resultado válido (erro/não verificado), dispersam */}
+      <SkyHeader
+        ordered={analyzing || resultReady}
+        celebrate={resultReady}
+        capture={resultReady}
+        speed={resultReady ? 0.45 : 1}
+        locked={!analyzing}
+        lockSide="left"
+        skyClass={analyzing ? "opacity-90" : resultReady ? "opacity-75" : "opacity-50"}
+        status={analyzing ? "Analisando o seu email." : ""}
+      >
+        <p className="text-safe-dim text-sm mb-1 capitalize">
+          {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
+        </p>
+        <h1 className="text-safe-text text-2xl sm:text-3xl font-serif font-medium tracking-tight [overflow-wrap:anywhere]">
+          Olá, {greetingName}
+        </h1>
+        <p className="text-safe-muted text-base mt-1 [overflow-wrap:anywhere]">
+          Monitorando: <span className="text-safe-secondary">{profile?.email}</span>
+        </p>
+      </SkyHeader>
 
       {loading && (
         <div className="bg-safe-card border border-safe-border rounded-2xl p-6 mb-6">
@@ -256,9 +245,38 @@ export default function Dashboard({ user, onDeleteAccount }) {
             <span className="text-safe-secondary text-sm font-semibold">{pct}%</span>
           </div>
           <div className="h-1.5 bg-safe-border rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-safe-primary to-safe-secondary rounded-full transition-all duration-150 ease-out" style={{ width: `${pct}%` }} />
+            <div className="h-full bg-gradient-to-r from-safe-primary to-safe-accent rounded-full transition-all duration-150 ease-out" style={{ width: `${pct}%` }} />
           </div>
           <p className="text-safe-dim text-xs mt-3">Buscando o resultado mais recente da sua análise</p>
+        </div>
+      )}
+
+      {/* Esqueleto do painel enquanto carrega: a página não "pula" quando os dados chegam */}
+      {loading && (
+        <div aria-hidden="true" className="mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="bg-safe-card border border-safe-border rounded-2xl p-4 sm:p-5">
+                <div className="safe-skel h-8 w-8 rounded-lg mb-4" />
+                <div className="safe-skel h-6 w-16 rounded mb-2" />
+                <div className="safe-skel h-3 w-24 rounded" />
+              </div>
+            ))}
+          </div>
+          <div className="bg-safe-card border border-safe-border rounded-2xl p-5 sm:p-6">
+            <div className="flex gap-3 mb-6">
+              {[0, 1, 2].map((i) => <div key={i} className="safe-skel h-8 w-24 rounded-full" />)}
+            </div>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-4 py-4 border-t border-safe-border first:border-t-0">
+                <div className="safe-skel h-10 w-10 rounded-xl shrink-0" />
+                <div className="flex-1">
+                  <div className="safe-skel h-4 w-2/5 rounded mb-2" />
+                  <div className="safe-skel h-3 w-3/4 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -269,18 +287,11 @@ export default function Dashboard({ user, onDeleteAccount }) {
         </div>
       )}
 
-      {!loading && actionError && (
-        <div className="bg-gradient-to-br from-[#180808] to-[#200A0A] border border-safe-danger/40 rounded-2xl p-5 mb-6">
-          <div className="text-safe-danger font-semibold text-base">Ação indisponível</div>
-          <div className="text-safe-dim text-sm mt-2">{actionError}</div>
-        </div>
-      )}
-
       {!loading && !error && (
         <>
           {scanStatus === "clean" && (
             <div className="bg-safe-accent/5 border border-safe-accent/30 rounded-2xl p-5 flex items-center gap-4 mb-6 animate-slide-up">
-              <div className="w-10 h-10 rounded-xl bg-safe-accent/10 flex items-center justify-center text-xl text-safe-accent shrink-0">✓</div>
+              <div className="w-10 h-10 rounded-xl bg-safe-accent/10 flex items-center justify-center text-safe-accent shrink-0"><LineIcon className="w-5 h-5">{ICONS.check}</LineIcon></div>
               <div className="min-w-0">
                 <div className="text-safe-accent font-semibold text-base [overflow-wrap:anywhere]">Nenhum vazamento encontrado para {profile?.email}</div>
                 <div className="text-safe-muted text-sm mt-1">Seu email não aparece nas bases de vazamentos consultadas. Continue usando senhas únicas e a verificação em duas etapas.</div>
@@ -290,7 +301,7 @@ export default function Dashboard({ user, onDeleteAccount }) {
 
           {(scanStatus === "pending" || scanStatus === "unverified") && (
             <div className="bg-safe-warn/5 border border-safe-warn/30 rounded-2xl p-5 flex items-center gap-4 mb-6 animate-slide-up">
-              <div className="w-10 h-10 rounded-xl bg-safe-warn/10 flex items-center justify-center text-xl text-safe-warn shrink-0">!</div>
+              <div className="w-10 h-10 rounded-xl bg-safe-warn/10 flex items-center justify-center text-safe-warn shrink-0"><LineIcon className="w-5 h-5">{ICONS.alert}</LineIcon></div>
               <div className="min-w-0">
                 <div className="text-safe-warn font-semibold text-base">
                   {scanStatus === "pending" ? "Estamos analisando o seu email" : "Não conseguimos verificar o seu email agora"}
@@ -307,12 +318,12 @@ export default function Dashboard({ user, onDeleteAccount }) {
 
           {scanStatus === "breached" && (
             <div className="bg-gradient-to-br from-[#180808] to-[#200A0A] border border-safe-danger/40 rounded-2xl p-5 flex items-center gap-4 mb-6 animate-slide-up">
-              <div className="w-10 h-10 rounded-xl bg-safe-danger/10 flex items-center justify-center text-xl shrink-0">⚠</div>
+              <div className="w-10 h-10 rounded-xl bg-safe-danger/10 flex items-center justify-center text-safe-danger shrink-0"><LineIcon className="w-5 h-5">{ICONS.alert}</LineIcon></div>
               <div className="min-w-0">
                 <div className="text-safe-danger font-semibold text-base [overflow-wrap:anywhere]">
                   {plural(totalBreaches, "vazamento")} {totalBreaches === 1 ? "encontrado" : "encontrados"} para {profile?.email}
                 </div>
-                <div className="text-[#7A3030] text-sm mt-1">Seus dados circulam em repositórios de ameaças. Ação imediata recomendada.</div>
+                <div className="text-[#E4A0A0] text-sm mt-1">Seus dados circulam em repositórios de ameaças. Ação imediata recomendada.</div>
               </div>
             </div>
           )}
@@ -368,16 +379,18 @@ export default function Dashboard({ user, onDeleteAccount }) {
                 
                 <div className="flex flex-col gap-3">
                   {[
-                    { label: "Risco atual", value: `${riskScore}/100`, colorClass: "text-safe-danger", icon: "🔑" },
-                    { label: "Classificação", value: classificationText, colorClass: "text-safe-warn", icon: "💳" },
-                    { label: "Vazamentos detectados", value: `${totalBreaches || 0}`, colorClass: "text-safe-secondary", icon: "👤" },
-                    { label: "Última atualização", value: updatedAt ? new Date(updatedAt).toLocaleDateString("pt-BR") : "Sem dados", colorClass: "text-safe-muted", icon: "📅" },
+                    { label: "Risco atual", value: `${riskScore}/100`, color: waitingForScan ? undefined : riskLevel(riskScore).color, colorClass: waitingForScan ? "text-safe-muted" : undefined, icon: ICONS.gauge },
+                    { label: "Classificação", value: classificationText, color: waitingForScan ? undefined : riskLevelByClassification(classification)?.color, colorClass: waitingForScan ? "text-safe-muted" : undefined, icon: ICONS.levels },
+                    { label: "Vazamentos detectados", value: `${totalBreaches || 0}`, colorClass: "text-safe-secondary", icon: ICONS.breach },
+                    { label: "Última atualização", value: updatedAt ? new Date(updatedAt).toLocaleDateString("pt-BR") : "Sem dados", colorClass: "text-safe-muted", icon: ICONS.calendar },
                   ].map(s => (
                     <div key={s.label} className="bg-safe-card border border-safe-border rounded-xl p-4 flex items-center gap-4">
-                      <span className="text-2xl">{s.icon}</span>
+                      <span className="w-10 h-10 rounded-xl bg-safe-hover border border-safe-borderL flex items-center justify-center text-safe-accent shrink-0">
+                        <LineIcon className="w-5 h-5">{s.icon}</LineIcon>
+                      </span>
                       <div>
                         <div className="text-safe-dim text-xs mb-1">{s.label}</div>
-                        <div className={`${s.colorClass} font-semibold text-base`}>{s.value}</div>
+                        <div className={`${s.colorClass ?? "text-safe-text"} font-semibold text-base`} style={s.color ? { color: s.color } : undefined}>{s.value}</div>
                       </div>
                     </div>
                   ))}
@@ -494,7 +507,6 @@ export default function Dashboard({ user, onDeleteAccount }) {
 
           {/* Ligar os alertas agenda uma checagem imediata no backend */}
           <MonitoringSettings onChange={(status) => setProfile((current) => ({ ...current, monitoringEnabled: status.enabled }))} />
-          <AccountSettings hasPassword={profile?.hasPassword !== false} />
         </>
       )}
     </div>

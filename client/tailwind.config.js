@@ -7,24 +7,32 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Visual "cometas" (nov/2026): fundo azul-noite, verde-proteção e luz de cometa
         safe: {
-          bg: "#040C1A",
-          card: "#071220",
-          hover: "#0B1A2E",
-          border: "#152338",
-          borderL: "#1E3554",
-          // Texto branco sobre o azul precisa de 4,5:1 (WCAG AA): #1868F5 dá 4,84:1
-          primary: "#1868F5",
-          primaryD: "#1255CC",
-          secondary: "#38BDF8",
-          accent: "#86EFAC",
-          text: "#EEF4FF",
-          muted: "#7A9DC0",
-          // Texto secundário: 5,1:1 sobre o card (WCAG AA pede 4,5:1; o tom antigo dava 2,65:1)
-          dim: "#6488B0",
+          bg: "#0A0F1C",
+          card: "#0F1626",
+          hover: "#131C30",
+          border: "#1E2840",
+          borderL: "#2A3654",
+          // Botões: texto branco sobre o verde precisa de 4,5:1 (WCAG AA): #1A7F5C dá 4,96:1
+          primary: "#1A7F5C",
+          primaryD: "#16704F",
+          // Verde de destaque em texto e links: 9:1 sobre o fundo
+          secondary: "#4CC99A",
+          // Luz dos cometas e do cadeado (só decoração e ícones)
+          accent: "#6FE3B4",
+          text: "#EEF1F7",
+          muted: "#A3ACC2",
+          // Texto secundário: 6:1 sobre o card
+          dim: "#8690AA",
           danger: "#F87171",
           warn: "#FCD34D",
         }
+      },
+      fontFamily: {
+        sans: ['"Hanken Grotesk"', "system-ui", "-apple-system", '"Segoe UI"', "sans-serif"],
+        serif: ['"Fraunces Variable"', "Georgia", "serif"],
+        mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "monospace"],
       },
       animation: {
         'slide-up': 'slideUp 0.4s ease forwards',

@@ -29,6 +29,18 @@ async function entrar(page, senha) {
   await expect(page.getByRole('heading', { level: 1, name: /Olá/ })).toBeVisible();
 }
 
+/** Abre um item do menu do avatar (barra de navegação): "Editar cadastro" ou "Excluir conta" */
+async function menuDaConta(page, item) {
+  await page.getByRole('button', { name: /Menu da conta/ }).click();
+  await page.getByRole('menu', { name: 'Conta' }).getByRole('menuitem', { name: item }).click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Editar cadastro' })).toBeVisible();
+}
+
+/** Troca de seção pela barra lateral de Editar cadastro */
+async function secaoDoCadastro(page, secao) {
+  await page.getByRole('navigation', { name: 'Seções do cadastro' }).getByRole('button', { name: secao }).click();
+}
+
 test('jornada completa da conta, do cadastro à exclusão', async ({ page }) => {
   test.skip(!LOG, 'Defina E2E_API_LOG com o caminho do log da API');
   test.setTimeout(240_000);
@@ -70,8 +82,13 @@ test('jornada completa da conta, do cadastro à exclusão', async ({ page }) => 
     await expect.poll(() => page.evaluate(() => window.__impressoes)).toBe(1);
   });
 
+  await test.step('o menu do avatar abre Editar cadastro', async () => {
+    await menuDaConta(page, 'Editar cadastro');
+    await expect(page.getByText('Email e senha')).toBeVisible();
+  });
+
   await test.step('baixar os dados entrega o JSON da conta', async () => {
-    await page.getByRole('tab', { name: 'Visão Geral' }).click();
+    await secaoDoCadastro(page, 'Seus dados');
     const [download] = await Promise.all([
       page.waitForEvent('download'),
       page.getByRole('button', { name: 'Baixar meus dados' }).click(),
@@ -83,6 +100,7 @@ test('jornada completa da conta, do cadastro à exclusão', async ({ page }) => 
   });
 
   await test.step('trocar a senha mantém a sessão', async () => {
+    await secaoDoCadastro(page, 'Senha e segurança');
     await page.getByRole('button', { name: 'Trocar senha' }).click();
     await page.getByLabel('SENHA ATUAL').fill(SENHA_1);
     await page.getByLabel('NOVA SENHA', { exact: true }).fill(SENHA_2);
@@ -117,9 +135,13 @@ test('jornada completa da conta, do cadastro à exclusão', async ({ page }) => 
     await entrar(page, SENHA_3);
   });
 
-  await test.step('excluir a conta apaga o acesso', async () => {
-    page.once('dialog', d => d.accept());
-    await page.getByRole('button', { name: 'Excluir conta' }).click();
+  await test.step('excluir a conta pede a confirmação e apaga o acesso', async () => {
+    await menuDaConta(page, 'Excluir conta');
+    const excluir = page.getByRole('button', { name: 'Excluir minha conta' });
+    await expect(excluir).toBeDisabled();
+    await page.getByLabel(/Para confirmar, digite/).fill('EXCLUIR');
+    await excluir.click();
+    await expect(page.getByText(/Sua conta foi excluída/)).toBeVisible();
     await expect(page.getByRole('heading', { level: 1, name: /Olá/ })).toHaveCount(0);
     await page.getByRole('button', { name: 'Entrar', exact: true }).first().click();
     await page.locator('#auth-email').fill(EMAIL);
