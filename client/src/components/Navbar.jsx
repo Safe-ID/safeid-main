@@ -17,7 +17,7 @@ export default function Navbar({ user, onSignOut, onNav, overlay = false }) {
   const overCover = overlay && atTop;
 
   return (
-    <nav className={`w-full h-16 flex items-center justify-between px-4 sm:px-8 md:px-12 border-b sticky top-0 z-50 transition-colors duration-300 ${overCover ? "border-transparent bg-transparent" : "border-safe-border bg-safe-bg/90 backdrop-blur-md"}`}>
+    <nav style={{ viewTransitionName: "safe-nav" }} className={`w-full h-16 flex items-center justify-between px-4 sm:px-8 md:px-12 border-b sticky top-0 z-50 transition-colors duration-300 ${overCover ? "border-transparent bg-transparent" : "border-safe-border bg-safe-bg/90 backdrop-blur-md"}`}>
       <div
         role="link"
         tabIndex={0}

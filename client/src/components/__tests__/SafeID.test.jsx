@@ -228,3 +228,57 @@ describe('textos do painel', () => {
     expect(plural(3, 'vazamento')).toBe('3 vazamentos')
   })
 })
+
+describe('botões voltar e avançar do navegador', () => {
+  beforeEach(() => {
+    window.history.replaceState(null, '', '/')
+    vi.mocked(fetchMe).mockResolvedValue(profile)
+  })
+
+  const landingTitle = () => screen.queryByRole('heading', { level: 1, name: /A informação que protege/ })
+  const loginTitle = () => screen.queryByRole('heading', { level: 1, name: 'Entrar no SafeID' })
+
+  it('voltar sai do login para a página inicial e avançar reabre o login', async () => {
+    vi.mocked(getToken).mockReturnValue(null)
+    const user = userEvent.setup()
+    render(<SafeID />)
+    await waitFor(() => expect(landingTitle()).toBeInTheDocument())
+
+    await user.click(screen.getByRole('button', { name: 'Entrar', exact: true }))
+    expect(loginTitle()).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/')
+
+    window.history.back()
+    await waitFor(() => expect(landingTitle()).toBeInTheDocument())
+    expect(loginTitle()).not.toBeInTheDocument()
+
+    window.history.forward()
+    await waitFor(() => expect(loginTitle()).toBeInTheDocument())
+    expect(landingTitle()).not.toBeInTheDocument()
+  })
+
+  it('sem sessão, uma entrada antiga do painel abre a página inicial', async () => {
+    vi.mocked(getToken).mockReturnValue(null)
+    const user = userEvent.setup()
+    render(<SafeID />)
+    await waitFor(() => expect(landingTitle()).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'Entrar', exact: true }))
+
+    window.history.replaceState({ safeidPage: 'dashboard' }, '', '/')
+    window.dispatchEvent(new PopStateEvent('popstate', { state: { safeidPage: 'dashboard' } }))
+
+    await waitFor(() => expect(landingTitle()).toBeInTheDocument())
+  })
+
+  it('logado, uma entrada antiga do login mantém o painel', async () => {
+    vi.mocked(getToken).mockReturnValue('token')
+    render(<SafeID />)
+    expect(await screen.findByRole('heading', { level: 1, name: /Olá, w+/ })).toBeInTheDocument()
+
+    window.history.replaceState({ safeidPage: 'login' }, '', '/')
+    window.dispatchEvent(new PopStateEvent('popstate', { state: { safeidPage: 'login' } }))
+
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1, name: /Olá, w+/ })).toBeInTheDocument())
+    expect(loginTitle()).not.toBeInTheDocument()
+  })
+})

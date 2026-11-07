@@ -383,3 +383,28 @@ body {
     color: #6b7280;
   }
 }
+
+/* ── Troca de telas tipo aplicativo (View Transitions; sem suporte, troca na hora) ── */
+::view-transition-old(root) { animation: safe-vt-out .16s ease-in both; }
+::view-transition-new(root) { animation: safe-vt-in .28s cubic-bezier(.2,.7,.2,1) both; }
+::view-transition-group(safe-nav) { animation-duration: .2s; }
+@keyframes safe-vt-out { to { opacity: 0; } }
+@keyframes safe-vt-in { from { opacity: 0; transform: translateY(10px); } }
+
+/* ── Carregamento ── */
+/* A abertura só aparece se a sessão demorar: carregamentos rápidos não piscam */
+.safe-boot { animation: safe-boot-in .4s ease .35s both; }
+@keyframes safe-boot-in { from { opacity: 0; } }
+.safe-boot-lock { animation: safe-boot-pulse 1.6s ease-in-out infinite; }
+@keyframes safe-boot-pulse { 50% { opacity: .55; transform: scale(.96); } }
+.safe-skel {
+  background: linear-gradient(100deg, #131C30 30%, #1C2742 50%, #131C30 70%);
+  background-size: 300% 100%;
+  animation: safe-skel 1.4s ease-in-out infinite;
+}
+@keyframes safe-skel { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root), ::view-transition-group(safe-nav) { animation: none; }
+  .safe-boot, .safe-boot-lock, .safe-skel { animation: none; }
+}

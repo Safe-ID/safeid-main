@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import Navbar from "./components/Navbar";
 import Landing from "./components/Landing";
 import Auth from "./components/Auth";
@@ -8,6 +9,7 @@ import ResetPassword from "./components/ResetPassword";
 import Terms from "./components/Terms";
 import { LEGAL_PATHS } from "./lib/legal";
 import NotFound from "./components/NotFound";
+import LockMark from "./components/brand/LockMark";
 import { SESSION_EXPIRED_EVENT, clearToken, fetchMe, getToken, setAuthTokens, setToken, verifyEmail } from "./lib/api";
 
 const MONITORING_NOTICES = {
@@ -63,6 +65,27 @@ function pageFromPath() {
 function resetPath() {
   if (pageFromPath()) window.history.replaceState({}, document.title, "/");
 }
+// Telas que o botão voltar do navegador pode reabrir pela memória do histórico (os textos
+// legais e a página não encontrada já têm o próprio endereço)
+const HISTORY_PAGES = new Set(["landing", "login", "register", "dashboard"]);
+
+/**
+ * Troca de tela com transição suave quando o navegador sabe fazer (View Transitions).
+ * Sem suporte, com movimento reduzido ou com a aba escondida, troca na hora, como antes.
+ */
+function withTransition(update) {
+  const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  if (typeof document.startViewTransition !== "function" || reduce || document.visibilityState === "hidden") {
+    update();
+    return;
+  }
+  try {
+    document.startViewTransition(() => flushSync(update));
+  } catch {
+    update();
+  }
+}
+
 // Título da aba de cada tela: é o que o leitor de tela anuncia ao trocar de página (WCAG 2.4.2)
 const DEFAULT_TITLE = "SafeID: seu email apareceu em algum vazamento?";
 const PAGE_TITLES = {
@@ -95,45 +118,73 @@ export default function SafeID() {
     document.title = PAGE_TITLES[page] ?? DEFAULT_TITLE;
     if (previousPage.current !== page) {
       previousPage.current = page;
-      mainRef.current?.focus();
+      // Tela nova começa do topo; o foco sem rolagem não esconde o começo da página sob a barra fixa
+      mainRef.current?.focus({ preventScroll: true });
+      if (window.scrollY) window.scrollTo(0, 0);
     }
   }, [page]);
+
+  // A entrada atual do histórico guarda a tela aberta nela, para o botão voltar saber o que
+  // reabrir. Só na raiz: os textos legais e a página não encontrada têm endereço próprio
+  useEffect(() => {
+    if (booting || pageFromPath()) return;
+    if (window.history.state?.safeidPage === page) return;
+    window.history.replaceState({ ...(window.history.state ?? {}), safeidPage: page }, document.title);
+  }, [booting, page]);
 
   const openLegal = (target) => {
     if (!isAddressedPage(page)) setLegalReturn(page);
     window.history.pushState({}, document.title, LEGAL_PATHS[target]);
-    setPage(target);
+    withTransition(() => setPage(target));
     window.scrollTo(0, 0);
   };
 
   const closeLegal = () => {
     window.history.pushState({}, document.title, "/");
-    setPage(legalExit);
+    withTransition(() => setPage(legalExit));
     window.scrollTo(0, 0);
   };
 
-  // Botões voltar e avançar do navegador entre os textos legais e o resto do site
+  // Botões voltar e avançar do navegador: textos legais pelo endereço, as outras telas pela
+  // memória do histórico. Painel só com sessão; logado, início, entrar e criar conta levam ao painel
   useEffect(() => {
-    const onPopState = () => setPage(pageFromPath() ?? legalExit);
+    const onPopState = (event) => {
+      const fromPath = pageFromPath();
+      let next = fromPath;
+      if (!next) {
+        const remembered = event.state?.safeidPage;
+        next = HISTORY_PAGES.has(remembered) ? remembered : legalExit;
+        if (user && (next === "landing" || next === "login" || next === "register")) next = "dashboard";
+        if (!user && next === "dashboard") next = "landing";
+      }
+      withTransition(() => setPage(next));
+    };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [legalExit]);
+  }, [legalExit, user]);
 
   const goTo = (p) => {
     // Logado, a logo leva ao painel: voltar para a página inicial apagava o usuário da tela
     // sem apagar o token, um "logout pela metade"
     if (p === "landing" && user) p = "dashboard";
-    resetPath();
-    setNotice("");
-    setLandingNotice(null);
-    setPage(p);
+    // Saindo de um endereço próprio, ele vira a raiz (sem somar entrada); na raiz, cada tela
+    // nova soma uma entrada no histórico, para o botão voltar do navegador funcionar
+    if (pageFromPath()) window.history.replaceState({ safeidPage: p }, document.title, "/");
+    else if (p !== page) window.history.pushState({ safeidPage: p }, document.title);
+    withTransition(() => {
+      setNotice("");
+      setLandingNotice(null);
+      setPage(p);
+    });
   };
   const onAuth = (u, token) => {
     if (token) setToken(token);
     resetPath();
-    setNotice("");
-    setUser(u);
-    setPage("dashboard");
+    withTransition(() => {
+      setNotice("");
+      setUser(u);
+      setPage("dashboard");
+    });
   };
 
   useEffect(() => {
@@ -148,7 +199,14 @@ export default function SafeID() {
     return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
   }, []);
   const onAccountDeleted = () => { clearToken(); setUser(null); setPage("landing"); };
-  const onOut = () => { clearToken(); resetPath(); setUser(null); setPage("landing"); };
+  const onOut = () => {
+    clearToken();
+    resetPath();
+    withTransition(() => {
+      setUser(null);
+      setPage("landing");
+    });
+  };
 
   useEffect(() => {
     let active = true;
@@ -249,8 +307,9 @@ export default function SafeID() {
 
       <main id="conteudo" ref={mainRef} tabIndex={-1} className="flex-1 focus:outline-none">
         {booting && (
-          <div className="py-16 px-6 text-center text-safe-muted">
-            Carregando sessão...
+          <div role="status" className="safe-boot min-h-[60svh] flex flex-col items-center justify-center gap-4 px-6 text-center">
+            <LockMark className="safe-boot-lock w-14 h-auto" />
+            <span className="text-safe-dim text-sm">Carregando sessão...</span>
           </div>
         )}
 
@@ -270,8 +329,8 @@ export default function SafeID() {
           </div>
         )}
         {!booting && page === "landing" && <Landing onNav={goTo} overlapNav={!landingNotice} />}
-        {!booting && page === "register" && <Auth mode="register" onSuccess={(u) => onAuth(u)} onSwitch={() => setPage("login")} onGoToLogin={() => setPage("login")} />}
-        {!booting && page === "login" && <Auth mode="login" notice={notice} onSuccess={(u) => onAuth(u)} onSwitch={() => { setNotice(""); setPage("register"); }} />}
+        {!booting && page === "register" && <Auth mode="register" onSuccess={(u) => onAuth(u)} onSwitch={() => goTo("login")} onGoToLogin={() => goTo("login")} />}
+        {!booting && page === "login" && <Auth mode="login" notice={notice} onSuccess={(u) => onAuth(u)} onSwitch={() => goTo("register")} />}
         {!booting && page === "privacy" && <Privacy onBack={closeLegal} />}
         {!booting && page === "terms" && <Terms onBack={closeLegal} />}
         {!booting && page === "not-found" && <NotFound onBack={() => goTo("landing")} />}

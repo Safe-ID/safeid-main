@@ -292,6 +292,35 @@ export default function Dashboard({ user, onDeleteAccount }) {
         </div>
       )}
 
+      {/* Esqueleto do painel enquanto carrega: a página não "pula" quando os dados chegam */}
+      {loading && (
+        <div aria-hidden="true" className="mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="bg-safe-card border border-safe-border rounded-2xl p-4 sm:p-5">
+                <div className="safe-skel h-8 w-8 rounded-lg mb-4" />
+                <div className="safe-skel h-6 w-16 rounded mb-2" />
+                <div className="safe-skel h-3 w-24 rounded" />
+              </div>
+            ))}
+          </div>
+          <div className="bg-safe-card border border-safe-border rounded-2xl p-5 sm:p-6">
+            <div className="flex gap-3 mb-6">
+              {[0, 1, 2].map((i) => <div key={i} className="safe-skel h-8 w-24 rounded-full" />)}
+            </div>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-4 py-4 border-t border-safe-border first:border-t-0">
+                <div className="safe-skel h-10 w-10 rounded-xl shrink-0" />
+                <div className="flex-1">
+                  <div className="safe-skel h-4 w-2/5 rounded mb-2" />
+                  <div className="safe-skel h-3 w-3/4 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {!loading && error && (
         <div className="bg-gradient-to-br from-[#180808] to-[#200A0A] border border-safe-danger/40 rounded-2xl p-5 mb-6">
           <div className="text-safe-danger font-semibold text-base">Não foi possível carregar o dashboard</div>
