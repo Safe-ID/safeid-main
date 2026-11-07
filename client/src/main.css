@@ -50,14 +50,16 @@ body {
 .safe-lockup {
   position: absolute; left: 0; right: 0;
   top: calc(36% + min(44vw, 27svh) * .95 + 18px);
-  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 20px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 0 20px;
 }
+.safe-lockup-row { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
 .safe-lockup-word { order: 1; opacity: 0; transform: translateY(-10px); transition: opacity .8s .15s, transform .9s .15s cubic-bezier(.2, .8, .2, 1); }
 .safe-lockup-phrase { order: 2; text-wrap: balance; opacity: 0; transform: translateY(10px); transition: opacity .8s .3s, transform .9s .3s cubic-bezier(.2, .8, .2, 1); }
 .safe-lockup-div { display: none; }
+/* O botão da capa só fica clicável (e alcançável pelo teclado) depois que a marca aparece */
+.safe-lockup-cta { visibility: hidden; opacity: 0; transform: translateY(8px); transition: opacity .7s .6s, transform .7s .6s, visibility 0s 1.3s; }
 .is-settled .safe-lockup-word, .is-settled .safe-lockup-phrase { opacity: 1; transform: none; }
-.safe-hint { transition: opacity .5s; }
-.is-settled .safe-hint { opacity: 0; }
+.is-settled .safe-lockup-cta { visibility: visible; opacity: 1; transform: none; transition: opacity .7s .6s, transform .7s .6s, visibility 0s; }
 .safe-hint-line { width: 1px; height: 34px; background: linear-gradient(#6FE3B4, transparent); animation: safe-drip 1.8s ease-in-out infinite; }
 @keyframes safe-drip {
   0% { transform: scaleY(0); transform-origin: top; }
@@ -67,7 +69,7 @@ body {
 }
 @media (min-width: 640px) {
   .safe-cover-lock { width: 96px; }
-  .safe-lockup { flex-direction: row; justify-content: center; gap: 28px; }
+  .safe-lockup-row { flex-direction: row; justify-content: center; gap: 28px; }
   .safe-lockup-phrase { order: 0; text-align: right; transform: translateX(24px); }
   .safe-lockup-div { display: block; order: 1; width: 1px; height: 0; background: #6FE3B4; opacity: .7; transition: height .6s cubic-bezier(.2, .8, .2, 1); }
   .is-settled .safe-lockup-div { height: 72px; }
@@ -114,7 +116,7 @@ body {
 
 /* Sem animações para quem pediu menos movimento: tudo já aparece montado */
 @media (prefers-reduced-motion: reduce) {
-  .safe-flap, .safe-q, .safe-face, .safe-step-text > *, .safe-rise, .safe-lockup-word, .safe-lockup-phrase {
+  .safe-flap, .safe-q, .safe-face, .safe-step-text > *, .safe-rise, .safe-lockup-word, .safe-lockup-phrase, .safe-lockup-cta {
     opacity: 1 !important; transform: none !important;
   }
   .safe-face svg { stroke-dashoffset: 0 !important; }

@@ -66,18 +66,34 @@ function Step({ step, reverse, last }) {
 
 export default function Landing({ onNav, overlapNav = true }) {
   const lockRef = useRef(null);
-  const [scrolled, setScrolled] = useState(false);
+  // Quem pediu menos movimento já vê a capa montada
+  const [scrolled, setScrolled] = useState(
+    () => window.scrollY > 6 || Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches),
+  );
   const [settled, setSettled] = useState(false);
   const [statsRef, statsShown] = useReveal();
   const [finalRef, finalShown] = useReveal();
 
-  // No primeiro movimento para baixo, os cometas se reúnem em volta do cadeado
+  // No primeiro movimento para baixo, os cometas se reúnem em volta do cadeado.
+  // Ao voltar ao topo, eles se espalham de novo
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 6);
-    onScroll();
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y > 6) setScrolled(true);
+      else if (lastY > 6) setScrolled(false);
+      lastY = y;
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Quem não rola também precisa ver a proposta: depois de 3,5 s parado no topo, a capa se monta sozinha
+  useEffect(() => {
+    if (scrolled) return undefined;
+    const timer = window.setTimeout(() => setScrolled(true), 3500);
+    return () => window.clearTimeout(timer);
+  }, [scrolled]);
 
   return (
     <div className="w-full overflow-x-clip">
@@ -89,6 +105,7 @@ export default function Landing({ onNav, overlapNav = true }) {
             <LockMark locked={settled} />
           </div>
           <div className="safe-lockup">
+            <div className="safe-lockup-row">
             <h1 id="landing-title" className="safe-lockup-phrase m-0 font-serif font-medium text-[21px] sm:text-[26px] lg:text-[32px] leading-tight tracking-[-.01em] max-w-[420px]">
               A informação que <em className="text-safe-secondary">protege</em> seus dados
             </h1>
@@ -96,6 +113,14 @@ export default function Landing({ onNav, overlapNav = true }) {
             <p className="safe-lockup-word m-0 font-semibold text-[38px] sm:text-[52px] lg:text-[62px] tracking-[-.03em] leading-none">
               Safe<span className="text-safe-secondary">ID</span>
             </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNav("register")}
+              className="safe-lockup-cta bg-safe-primary hover:bg-safe-primaryD border-none rounded-full text-white py-3 px-7 text-[15px] font-semibold cursor-pointer transition-colors"
+            >
+              Verificar meu email
+            </button>
           </div>
           <div className="safe-hint absolute left-1/2 bottom-6 -translate-x-1/2 flex flex-col items-center gap-2.5 text-[11px] tracking-[.16em] uppercase text-safe-dim" aria-hidden="true">
             Role para baixo

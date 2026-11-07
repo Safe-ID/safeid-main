@@ -232,6 +232,29 @@ export function translateDataClass(value) {
 // Faixas do RiskEngine em português (a API devolve LOW, MODERATE, HIGH, CRITICAL)
 export const CLASSIFICATION_LABELS = { LOW: "Baixo", MODERATE: "Médio", HIGH: "Alto", CRITICAL: "Crítico" };
 
+// Cinco níveis do score com uma cor cada: os mesmos na página inicial (termômetro), no círculo
+// do painel e nos cartões. Faixas do RiskEngine: LOW < 26 ≤ MODERATE < 51 ≤ HIGH < 76 ≤ CRITICAL.
+// Todas as cores passam de 5:1 sobre o card escuro (WCAG AA).
+export const RISK_LEVELS = [
+  { key: "SAFE", label: "Seguro", value: 0, color: "#4CC99A" },
+  { key: "LOW", label: "Baixo", value: 25, color: "#7CC4E8" },
+  { key: "MODERATE", label: "Médio", value: 50, color: "#E8C15A" },
+  { key: "HIGH", label: "Alto", value: 75, color: "#F08A4B" },
+  { key: "CRITICAL", label: "Crítico", value: 100, color: "#F0605D" },
+];
+
+/** Nível do score (0 é "Seguro"; o resto segue as faixas do backend) */
+export function riskLevel(score) {
+  const s = Number(score) || 0;
+  const key = s <= 0 ? "SAFE" : s < 26 ? "LOW" : s < 51 ? "MODERATE" : s < 76 ? "HIGH" : "CRITICAL";
+  return RISK_LEVELS.find((level) => level.key === key);
+}
+
+/** Nível pela classificação que a API devolve (LOW, MODERATE, HIGH, CRITICAL) */
+export function riskLevelByClassification(classification) {
+  return RISK_LEVELS.find((level) => level.key === classification) ?? null;
+}
+
 export function classificationLabel(value) {
   return CLASSIFICATION_LABELS[value] || value;
 }

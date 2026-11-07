@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { C } from "./safeidData";
+import { C, riskLevel } from "./safeidData";
 
 export default function RiskCircle({ val, size, label }) {
   const sz = size || 220;
@@ -33,8 +33,9 @@ export default function RiskCircle({ val, size, label }) {
   };
 
   const filled = (anim / 100) * TOTAL;
-  // Mesmas faixas do RiskEngine do backend: LOW < 26 ≤ MODERATE < 51 ≤ HIGH < 76 ≤ CRITICAL
-  const col = anim < 26 ? C.accent : anim < 51 ? C.warn : C.danger;
+  // Mesmas cinco cores do termômetro da página inicial (faixas do RiskEngine do backend)
+  // Sem resultado verificado (rótulo próprio, ex.: PENDENTE), a cor fica neutra: verde diria "seguro"
+  const col = label ? C.dim : riskLevel(anim).color;
   // label permite trocar o texto quando ainda não há um resultado verificado
   const lbl = label || (val === 0 ? "SEGURO" : val < 26 ? "BAIXO" : val < 51 ? "MÉDIO" : val < 76 ? "ALTO" : "CRÍTICO");
   const sw = sz * 0.057;
@@ -65,11 +66,11 @@ export default function RiskCircle({ val, size, label }) {
         )}
         <circle cx={cx} cy={cy} r={r - sw * 1.8} fill="none" stroke={C.border} strokeWidth="1" opacity="0.4" />
         <text x={cx} y={cy - 4} textAnchor="middle" fill={col}
-          fontSize={sz * 0.19} fontWeight="700" fontFamily="system-ui,sans-serif">
+          fontSize={sz * 0.19} fontWeight="700" fontFamily="'Hanken Grotesk',system-ui,sans-serif">
           {Math.round(anim)}
         </text>
         <text x={cx} y={cy + sz * 0.1} textAnchor="middle" fill={C.dim}
-          fontSize={sz * 0.05} letterSpacing="2" fontFamily="system-ui,sans-serif">
+          fontSize={sz * 0.05} letterSpacing="2" fontFamily="'Hanken Grotesk',system-ui,sans-serif">
           RISK SCORE
         </text>
       </svg>

@@ -11,14 +11,16 @@ const canAnimate = () =>
  * Céu estrelado com cometas vindos de todas as direções, desenhado em canvas.
  * Com `ordered`, os cometas se reúnem em órbitas ao redor do elemento de `anchorRef`
  * (o cadeado), com uma leva extra de feixes que gira rápido, brilha e é absorvida.
+ * `radius` fixa o raio das órbitas em px (padrão: proporcional à tela).
  * `onSettled(true|false)` avisa quando a reunião termina, para trancar o cadeado.
  * Só decoração: o canvas fica escondido dos leitores de tela. Quem pediu menos movimento
  * no sistema vê o céu parado e, se `ordered`, as órbitas já formadas.
  */
-export default function CometSky({ ordered = false, anchorRef, burst = true, onSettled, className = "" }) {
+export default function CometSky({ ordered = false, anchorRef, burst = true, radius, onSettled, className = "" }) {
   const canvasRef = useRef(null);
   const orderedRef = useRef(ordered);
   const settledCb = useRef(onSettled);
+  const noCanvas = useRef(false);
 
   useEffect(() => { orderedRef.current = ordered; }, [ordered]);
   useEffect(() => { settledCb.current = onSettled; }, [onSettled]);
@@ -26,7 +28,8 @@ export default function CometSky({ ordered = false, anchorRef, burst = true, onS
   useEffect(() => {
     const cv = canvasRef.current;
     const ctx = cv?.getContext?.("2d");
-    if (!cv || !ctx) return undefined; // jsdom e navegadores sem canvas
+    noCanvas.current = !ctx;
+    if (!cv || !ctx) { settledCb.current?.(orderedRef.current); return undefined; } // jsdom e navegadores sem canvas
 
     const animate = canAnimate();
     let W = 0, H = 0, cx = 0, cy = 0, R = 0, T = 0, last = 0, raf = 0;
@@ -61,7 +64,7 @@ export default function CometSky({ ordered = false, anchorRef, burst = true, onS
       const box = cv.getBoundingClientRect(), anchor = anchorRef?.current?.getBoundingClientRect();
       cx = anchor ? anchor.left - box.left + anchor.width / 2 : W / 2;
       cy = anchor ? anchor.top - box.top + anchor.height / 2 : H * 0.36;
-      R = Math.min(W * 0.44, H * 0.27);
+      R = radius ?? Math.min(W * 0.44, H * 0.27);
       stars = Array.from({ length: Math.round((W * H) / 9000) }, () => ({ x: Math.random() * W, y: Math.random() * H, r: rnd(0.3, 1.1), a: rnd(0.15, 0.6), f: rnd(0.3, 1.4), p: rnd(0, 6.28) }));
       beams = [];
       const count = W < 640 ? 34 : 52, extras = burst ? (W < 640 ? 60 : 110) : 0;
@@ -166,7 +169,10 @@ export default function CometSky({ ordered = false, anchorRef, burst = true, onS
       document.removeEventListener("visibilitychange", onVisibility);
       window.clearInterval(poll);
     };
-  }, [anchorRef, burst]);
+  }, [anchorRef, burst, radius]);
+
+  // Sem canvas não há animação para esperar: a reunião "termina" na hora
+  useEffect(() => { if (noCanvas.current) settledCb.current?.(ordered); }, [ordered]);
 
   return <canvas ref={canvasRef} aria-hidden="true" className={`absolute inset-0 w-full h-full ${className}`} />;
 }

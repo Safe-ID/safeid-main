@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { RISK_LEVELS } from "../safeidData";
 
 // Sem animação: quem pediu menos movimento, e ambientes sem IntersectionObserver (testes)
 const reduced = () =>
@@ -42,13 +43,8 @@ export function CipherWord({ word, run, delay = 0 }) {
   );
 }
 
-const LEVELS = [
-  { label: "Seguro", value: 0, color: "#4CC99A" },
-  { label: "Baixo", value: 25, color: "#7CC4E8" },
-  { label: "Médio", value: 50, color: "#E8C15A" },
-  { label: "Alto", value: 75, color: "#F08A4B" },
-  { label: "Crítico", value: 100, color: "#F0605D" },
-];
+// Os mesmos cinco níveis e cores do círculo de risco do painel
+const LEVELS = RISK_LEVELS;
 
 /** Termômetro que sobe pelos cinco níveis do score (os mesmos do RiskCircle) */
 export function RiskThermometer({ run, delay = 0 }) {
@@ -81,7 +77,7 @@ export function RiskThermometer({ run, delay = 0 }) {
         <div className="relative h-3.5 rounded-full bg-safe-hover border border-safe-borderL overflow-hidden">
           <div
             className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-300"
-            style={{ width: `${width}%`, background: "linear-gradient(90deg,#4CC99A,#7CC4E8 30%,#E8C15A 55%,#F08A4B 78%,#F0605D)" }}
+            style={{ width: `${width}%`, background: `linear-gradient(90deg,${LEVELS.map((l, i) => `${l.color} ${i * 25}%`).join(",")})` }}
           />
         </div>
         <div className="grid grid-cols-5 mt-2 text-[10.5px]">

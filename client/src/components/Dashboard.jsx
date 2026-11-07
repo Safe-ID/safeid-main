@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { W, translateDataClass, severityFromWeight, classificationLabel, plural } from "./safeidData";
+import { W, translateDataClass, severityFromWeight, classificationLabel, plural, riskLevel, riskLevelByClassification } from "./safeidData";
 import RiskCircle from "./RiskCircle";
 import BreachCard from "./BreachCard";
 import AIPanel from "./AIPanel";
@@ -15,6 +15,23 @@ import {
 } from "../lib/api";
 import CometSky from "./brand/CometSky";
 import LockMark from "./brand/LockMark";
+
+// Ícones de traço no estilo da marca (no lugar de emojis, que mudam de cara em cada aparelho)
+function LineIcon({ children, className = "w-6 h-6" }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {children}
+    </svg>
+  );
+}
+const ICONS = {
+  gauge: <><path d="M4 18a8 8 0 1 1 16 0" /><path d="M12 18l4-5" /><circle cx="12" cy="18" r="1.2" /></>,
+  levels: <><path d="M5 19v-4M10 19v-7M15 19v-10M20 19V5" /></>,
+  breach: <><path d="M12 3 5 6v5c0 5 3 8 7 10 4-2 7-5 7-10V6z" /><path d="M12 8v5M12 16h.01" /></>,
+  calendar: <><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16" /></>,
+  check: <><path d="M5 12.5l4.5 4.5L19 7.5" /></>,
+  alert: <><path d="M12 4 2.5 20h19z" /><path d="M12 10v4.5M12 17.5h.01" /></>,
+};
 
 function resolveLogoPath(logoPath) {
   if (!logoPath || typeof logoPath !== "string") return "";
@@ -32,6 +49,7 @@ function getLogoInitial(item) {
 export default function Dashboard({ user, onDeleteAccount }) {
   const [profile, setProfile] = useState(user);
   const [loading, setLoading] = useState(true);
+  const headerLockRef = useRef(null);
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -185,6 +203,8 @@ export default function Dashboard({ user, onDeleteAccount }) {
   // Sem resultado válido, o backend tenta o scan de novo sozinho de hora em hora:
   // o painel confere a cada 2 minutos para mostrar o resultado assim que ele chegar
   const waitingForScan = scanStatus === "pending" || scanStatus === "unverified";
+  // Cadeado do cabeçalho aberto enquanto o painel carrega ou a primeira análise não terminou
+  const analyzing = loading || scanStatus === "pending";
   useEffect(() => {
     if (loading || error || !waitingForScan) return undefined;
     const timer = setInterval(async () => {
@@ -223,15 +243,20 @@ export default function Dashboard({ user, onDeleteAccount }) {
     <div className="w-full max-w-4xl mx-auto pt-6 sm:pt-10 px-4 sm:px-6 pb-20">
       {/* Cabeçalho com o mesmo céu da página inicial e o cadeado trancado da marca */}
       <div className="relative isolate overflow-hidden mb-8 animate-slide-up rounded-3xl border border-safe-borderL bg-safe-card/70 px-5 py-6 sm:px-8 sm:py-8">
-        <CometSky burst={false} className="-z-10 opacity-50" />
-        <LockMark orbits className="hidden sm:block absolute right-8 top-1/2 -translate-y-1/2 w-12 h-14 opacity-90" />
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between flex-wrap gap-4 sm:pr-20">
+        {/* Enquanto a análise está em andamento, os cometas giram em volta do cadeado aberto;
+            quando o resultado chega, eles se dispersam e o cadeado tranca */}
+        <CometSky ordered={analyzing} anchorRef={headerLockRef} burst={false} radius={64} className={`-z-10 transition-opacity duration-700 ${analyzing ? "opacity-90" : "opacity-50"}`} />
+        <div ref={headerLockRef} className="absolute right-4 top-5 sm:right-8 sm:top-1/2 sm:-translate-y-1/2 w-9 h-11 sm:w-12 sm:h-14">
+          <LockMark orbits={!analyzing} locked={!analyzing} className="w-full h-full" />
+        </div>
+        <span className="sr-only" role="status">{analyzing ? "Analisando o seu email." : ""}</span>
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between flex-wrap gap-4 pr-12 sm:pr-20">
           <div className="min-w-0 max-w-full">
             <p className="text-safe-dim text-sm mb-1 capitalize">
               {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" })}
             </p>
             <h1 className="text-safe-text text-2xl sm:text-3xl font-serif font-medium tracking-tight [overflow-wrap:anywhere]">
-              Olá, {greetingName} 👋
+              Olá, {greetingName}
             </h1>
             <p className="text-safe-muted text-base mt-1 [overflow-wrap:anywhere]">
               Monitorando: <span className="text-safe-secondary">{profile?.email}</span>
@@ -285,7 +310,7 @@ export default function Dashboard({ user, onDeleteAccount }) {
         <>
           {scanStatus === "clean" && (
             <div className="bg-safe-accent/5 border border-safe-accent/30 rounded-2xl p-5 flex items-center gap-4 mb-6 animate-slide-up">
-              <div className="w-10 h-10 rounded-xl bg-safe-accent/10 flex items-center justify-center text-xl text-safe-accent shrink-0">✓</div>
+              <div className="w-10 h-10 rounded-xl bg-safe-accent/10 flex items-center justify-center text-safe-accent shrink-0"><LineIcon className="w-5 h-5">{ICONS.check}</LineIcon></div>
               <div className="min-w-0">
                 <div className="text-safe-accent font-semibold text-base [overflow-wrap:anywhere]">Nenhum vazamento encontrado para {profile?.email}</div>
                 <div className="text-safe-muted text-sm mt-1">Seu email não aparece nas bases de vazamentos consultadas. Continue usando senhas únicas e a verificação em duas etapas.</div>
@@ -295,7 +320,7 @@ export default function Dashboard({ user, onDeleteAccount }) {
 
           {(scanStatus === "pending" || scanStatus === "unverified") && (
             <div className="bg-safe-warn/5 border border-safe-warn/30 rounded-2xl p-5 flex items-center gap-4 mb-6 animate-slide-up">
-              <div className="w-10 h-10 rounded-xl bg-safe-warn/10 flex items-center justify-center text-xl text-safe-warn shrink-0">!</div>
+              <div className="w-10 h-10 rounded-xl bg-safe-warn/10 flex items-center justify-center text-safe-warn shrink-0"><LineIcon className="w-5 h-5">{ICONS.alert}</LineIcon></div>
               <div className="min-w-0">
                 <div className="text-safe-warn font-semibold text-base">
                   {scanStatus === "pending" ? "Estamos analisando o seu email" : "Não conseguimos verificar o seu email agora"}
@@ -312,7 +337,7 @@ export default function Dashboard({ user, onDeleteAccount }) {
 
           {scanStatus === "breached" && (
             <div className="bg-gradient-to-br from-[#180808] to-[#200A0A] border border-safe-danger/40 rounded-2xl p-5 flex items-center gap-4 mb-6 animate-slide-up">
-              <div className="w-10 h-10 rounded-xl bg-safe-danger/10 flex items-center justify-center text-xl shrink-0">⚠</div>
+              <div className="w-10 h-10 rounded-xl bg-safe-danger/10 flex items-center justify-center text-safe-danger shrink-0"><LineIcon className="w-5 h-5">{ICONS.alert}</LineIcon></div>
               <div className="min-w-0">
                 <div className="text-safe-danger font-semibold text-base [overflow-wrap:anywhere]">
                   {plural(totalBreaches, "vazamento")} {totalBreaches === 1 ? "encontrado" : "encontrados"} para {profile?.email}
@@ -373,16 +398,18 @@ export default function Dashboard({ user, onDeleteAccount }) {
                 
                 <div className="flex flex-col gap-3">
                   {[
-                    { label: "Risco atual", value: `${riskScore}/100`, colorClass: "text-safe-danger", icon: "🔑" },
-                    { label: "Classificação", value: classificationText, colorClass: "text-safe-warn", icon: "💳" },
-                    { label: "Vazamentos detectados", value: `${totalBreaches || 0}`, colorClass: "text-safe-secondary", icon: "👤" },
-                    { label: "Última atualização", value: updatedAt ? new Date(updatedAt).toLocaleDateString("pt-BR") : "Sem dados", colorClass: "text-safe-muted", icon: "📅" },
+                    { label: "Risco atual", value: `${riskScore}/100`, color: waitingForScan ? undefined : riskLevel(riskScore).color, colorClass: waitingForScan ? "text-safe-muted" : undefined, icon: ICONS.gauge },
+                    { label: "Classificação", value: classificationText, color: waitingForScan ? undefined : riskLevelByClassification(classification)?.color, colorClass: waitingForScan ? "text-safe-muted" : undefined, icon: ICONS.levels },
+                    { label: "Vazamentos detectados", value: `${totalBreaches || 0}`, colorClass: "text-safe-secondary", icon: ICONS.breach },
+                    { label: "Última atualização", value: updatedAt ? new Date(updatedAt).toLocaleDateString("pt-BR") : "Sem dados", colorClass: "text-safe-muted", icon: ICONS.calendar },
                   ].map(s => (
                     <div key={s.label} className="bg-safe-card border border-safe-border rounded-xl p-4 flex items-center gap-4">
-                      <span className="text-2xl">{s.icon}</span>
+                      <span className="w-10 h-10 rounded-xl bg-safe-hover border border-safe-borderL flex items-center justify-center text-safe-accent shrink-0">
+                        <LineIcon className="w-5 h-5">{s.icon}</LineIcon>
+                      </span>
                       <div>
                         <div className="text-safe-dim text-xs mb-1">{s.label}</div>
-                        <div className={`${s.colorClass} font-semibold text-base`}>{s.value}</div>
+                        <div className={`${s.colorClass ?? "text-safe-text"} font-semibold text-base`} style={s.color ? { color: s.color } : undefined}>{s.value}</div>
                       </div>
                     </div>
                   ))}
