@@ -174,7 +174,7 @@ export default function Landing({ onNav, overlapNav = true }) {
             <span>Safe<span className="text-safe-secondary">ID</span></span>
           </p>
           <p className="font-serif font-medium text-[22px] lg:text-[28px] leading-snug max-w-[640px] mx-auto mt-3.5 mb-4 [text-wrap:balance]">
-            Descubra o que vazou, entenda o risco e saiba exatamente o que fazer.
+            Seus dados vazaram? A gente explica o risco e mostra o caminho.
           </p>
           <p className="text-safe-muted text-sm leading-relaxed max-w-[620px] mx-auto m-0">
             Desenvolvido por acadêmicos do 6º semestre do curso de Análise e Desenvolvimento de Sistemas do Instituto Federal de Educação, Ciência e Tecnologia de São Paulo (IFSP).
