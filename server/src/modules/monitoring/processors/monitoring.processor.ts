@@ -10,6 +10,7 @@ import {
   JOB_MONITOR_SWEEP,
   JOB_MONITORING_RECONCILE,
   JOB_RETRY_INITIAL_SCAN,
+  JOB_TRANSLATE_DESCRIPTIONS,
   QUEUE_MONITORING,
 } from '../../../infra/queue/queue.constants';
 import { HibpPlanService } from '../../../infra/http/hibp-plan.service';
@@ -22,13 +23,15 @@ import { runsWorkers } from '../../../shared/config/app-role';
 import { log } from '../../../shared/utils/logger';
 import { closeQuietly } from '../../../shared/utils/shutdown';
 import { CatalogMonitorService, CatalogSyncOrigin } from '../services/catalog-monitor.service';
+import { BreachDescriptionService } from '../services/breach-description.service';
 import { logRedisErrors } from '../../../infra/cache/redis-errors';
 
 const MONITORING_CONCURRENCY = 2;
 
 /**
  * Worker da fila monitoring: catálogo, varredura, reprocessamento das checagens,
- * limpeza de contas não verificadas, plano HIBP, reconciliação e nova tentativa de scans que falharam.
+ * limpeza de contas não verificadas, plano HIBP, reconciliação, nova tentativa de scans que falharam
+ * e tradução das descrições do catálogo.
  */
 @Injectable()
 export class MonitoringProcessor implements OnModuleInit, OnModuleDestroy {
@@ -42,6 +45,7 @@ export class MonitoringProcessor implements OnModuleInit, OnModuleDestroy {
     private readonly emailVerification: EmailVerificationService,
     private readonly hibpPlan: HibpPlanService,
     private readonly scanService: ScanService,
+    private readonly descriptions: BreachDescriptionService,
   ) {}
 
   onModuleInit(): void {
@@ -103,6 +107,8 @@ export class MonitoringProcessor implements OnModuleInit, OnModuleDestroy {
         return this.reconcile.run();
       case JOB_RETRY_INITIAL_SCAN:
         return this.scanService.retryInitialScan(Number(job.data?.userId));
+      case JOB_TRANSLATE_DESCRIPTIONS:
+        return this.descriptions.translatePending();
       default:
         throw new Error(`Unknown job '${job.name}' in queue ${QUEUE_MONITORING}`);
     }

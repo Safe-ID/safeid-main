@@ -219,12 +219,12 @@ describe('MonitoringSchedulerService', () => {
     delete process.env.HIBP_CATALOG_SYNC_CRON;
   });
 
-  it('registers the six schedulers in BRT with the configured patterns', async () => {
+  it('registers the seven schedulers in BRT with the configured patterns', async () => {
     process.env.HIBP_CATALOG_SYNC_CRON = '0 */3 * * *';
 
     await service.onApplicationBootstrap();
 
-    expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(6);
+    expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(7);
     expect(queue.upsertJobScheduler.mock.calls.map(call => call[0])).toEqual([
       'catalog-probe',
       'catalog-sync',
@@ -232,6 +232,7 @@ describe('MonitoringSchedulerService', () => {
       'cleanup-unverified',
       'hibp-plan-check',
       'monitoring-reconcile',
+      'translate-descriptions',
     ]);
     expect(queue.upsertJobScheduler).toHaveBeenCalledWith(
       'catalog-sync',
@@ -243,7 +244,7 @@ describe('MonitoringSchedulerService', () => {
       { pattern: '0 3 * * 1', tz: 'America/Sao_Paulo' },
       { name: 'monitor-sweep', data: { reason: 'WEEKLY' }, opts: undefined },
     );
-    expect(SCHEDULES).toHaveLength(6);
+    expect(SCHEDULES).toHaveLength(7);
   });
 
   it('writes a heartbeat with a 90 s TTL and refreshes it every 30 s', async () => {
@@ -264,7 +265,7 @@ describe('MonitoringSchedulerService', () => {
 
     await jest.advanceTimersByTimeAsync(10 * 60 * 1000);
 
-    expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(12);
+    expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(14);
   });
 
   it('keeps running when Redis fails', async () => {
@@ -288,6 +289,6 @@ describe('MonitoringSchedulerService', () => {
     await service.onApplicationBootstrap();
     service.onModuleDestroy();
     await jest.advanceTimersByTimeAsync(10 * 60 * 1000);
-    expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(6);
+    expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(7);
   });
 });

@@ -9,6 +9,7 @@ import {
   JOB_HIBP_PLAN_CHECK,
   JOB_MONITOR_SWEEP,
   JOB_MONITORING_RECONCILE,
+  JOB_TRANSLATE_DESCRIPTIONS,
   MONITORING_QUEUE,
 } from '../../../infra/queue/queue.constants';
 import { runsWorkers } from '../../../shared/config/app-role';
@@ -55,6 +56,12 @@ export const SCHEDULES: ScheduleDefinition[] = [
     envVar: 'MONITORING_RECONCILE_CRON',
     defaultPattern: '20 * * * *',
     jobName: JOB_MONITORING_RECONCILE,
+  },
+  {
+    id: 'translate-descriptions',
+    envVar: 'BREACH_TRANSLATE_CRON',
+    defaultPattern: '40 * * * *',
+    jobName: JOB_TRANSLATE_DESCRIPTIONS,
   },
 ];
 

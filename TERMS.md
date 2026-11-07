@@ -36,7 +36,7 @@ Se você ligar os alertas, o SafeID verifica o seu email quando a base de vazame
 
 ## 6. Serviços de terceiros
 
-Os dados de vazamentos vêm do Have I Been Pwned (haveibeenpwned.com), sob a licença Creative Commons Attribution 4.0. O plano de ação indica a ENETSEC, empresa parceira deste Trabalho de Conclusão de Curso, sem contrato comercial com o projeto: ao clicar nos links, você passa a tratar diretamente com ela, sob as condições dela.
+Os dados de vazamentos vêm do Have I Been Pwned (haveibeenpwned.com), sob a licença Creative Commons Attribution 4.0. As descrições dos vazamentos são traduzidas do inglês por inteligência artificial e podem conter imprecisões; o texto original está no site do Have I Been Pwned. O plano de ação indica a ENETSEC, empresa parceira deste Trabalho de Conclusão de Curso, sem contrato comercial com o projeto: ao clicar nos links, você passa a tratar diretamente com ela, sob as condições dela.
 
 ## 7. Disponibilidade
 
@@ -52,4 +52,4 @@ Você pode excluir sua conta a qualquer momento pelo botão "Excluir conta" no p
 
 ## 10. Alterações e lei aplicável
 
-Estes termos podem mudar: a nova versão será publicada nesta página e, se a mudança for relevante, avisaremos você. Valem as leis do Brasil. Última atualização: 3 de novembro de 2026.
+Estes termos podem mudar: a nova versão será publicada nesta página e, se a mudança for relevante, avisaremos você. Valem as leis do Brasil. Última atualização: 7 de novembro de 2026.

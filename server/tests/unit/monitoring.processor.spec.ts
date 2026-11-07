@@ -28,7 +28,9 @@ describe('MonitoringProcessor', () => {
   let emailVerification: any;
   let hibpPlan: any;
   let scanService: any;
-  const build = () => new MonitoringProcessor(catalogMonitor, monitoring, reconcile, emailVerification, hibpPlan, scanService);
+  let descriptions: any;
+  const build = () =>
+    new MonitoringProcessor(catalogMonitor, monitoring, reconcile, emailVerification, hibpPlan, scanService, descriptions);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -46,6 +48,7 @@ describe('MonitoringProcessor', () => {
     emailVerification = { cleanupUnverified: jest.fn(async () => ({ users: 1, tokens: 2 })) };
     hibpPlan = { refresh: jest.fn(async () => ({ rpm: 10 })) };
     scanService = { retryInitialScan: jest.fn(async () => ({ status: 'scanned' })) };
+    descriptions = { translatePending: jest.fn(async () => ({ translated: 2, failed: 0, remaining: 5 })) };
   });
 
   afterEach(() => {
@@ -122,6 +125,11 @@ describe('MonitoringProcessor', () => {
     await processor.process({ name: 'hibp-plan-check', data: {} } as any);
     await processor.process({ name: 'monitoring-reconcile', data: {} } as any);
     await processor.process({ name: 'retry-initial-scan', data: { userId: '12' } } as any);
+    await expect(processor.process({ name: 'translate-descriptions', data: {} } as any)).resolves.toEqual({
+      translated: 2,
+      failed: 0,
+      remaining: 5,
+    });
 
     expect(monitoring.runSweep).toHaveBeenNthCalledWith(1, 'CATALOG_CHANGE');
     expect(monitoring.runSweep).toHaveBeenNthCalledWith(2, 'WEEKLY');
@@ -131,5 +139,6 @@ describe('MonitoringProcessor', () => {
     expect(hibpPlan.refresh).toHaveBeenCalledTimes(1);
     expect(reconcile.run).toHaveBeenCalledTimes(1);
     expect(scanService.retryInitialScan).toHaveBeenCalledWith(12);
+    expect(descriptions.translatePending).toHaveBeenCalledTimes(1);
   });
 });

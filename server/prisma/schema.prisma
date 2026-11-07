@@ -150,6 +150,11 @@ model BreachCatalog {
   isMalware     Boolean
   isStealerLog  Boolean
   raw           Json                   // Payload original (mesmo formato que RiskEngine/AIEngine consomem)
+  // Description da HIBP traduzida para pt-BR, já convertida em trechos seguros ({ text, href?, em?, strong? }[]).
+  // Só vazamentos não sensíveis passam pela IA
+  descriptionPt     Json?
+  // ModifiedDate do vazamento quando foi traduzido: se a HIBP editar o texto, traduz de novo
+  descriptionPtFrom DateTime?
   syncedAt      DateTime  @updatedAt
 
   @@index([addedDate])

@@ -17,6 +17,8 @@ export const JOB_HIBP_PLAN_CHECK = 'hibp-plan-check';
 export const JOB_MONITORING_RECONCILE = 'monitoring-reconcile';
 // Refaz o scan de quem ficou sem resultado (HIBP ou IA fora do ar no cadastro)
 export const JOB_RETRY_INITIAL_SCAN = 'retry-initial-scan';
+// Traduz em lotes as descrições do catálogo da HIBP (só texto público, sem dado de usuário)
+export const JOB_TRANSLATE_DESCRIPTIONS = 'translate-descriptions';
 
 // Jobs da fila email
 export const JOB_SEND_VERIFICATION_EMAIL = 'send-verification-email';
