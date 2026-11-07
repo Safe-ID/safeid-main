@@ -44,7 +44,7 @@ const SECTIONS = [
   {
     title: "6. Serviços de terceiros",
     body: [
-      "Os dados de vazamentos vêm do Have I Been Pwned (haveibeenpwned.com), sob a licença Creative Commons Attribution 4.0. O plano de ação indica a ENETSEC, empresa parceira deste Trabalho de Conclusão de Curso, sem contrato comercial com o projeto: ao clicar nos links, você passa a tratar diretamente com ela, sob as condições dela.",
+      "Os dados de vazamentos vêm do Have I Been Pwned (haveibeenpwned.com), sob a licença Creative Commons Attribution 4.0. As descrições dos vazamentos são traduzidas do inglês por inteligência artificial e podem conter imprecisões; o texto original está no site do Have I Been Pwned. O plano de ação indica a ENETSEC, empresa parceira deste Trabalho de Conclusão de Curso, sem contrato comercial com o projeto: ao clicar nos links, você passa a tratar diretamente com ela, sob as condições dela.",
     ],
   },
   {

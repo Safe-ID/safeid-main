@@ -31,8 +31,9 @@ O SafeID não trata dados sensíveis no sentido do art. 5º, II, da LGPD e não 
 3. **Consulta.** Com o e-mail verificado, um job da fila consulta a API do HIBP com o e-mail da conta. Não existe rota para consultar outro e-mail.
 4. **Diagnóstico.** O Motor de Risco calcula o score a partir dos tipos de dado expostos e da data de cada vazamento.
 5. **Plano de ação.** O modelo de linguagem recebe nome, data e classes de dados dos vazamentos, o score e a classificação, sem o e-mail do titular e sem o nome de vazamentos sensíveis.
-6. **Monitoramento (opcional, por consentimento).** Jobs periódicos verificam vazamentos novos e avisam no painel e por e-mail.
-7. **Encerramento.** O titular pode baixar seus dados, revogar o monitoramento ou excluir a conta a qualquer momento.
+6. **Descrição dos vazamentos.** Em um fluxo separado, sem nenhuma relação com titulares, um job traduz para o português as descrições públicas que a HIBP publica sobre cada vazamento do catálogo. Os vazamentos sensíveis ficam de fora e aparecem só no original. O painel mostra o texto com a fonte e o aviso de tradução automática.
+7. **Monitoramento (opcional, por consentimento).** Jobs periódicos verificam vazamentos novos e avisam no painel e por e-mail.
+8. **Encerramento.** O titular pode baixar seus dados, revogar o monitoramento ou excluir a conta a qualquer momento.
 
 ### 2.2 Inventário de dados
 
@@ -87,7 +88,7 @@ Escala: probabilidade (P) e impacto (I) de 1 a 5; nível = P × I. A probabilida
 | R4 | Tomada de conta por força bruta ou senha vazada | 2 | 4 | 8 | bcrypt; login limitado a 5 tentativas por minuto por IP, com o IP do ALB (correção S07); troca de senha encerra as outras sessões |
 | R5 | Uso do SafeID para descobrir vazamentos de outra pessoa | 1 | 4 | 4 | Sem consulta pública; verificação de titularidade do e-mail; respostas iguais no reenvio de verificação e na recuperação de senha |
 | R6 | Exposição de vazamento sensível a terceiros (IA, caixa de e-mail compartilhada) | 2 | 4 | 8 | Nome de vazamento sensível não vai para a IA nem para o e-mail de alerta, só para o painel após login |
-| R7 | Tratamento pelo provedor de IA além da finalidade | 2 | 3 | 6 | Nenhum identificador pessoal no payload; cache de recomendações de 7 dias reduz chamadas |
+| R7 | Tratamento pelo provedor de IA além da finalidade | 2 | 3 | 6 | Nenhum identificador pessoal no payload; cache de recomendações de 7 dias reduz chamadas; a tradução das descrições envia só texto público do catálogo, nunca dados de titulares |
 | R8 | E-mail do titular em registros técnicos | 2 | 2 | 4 | Logs só em JSON pelo logger estruturado, com `userId` e e-mail mascarado (8 primeiros caracteres do HMAC com `EMAIL_HASH_SECRET`, sem a chave não se confirma um e-mail conhecido); retenção de 30 dias; acesso restrito à conta AWS da equipe |
 | R9 | Chave de hash ausente em produção, tornando o hash do e-mail reversível por dicionário | 1 | 3 | 3 | Chave definida no arquivo de ambiente de produção e enviada ao SSM pelo script de implantação (confirmado em 05/11/2026); aviso no log quando a variável falta |
 | R10 | Menores de idade usando o serviço | 2 | 3 | 6 | Declaração de idade no cadastro; exclusão da conta ao saber de menor (Política, seção 11) |

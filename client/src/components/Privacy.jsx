@@ -36,7 +36,7 @@ const SECTIONS = [
     title: "4. Com quem compartilhamos",
     items: [
       "Have I Been Pwned: recebe o seu email para consultar em quais vazamentos ele aparece.",
-      "Azure AI Foundry (Microsoft), provedor de inteligência artificial: recebe os nomes dos vazamentos e os tipos de dado expostos, para gerar as recomendações. O seu email nunca é enviado, e o nome de um vazamento sensível também não (seção 6).",
+      "Azure AI Foundry (Microsoft), provedor de inteligência artificial: recebe os nomes dos vazamentos e os tipos de dado expostos, para gerar as recomendações. O seu email nunca é enviado, e o nome de um vazamento sensível também não (seção 6). Separadamente, recebe os textos públicos em que o Have I Been Pwned descreve cada vazamento, para traduzi-los para o português: essa tradução não envolve nenhum dado seu e não inclui os vazamentos sensíveis.",
       "Amazon Web Services: hospeda o sistema e o banco de dados e envia os emails do serviço (Amazon SES).",
       "Google: apenas se você escolher entrar com o Google.",
     ],

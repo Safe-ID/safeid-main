@@ -3,6 +3,8 @@ import { DatabaseModule } from '../../infra/database/database.module';
 import { HibpProcessor } from './processors/hibp.processor';
 import { MonitoringProcessor } from './processors/monitoring.processor';
 import { BreachCatalogService } from './services/breach-catalog.service';
+import { BreachDescriptionService } from './services/breach-description.service';
+import { BreachDescriptionsController } from './breach-descriptions.controller';
 import { CatalogMonitorService } from './services/catalog-monitor.service';
 import { MonitoringService } from './services/monitoring.service';
 import { MonitoringReconcileService } from './services/monitoring-reconcile.service';
@@ -22,11 +24,12 @@ import { AuthModule } from '../auth/auth.module';
  */
 @Module({
   imports: [DatabaseModule, ScanModule, BreachesModule, NotificationsModule, AuthModule],
-  controllers: [MonitoringController, JobsHealthController],
+  controllers: [MonitoringController, JobsHealthController, BreachDescriptionsController],
   providers: [
     HibpProcessor,
     MonitoringProcessor,
     BreachCatalogService,
+    BreachDescriptionService,
     CatalogMonitorService,
     MonitoringService,
     MonitoringReconcileService,
