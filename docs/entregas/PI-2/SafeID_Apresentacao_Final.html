@@ -829,7 +829,7 @@ html,body,.reveal-viewport{background:
       </g>
     </svg>
   </div>
-  <aside class="notes"><b>🎤 Kelvyn · 0:30</b> — Apresentar a equipe, os orientadores e o parceiro (SPOPIE2). Frase de abertura: "Seus dados provavelmente já vazaram. A questão é: você sabe o que isso significa e o que fazer?" Dizer que o sistema está em produção e será demonstrado ao vivo.<br><br>⚠️ Antes da banca: religar o NAT Gateway na AWS (sai do "modo economia" em cerca de 15 min), abrir o site e entrar na conta de teste.<br><br>⏱️ Roteiro de 20 min: Kelvyn 1–3 (até 3:00) · Matheus 4–6 (até 6:30) · João 7 (até 7:30) · Lucas 8–11 (até 13:00) · João 12 (até 16:00) · Matheus 13 (até 17:15) · Kelvyn 14–15 (até 18:45). Folga de cerca de 1 min.</aside>
+  <aside class="notes"><b>🎤 Kelvyn · 0:30</b> — Apresentar a equipe, os orientadores e o parceiro (SPOPIE2). Frase de abertura: "Seus dados provavelmente já vazaram. A questão é: você sabe o que isso significa e o que fazer?" Dizer que o sistema está em produção e será demonstrado ao vivo.<br><br>⚠️ Antes da banca: abrir o site e entrar na conta de teste.<br><br>⏱️ Roteiro de 20 min: Kelvyn 1–3 (até 3:00) · Matheus 4–6 (até 6:30) · João 7 (até 7:30) · Lucas 8–11 (até 13:00) · João 12 (até 16:00) · Matheus 13 (até 17:15) · Kelvyn 14–15 (até 18:45). Folga de cerca de 1 min.</aside>
 </section>
 
 <section id="problema">
@@ -1086,7 +1086,7 @@ HTTP/1.1 200 OK
         <path class="edge" d="M160 168 H218" marker-end="url(#ah3)"/>
         <g class="n hl"><rect x="220" y="225" width="230" height="70" rx="14"/><text x="335" y="253">ECS Fargate · 1 task</text><text class="s" x="335" y="273">API+workers · 0,5 vCPU</text></g>
         <path class="edge" d="M295 201 V223" marker-end="url(#ah3)"/>
-        <g class="n data"><rect x="490" y="90" width="250" height="62" rx="14"/><text x="615" y="117">RDS PostgreSQL 16</text><text class="s" x="615" y="137">t3.micro · cifrado · 7 d</text></g>
+        <g class="n data"><rect x="490" y="90" width="250" height="62" rx="14"/><text x="615" y="117">RDS PostgreSQL 16</text><text class="s" x="615" y="137">t3.micro · cifrado · backup 1 d</text></g>
         <g class="n data"><rect x="490" y="180" width="250" height="62" rx="14"/><text x="615" y="207">ElastiCache Redis</text><text class="s" x="615" y="227">cache · BullMQ · limiter</text></g>
         <path class="edge" d="M450 250 C470 250 470 125 488 125" marker-end="url(#ah3)"/>
         <path class="edge" d="M450 258 C470 258 470 215 488 212" marker-end="url(#ah3)"/>
@@ -1100,10 +1100,10 @@ HTTP/1.1 200 OK
   </div>
   <div class="grid g3" style="margin-top:.45em">
     <div class="card fragment rise" style="padding:.45em .7em"><p class="xs muted" style="margin:0"><i class="fa-brands fa-docker hl-b"></i> <b style="color:#fff">Mesma imagem Docker</b> nas duas fases; scripts de implantação versionados.</p></div>
-    <div class="card fragment rise" style="padding:.45em .7em"><p class="xs muted" style="margin:0"><i class="fa-solid fa-dollar-sign hl-a"></i> <b style="color:#fff">US$ 2,45–3,50/dia</b>; NAT desligado no "modo economia" desde 27/10.</p></div>
+    <div class="card fragment rise" style="padding:.45em .7em"><p class="xs muted" style="margin:0"><i class="fa-solid fa-dollar-sign hl-a"></i> <b style="color:#fff">US$ 2,45–3,50/dia</b>; API em sub-rede privada, saída pelo NAT.</p></div>
     <div class="card fragment rise" style="padding:.45em .7em;border-color:rgba(245,158,11,.4)"><p class="xs muted" style="margin:0"><i class="fa-solid fa-code-compare hl-a"></i> <b style="color:#fff">Limite:</b> uma task, sem Multi-AZ; rollback automático do ECS.</p></div>
   </div>
-  <aside class="notes"><b>🎤 Lucas · 1:30</b> — Os dois diagramas de implantação do trabalho (Figuras 15 e 16), como na apresentação da PI-1. Na PI-1, o MVP rodou em PaaS (Railway e Vercel) com o mesmo contêiner Docker; na PI-2, a mesma imagem foi para a AWS sem mudar o código: CloudFront e S3 privado para o front, ALB com TLS, ECS Fargate com API e workers, RDS e ElastiCache em sub-redes privadas, segredos no SSM, logs e alarmes no CloudWatch e e-mails pelo SES. Contar a decisão do modo economia: a task fica em sub-rede pública com IP próprio, mas o security group só aceita o ALB. Limite: uma task só, sem Multi-AZ.</aside>
+  <aside class="notes"><b>🎤 Lucas · 1:30</b> — Os dois diagramas de implantação do trabalho (Figuras 15 e 16), como na apresentação da PI-1. Na PI-1, o MVP rodou em PaaS (Railway e Vercel) com o mesmo contêiner Docker; na PI-2, a mesma imagem foi para a AWS sem mudar o código: CloudFront e S3 privado para o front, ALB com TLS, ECS Fargate com API e workers, RDS e ElastiCache em sub-redes privadas, segredos no SSM, logs e alarmes no CloudWatch e e-mails pelo SES. A task roda em sub-rede privada, sem IP público, e sai para a internet pelo NAT; o security group só aceita o ALB. Se perguntarem: entre 27/10 e 12/11 o NAT ficou desligado ("modo economia"), com a task em sub-rede pública. Limite: uma task só, sem Multi-AZ.</aside>
 </section>
 
 <section id="cripto">
@@ -1447,7 +1447,7 @@ HTTP/1.1 200 OK
         <path class="edge" d="M160 168 H218" marker-end="url(#ah2)"/>
         <g class="n hl"><rect x="220" y="225" width="230" height="70" rx="14"/><text x="335" y="253">ECS Fargate · 1 task</text><text class="s" x="335" y="273">API+workers · 0,5 vCPU</text></g>
         <path class="edge" d="M295 201 V223" marker-end="url(#ah2)"/>
-        <g class="n data"><rect x="490" y="90" width="250" height="62" rx="14"/><text x="615" y="117">RDS PostgreSQL 16</text><text class="s" x="615" y="137">t3.micro · cifrado · 7 d</text></g>
+        <g class="n data"><rect x="490" y="90" width="250" height="62" rx="14"/><text x="615" y="117">RDS PostgreSQL 16</text><text class="s" x="615" y="137">t3.micro · cifrado · backup 1 d</text></g>
         <g class="n data"><rect x="490" y="180" width="250" height="62" rx="14"/><text x="615" y="207">ElastiCache Redis</text><text class="s" x="615" y="227">cache · BullMQ · limiter</text></g>
         <path class="edge" d="M450 250 C470 250 470 125 488 125" marker-end="url(#ah2)"/>
         <path class="edge" d="M450 258 C470 258 470 215 488 212" marker-end="url(#ah2)"/>
@@ -1460,7 +1460,7 @@ HTTP/1.1 200 OK
     </div>
     <div style="flex:1" class="grid">
       <div class="card fragment rise"><h3 class="small"><i class="fa-solid fa-shield-halved hl-g"></i> Menor privilégio</h3><p class="xs muted" style="margin:0">Contêiner só aceita o ALB; banco e Redis só aceitam o contêiner. A aplicação só pode enviar e-mail pelo domínio <span class="mono">safeid.app.br</span>.</p></div>
-      <div class="card fragment rise"><h3 class="small"><i class="fa-solid fa-dollar-sign hl-a"></i> Custo real</h3><p class="xs muted" style="margin:0"><b style="color:#fff">US$ 2,45–3,50/dia</b> (US$ 75–105/mês). Desde 27/10 o NAT fica desligado ("modo economia") e é religado para apresentações.</p></div>
+      <div class="card fragment rise"><h3 class="small"><i class="fa-solid fa-dollar-sign hl-a"></i> Custo real</h3><p class="xs muted" style="margin:0"><b style="color:#fff">US$ 2,45–3,50/dia</b> (US$ 75–105/mês). O NAT foi religado em 12/11 e fica ligado; entre 27/10 e 12/11 ficou desligado ("modo economia").</p></div>
       <div class="card fragment rise" style="border-color:rgba(245,158,11,.4)"><h3 class="small"><i class="fa-solid fa-code-compare hl-a"></i> Desenho × implantação</h3><p class="xs muted" style="margin:0">Uma task só, sem autoescala; RDS e Redis sem Multi-AZ. Assumido como limitação (Seção 5.7).</p></div>
     </div>
   </div>
