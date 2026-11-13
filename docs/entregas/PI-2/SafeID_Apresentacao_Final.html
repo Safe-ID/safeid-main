@@ -1201,7 +1201,7 @@ HTTP/1.1 200 OK
     <div class="card fragment rise" style="flex:1.45">
       <h3 class="small"><i class="fa-solid fa-calendar-days hl-b"></i> Cronograma 2026 (M1 = março · M9 = novembro)</h3>
       <div class="gantt" id="gantt"></div>
-      <div class="legend"><span><i style="background:var(--blue)"></i>executado</span><span><i style="background:var(--green)"></i>implantação na AWS (set. e out.)</span><span><i style="background:#f87171"></i>apresentação final 13/11</span></div>
+      <div class="legend"><span><i style="background:var(--blue)"></i>executado</span><span><i style="background:var(--green)"></i>produção na AWS (set. e out.)</span><span><i style="background:#f87171"></i>apresentação final 13/11</span></div>
     </div>
     <div class="card fragment rise" style="flex:1">
       <h3 class="small"><i class="fa-solid fa-scale-unbalanced hl-g"></i> Viabilidade econômica <span class="tiny">· Apêndice C</span></h3>
@@ -1215,7 +1215,7 @@ HTTP/1.1 200 OK
       <p class="tiny" style="margin:.4em 0 0"><b style="color:#f59e0b">Leitura crítica:</b> LTV/CAC de 12,5 a 29,2, muito acima da referência de 3, indica premissas otimistas, não viabilidade comprovada.</p>
     </div>
   </div>
-  <aside class="notes"><b>🎤 Matheus · 1:15</b> — Papéis da equipe e dedicação de 10–12 h semanais. Cronograma de março a novembro: implantação na AWS em setembro e outubro, qualidade antecipada para a primeira semana de novembro. Não houve Sprint Review formal: a inspeção foi feita na revisão dos PRs e nas reuniões de alinhamento (limitação assumida). Viabilidade: três cenários variando só a conversão; nós mesmos criticamos o LTV/CAC. Riscos e OpEx detalhados nos slides de reserva. Passar a palavra ao Kelvyn.</aside>
+  <aside class="notes"><b>🎤 Matheus · 1:15</b> — Papéis da equipe e dedicação de 10–12 h semanais. Cronograma de março a novembro: primeiro deploy na AWS em maio (M3), arquitetura de produção em setembro e outubro, qualidade antecipada para a primeira semana de novembro. Não houve Sprint Review formal: a inspeção foi feita na revisão dos PRs e nas reuniões de alinhamento (limitação assumida). Viabilidade: três cenários variando só a conversão; nós mesmos criticamos o LTV/CAC. Riscos e OpEx detalhados nos slides de reserva. Passar a palavra ao Kelvyn.</aside>
 </section>
 
 <section id="resultados">
@@ -1657,7 +1657,7 @@ Reveal.on('fragmenthidden', e => {
     ['4. Back-end (PI-2)', [6,7,8]],
     ['5. Front-end (PI-2)', [6,7,8]],
     ['6. Integração com IA', [7,8]],
-    ['7. Implantação (AWS)', [], [7,8]],
+    ['7. Implantação (AWS)', [3], [7,8]],
     ['8. Qualidade e estabilização', [9]],
     ['9. Apresentação final', [], [], [9]]
   ];
@@ -1669,7 +1669,7 @@ Reveal.on('fragmenthidden', e => {
     html += '<div class="lbl">' + lbl + '</div>';
     for (let m = 1; m <= 9; m++) {
       const cls = (fin && fin.includes(m)) ? 'c fin' : (real && real.includes(m)) ? 'c real' : on.includes(m) ? 'c on' : 'c';
-      const tip = (fin && fin.includes(m)) ? 'apresentação final em 13/11' : (real && real.includes(m)) ? 'implantação na AWS' : on.includes(m) ? 'executado' : '';
+      const tip = (fin && fin.includes(m)) ? 'apresentação final em 13/11' : (real && real.includes(m)) ? 'produção na AWS' : on.includes(m) ? (lbl.includes('AWS') ? 'primeiro deploy na AWS' : 'executado') : '';
       html += '<div class="' + cls + '" title="' + lbl + ' · M' + m + (tip ? ' · ' + tip : '') + '"></div>';
     }
   });
