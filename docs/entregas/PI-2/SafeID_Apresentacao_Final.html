@@ -884,11 +884,11 @@ html,body,.reveal-viewport{background:
     <div class="card obj fragment rise"><span class="t">Investigar, selecionar e consumir APIs OSINT de exposição de dados</span><span class="pill ok"><i class="fa-solid fa-check"></i> Concluído · PI-1</span></div>
     <div class="card obj fragment rise"><span class="t">Modelar e implementar o algoritmo de Risk Score</span><span class="pill ok"><i class="fa-solid fa-check"></i> Concluído · PI-1</span></div>
     <div class="card obj fragment rise"><span class="t">Interface web responsiva com termômetro de risco</span><span class="pill ok"><i class="fa-solid fa-check"></i> Concluído · PI-1</span></div>
-    <div class="card obj fragment rise"><span class="t">Persistência do histórico e funções de conta <span class="muted">(falta: múltiplos identificadores, US07)</span></span><span class="pill part"><i class="fa-solid fa-circle-half-stroke"></i> Parcial · PI-1 e PI-2</span></div>
+    <div class="card obj fragment rise"><span class="t">Persistência do histórico e funções de conta <span class="muted">(múltiplos identificadores, US07: trabalho futuro, com o plano pago)</span></span><span class="pill ok"><i class="fa-solid fa-check"></i> Concluído · PI-1 e PI-2</span></div>
     <div class="card obj fragment rise"><span class="t">Integrar uma LLM como assistente cognitivo</span><span class="pill ok"><i class="fa-solid fa-check"></i> Concluído · PI-2</span></div>
     <div class="card obj fragment rise"><span class="t">Privacy by Design e LGPD no ciclo operacional <span class="muted">(com relatório de impacto e plano de resposta a incidentes)</span></span><span class="pill ok"><i class="fa-solid fa-check"></i> Concluído · PI-2</span></div>
   </div>
-  <aside class="notes"><b>🎤 Matheus · 1:00</b> — Objetivo geral e os seis específicos, cada um com a fase e o status real (Seção 5.6). Nenhum ficou "não iniciado". O único parcial: vários e-mails por usuário (US07), que ficou fora do escopo.</aside>
+  <aside class="notes"><b>🎤 Matheus · 1:00</b> — Objetivo geral e os seis específicos, cada um com a fase e o status real (Seção 5.6). Nenhum ficou "não iniciado". Vários e-mails por usuário (US07) ficam como trabalho futuro, junto do plano pago (SafeID Pro, até 3 identificadores). Se a banca comparar com a Seção 5.6, que registra esse objetivo como "concluído parcialmente": histórico e funções de conta estão entregues; a US07 foi adiada para o plano pago.</aside>
 </section>
 
 <section id="risco">
@@ -1248,7 +1248,7 @@ HTTP/1.1 200 OK
         <tr><td>Uma única fonte de <i>threat intelligence</i> (HIBP)</td><td class="ar">→</td><td class="hl-b">segunda fonte</td></tr>
         <tr><td>Sem testes com usuários reais</td><td class="ar">→</td><td class="hl-a">validação de usabilidade</td></tr>
         <tr><td>API e workers no mesmo processo, uma task</td><td class="ar">→</td><td class="hl-a">worker em serviço próprio</td></tr>
-        <tr><td>E-mail como único identificador</td><td class="ar">→</td><td class="hl-a">múltiplos identificadores (US07)</td></tr>
+        <tr><td>E-mail como único identificador</td><td class="ar">→</td><td class="hl-a">múltiplos identificadores no plano pago (US07)</td></tr>
         <tr><td>Carga em rotas simples; Playwright fora do CI</td><td class="ar">→</td><td class="hl-a">carga autenticada e E2E no CI</td></tr>
         <tr><td>Banco e Redis sem Multi-AZ</td><td class="ar">→</td><td class="hl-b">métricas e Multi-AZ</td></tr>
       </table>
@@ -1575,7 +1575,7 @@ HTTP/1.1 200 OK
     <div class="card mos fragment rise" style="border-color:rgba(245,158,11,.45)">
       <h3><span class="hl-a">Should</span><small>continuidade</small></h3>
       <ul>
-        <li>Múltiplos identificadores (US07)</li>
+        <li>Múltiplos identificadores (US07), com o plano pago</li>
         <li>Worker em serviço próprio e disjuntor no Redis</li>
         <li><span class="hl-g">✓</span> E-mail mascarado com HMAC nos logs <em>06/11</em></li>
         <li>Validação de usabilidade com usuários reais</li>
