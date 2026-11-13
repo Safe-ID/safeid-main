@@ -777,6 +777,12 @@ html,body,.reveal-viewport{background:
 .phones img{width:100%;max-width:215px;border-radius:18px;border:2px solid #263247;box-shadow:0 18px 40px rgba(0,0,0,.5);display:block;margin:0 auto}
 .phones figcaption{font:.34em/1.35 var(--mono);color:var(--muted);margin-top:.5em}
 #implantacao svg{width:100%;height:auto}
+.tl-aws{display:flex;flex-direction:column;gap:.7em;margin-top:.6em;border-left:2px solid rgba(96,165,250,.35);padding-left:.8em}
+.tl-aws .tl-i{position:relative}
+.tl-aws .tl-i::before{content:"";position:absolute;left:-1.13em;top:.3em;width:.5em;height:.5em;border-radius:50%;background:var(--blue-2)}
+.tl-aws .tl-i b{display:block;color:#fff;font-size:.58em;margin:0 0 .2em}
+.tl-aws .tl-i p{margin:0;font-size:.48em;color:#94a3b8;line-height:1.4}
+.tl-aws .tag{font-size:.7em;vertical-align:.1em;margin-right:.3em}
 
 .qr-box{display:flex;align-items:center;gap:.8em}
 .qr-box .qr{width:150px;height:150px;border-radius:10px;display:block;box-shadow:0 0 0 6px #fff,0 0 30px rgba(16,185,129,.35)}
@@ -1047,30 +1053,15 @@ HTTP/1.1 200 OK
 
 <section id="implantacao">
   <div class="eyebrow">04 · Diagramas de implantação</div>
-  <h2 style="margin-bottom:.3em">Da PaaS na PI-1 à <span class="hl-a">AWS na PI-2</span></h2>
+  <h2 style="margin-bottom:.3em">Na AWS desde a PI-1, <span class="hl-a">em produção na PI-2</span></h2>
   <div class="row" style="align-items:stretch">
-    <div class="card fragment rise" style="flex:.78;padding:.55em .6em">
-      <h3 class="small"><span class="tag">PI-1</span> MVP em PaaS <span class="tiny">· Figura 15</span></h3>
-      <svg viewBox="0 0 470 400" role="img" aria-label="Diagrama de implantação do MVP da PI-1 em Railway e Vercel" style="width:100%;height:auto">
-        <defs><marker id="ap1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#60a5fa"/></marker>
-              <marker id="ap2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker></defs>
-        <g class="n hl"><rect x="10" y="10" width="170" height="62" rx="14"/><text x="95" y="38">Navegador</text><text class="s" x="95" y="58">SPA React</text></g>
-        <g class="n"><rect x="290" y="10" width="170" height="62" rx="14"/><text x="375" y="38">GitHub Actions</text><text class="s" x="375" y="58">CI · build e deploy</text></g>
-        <g class="n"><rect x="10" y="130" width="170" height="62" rx="14"/><text x="95" y="158">Vercel</text><text class="s" x="95" y="178">arquivos estáticos</text></g>
-        <rect class="zone" x="200" y="104" width="262" height="206" rx="14"/><text class="zlabel" x="214" y="303">RAILWAY (PAAS)</text>
-        <g class="n hl"><rect x="214" y="134" width="234" height="62" rx="14"/><text x="331" y="162">Contêiner Docker</text><text class="s" x="331" y="182">API NestJS + workers BullMQ</text></g>
-        <g class="n data"><rect x="214" y="226" width="108" height="60" rx="12"/><text x="268" y="252">PostgreSQL</text><text class="s" x="268" y="271">gerenciado</text></g>
-        <g class="n data"><rect x="340" y="226" width="108" height="60" rx="12"/><text x="394" y="252">Redis</text><text class="s" x="394" y="271">gerenciado</text></g>
-        <g class="n ext"><rect x="10" y="328" width="170" height="60" rx="12"/><text x="95" y="354">API HIBP v3</text><text class="s" x="95" y="373">vazamentos</text></g>
-        <g class="n ext"><rect x="290" y="328" width="170" height="60" rx="12"/><text x="375" y="354">API de IA</text><text class="s" x="375" y="373">OpenAI «PI-2»</text></g>
-        <path class="edge" d="M95 72 V128" marker-end="url(#ap1)"/><text class="elabel" x="122" y="104">HTTPS</text>
-        <path class="edge" d="M180 41 C230 41 250 70 255 132" marker-end="url(#ap1)"/><text class="elabel" x="214" y="30">REST</text>
-        <path class="edge dim" d="M375 72 V132" marker-end="url(#ap2)"/>
-        <path class="edge" d="M268 196 V224" marker-end="url(#ap1)"/>
-        <path class="edge" d="M394 196 V224" marker-end="url(#ap1)"/>
-        <path class="edge" d="M214 175 C150 200 95 260 95 326" marker-end="url(#ap1)"/>
-        <path class="edge" d="M448 165 C470 200 470 300 420 326" marker-end="url(#ap1)"/>
-      </svg>
+    <div class="card fragment rise" style="flex:.78;padding:.55em .7em">
+      <h3 class="small"><i class="fa-solid fa-timeline hl-b"></i> Linha do tempo da implantação</h3>
+      <div class="tl-aws">
+        <div class="tl-i"><b><span class="tag">PI-1</span> Maio: primeiro deploy, já na AWS</b><p>ECR, ECS Fargate com ALB e HTTPS, RDS e ElastiCache, por scripts da AWS CLI.</p></div>
+        <div class="tl-i"><b><span class="tag">PI-2</span> Set. e out.: produção</b><p>Scripts versionados no repositório e a arquitetura completa da Figura 16.</p></div>
+        <div class="tl-i"><b><span class="tag">13/11</span> Em produção</b><p>Sem PaaS no caminho: a AWS foi a única hospedagem.</p></div>
+      </div>
     </div>
     <div class="card fragment rise" style="flex:1.3;padding:.55em .6em">
       <h3 class="small"><span class="tag">PI-2</span> Produção na AWS <span class="tiny">· Figura 16 · www.safeid.app.br e api.safeid.app.br</span></h3>
@@ -1099,11 +1090,11 @@ HTTP/1.1 200 OK
     </div>
   </div>
   <div class="grid g3" style="margin-top:.45em">
-    <div class="card fragment rise" style="padding:.45em .7em"><p class="xs muted" style="margin:0"><i class="fa-brands fa-docker hl-b"></i> <b style="color:#fff">Mesma imagem Docker</b> nas duas fases; scripts de implantação versionados.</p></div>
+    <div class="card fragment rise" style="padding:.45em .7em"><p class="xs muted" style="margin:0"><i class="fa-brands fa-docker hl-b"></i> <b style="color:#fff">Imagem Docker no ECR</b> desde a PI-1; scripts de implantação versionados.</p></div>
     <div class="card fragment rise" style="padding:.45em .7em"><p class="xs muted" style="margin:0"><i class="fa-solid fa-dollar-sign hl-a"></i> <b style="color:#fff">US$ 2,45–3,50/dia</b>; API em sub-rede privada, saída pelo NAT.</p></div>
     <div class="card fragment rise" style="padding:.45em .7em;border-color:rgba(245,158,11,.4)"><p class="xs muted" style="margin:0"><i class="fa-solid fa-code-compare hl-a"></i> <b style="color:#fff">Limite:</b> uma task, sem Multi-AZ; rollback automático do ECS.</p></div>
   </div>
-  <aside class="notes"><b>🎤 Lucas · 1:30</b> — Os dois diagramas de implantação do trabalho (Figuras 15 e 16), como na apresentação da PI-1. Na PI-1, o MVP rodou em PaaS (Railway e Vercel) com o mesmo contêiner Docker; na PI-2, a mesma imagem foi para a AWS sem mudar o código: CloudFront e S3 privado para o front, ALB com TLS, ECS Fargate com API e workers, RDS e ElastiCache em sub-redes privadas, segredos no SSM, logs e alarmes no CloudWatch e e-mails pelo SES. A task roda em sub-rede privada, sem IP público, e sai para a internet pelo NAT; o security group só aceita o ALB. Se perguntarem: entre 27/10 e 12/11 o NAT ficou desligado ("modo economia"), com a task em sub-rede pública. Limite: uma task só, sem Multi-AZ.</aside>
+  <aside class="notes"><b>🎤 Lucas · 1:30</b> — A AWS foi a única hospedagem do projeto: o primeiro deploy, em maio (PI-1), já usou ECR, ECS Fargate com ALB e HTTPS, RDS e ElastiCache. Na PI-2 os scripts passaram a ser versionados e a arquitetura da Figura 16 ficou completa: CloudFront e S3 privado para o front, ALB com TLS, ECS Fargate com API e workers, RDS e ElastiCache em sub-redes privadas, segredos no SSM, logs e alarmes no CloudWatch e e-mails pelo SES. A task roda em sub-rede privada, sem IP público, e sai para a internet pelo NAT; o security group só aceita o ALB. Se perguntarem: entre 27/10 e 12/11 o NAT ficou desligado ("modo economia"), com a task em sub-rede pública. Limite: uma task só, sem Multi-AZ. Se a banca citar a Figura 15 e a Seção 5.4 do documento (MVP em Railway e Vercel): essa etapa em PaaS não aconteceu; o texto do documento está errado nesse ponto, e o histórico do repositório mostra o deploy na AWS em 26/05.</aside>
 </section>
 
 <section id="cripto">
@@ -1210,7 +1201,7 @@ HTTP/1.1 200 OK
     <div class="card fragment rise" style="flex:1.45">
       <h3 class="small"><i class="fa-solid fa-calendar-days hl-b"></i> Cronograma 2026 (M1 = março · M9 = novembro)</h3>
       <div class="gantt" id="gantt"></div>
-      <div class="legend"><span><i style="background:var(--blue)"></i>executado</span><span><i style="background:var(--green)"></i>implantação na AWS (set. e out.)</span><span><i style="background:#f87171"></i>apresentação final 13/11</span></div>
+      <div class="legend"><span><i style="background:var(--blue)"></i>executado</span><span><i style="background:var(--green)"></i>produção na AWS (set. e out.)</span><span><i style="background:#f87171"></i>apresentação final 13/11</span></div>
     </div>
     <div class="card fragment rise" style="flex:1">
       <h3 class="small"><i class="fa-solid fa-scale-unbalanced hl-g"></i> Viabilidade econômica <span class="tiny">· Apêndice C</span></h3>
@@ -1224,7 +1215,7 @@ HTTP/1.1 200 OK
       <p class="tiny" style="margin:.4em 0 0"><b style="color:#f59e0b">Leitura crítica:</b> LTV/CAC de 12,5 a 29,2, muito acima da referência de 3, indica premissas otimistas, não viabilidade comprovada.</p>
     </div>
   </div>
-  <aside class="notes"><b>🎤 Matheus · 1:15</b> — Papéis da equipe e dedicação de 10–12 h semanais. Cronograma de março a novembro: implantação na AWS em setembro e outubro, qualidade antecipada para a primeira semana de novembro. Não houve Sprint Review formal: a inspeção foi feita na revisão dos PRs e nas reuniões de alinhamento (limitação assumida). Viabilidade: três cenários variando só a conversão; nós mesmos criticamos o LTV/CAC. Riscos e OpEx detalhados nos slides de reserva. Passar a palavra ao Kelvyn.</aside>
+  <aside class="notes"><b>🎤 Matheus · 1:15</b> — Papéis da equipe e dedicação de 10–12 h semanais. Cronograma de março a novembro: primeiro deploy na AWS em maio (M3), arquitetura de produção em setembro e outubro, qualidade antecipada para a primeira semana de novembro. Não houve Sprint Review formal: a inspeção foi feita na revisão dos PRs e nas reuniões de alinhamento (limitação assumida). Viabilidade: três cenários variando só a conversão; nós mesmos criticamos o LTV/CAC. Riscos e OpEx detalhados nos slides de reserva. Passar a palavra ao Kelvyn.</aside>
 </section>
 
 <section id="resultados">
@@ -1666,7 +1657,7 @@ Reveal.on('fragmenthidden', e => {
     ['4. Back-end (PI-2)', [6,7,8]],
     ['5. Front-end (PI-2)', [6,7,8]],
     ['6. Integração com IA', [7,8]],
-    ['7. Implantação (AWS)', [], [7,8]],
+    ['7. Implantação (AWS)', [3], [7,8]],
     ['8. Qualidade e estabilização', [9]],
     ['9. Apresentação final', [], [], [9]]
   ];
@@ -1678,7 +1669,7 @@ Reveal.on('fragmenthidden', e => {
     html += '<div class="lbl">' + lbl + '</div>';
     for (let m = 1; m <= 9; m++) {
       const cls = (fin && fin.includes(m)) ? 'c fin' : (real && real.includes(m)) ? 'c real' : on.includes(m) ? 'c on' : 'c';
-      const tip = (fin && fin.includes(m)) ? 'apresentação final em 13/11' : (real && real.includes(m)) ? 'implantação na AWS' : on.includes(m) ? 'executado' : '';
+      const tip = (fin && fin.includes(m)) ? 'apresentação final em 13/11' : (real && real.includes(m)) ? 'produção na AWS' : on.includes(m) ? (lbl.includes('AWS') ? 'primeiro deploy na AWS' : 'executado') : '';
       html += '<div class="' + cls + '" title="' + lbl + ' · M' + m + (tip ? ' · ' + tip : '') + '"></div>';
     }
   });
