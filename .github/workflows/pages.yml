@@ -1,0 +1,43 @@
+name: Apresentação (GitHub Pages)
+
+# Publica só a apresentação final em https://safe-id.github.io/safeid-main/.
+# O resto do repositório não vai para o site
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/entregas/PI-2/SafeID_Apresentacao_Final.html
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publicar a apresentação
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Montar o site
+        run: |
+          mkdir -p _site
+          cp docs/entregas/PI-2/SafeID_Apresentacao_Final.html _site/index.html
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v5
